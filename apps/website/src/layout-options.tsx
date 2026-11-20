@@ -1,6 +1,8 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 
-const base = import.meta.env.BASE_URL;
+// The repository's brand files, which the README shows too.
+import logoDark from '../../../assets/brand/soundor-components-logo-dark-bg.svg?url';
+import logo from '../../../assets/brand/soundor-components-logo.svg?url';
 
 export const layoutOptions = {
   nav: {
@@ -8,13 +10,13 @@ export const layoutOptions = {
       <>
         {/* The wordmark is outlined in the theme's ink: one file per theme. */}
         <img
-          src={`${base}soundor-components-logo.svg`}
+          src={logo}
           alt="Soundor Components"
           height={36}
           className="h-9 w-auto dark:hidden"
         />
         <img
-          src={`${base}soundor-components-logo-dark-bg.svg`}
+          src={logoDark}
           alt="Soundor Components"
           height={36}
           className="hidden h-9 w-auto dark:block"
