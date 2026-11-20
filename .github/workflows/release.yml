@@ -52,7 +52,6 @@ jobs:
     env:
       NPM_CONFIG_REGISTRY: https://registry.npmjs.org
       NPM_CONFIG_PROVENANCE: 'true'
-      SITE_BASE_PATH: /components/
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
@@ -60,3 +59,18 @@ jobs:
       - uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           script: pnpm release
+
+  # Deploy components.soundor.dev from the released commit (website.yml), so
+  # the docs describe what npm has.
+  website:
+    name: Website
+    needs: publish
+    if: always() && !cancelled() && needs.publish.result == 'success'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/website.yml
+    with:
+      cache: false
+      ref: ${{ github.sha }}
