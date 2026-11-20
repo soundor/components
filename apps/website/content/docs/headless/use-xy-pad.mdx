@@ -1,0 +1,55 @@
+---
+title: useXYPad
+description: Interaction for a custom two-axis pad.
+---
+
+`useXYPad` edits two values with one drag, the arrow keys, and a reset, for a handle of your own. Each axis takes the same props as a range control, so each can be bound to a parameter or driven by `value` and `onChange`.
+
+```tsx
+import { useXYPad } from '@soundor/components/headless';
+import { View } from '@soundor/react';
+
+function Pad() {
+  const pad = useXYPad(
+    { parameter: parameters.cutoff },
+    { parameter: parameters.resonance },
+    { label: 'Filter' },
+  );
+  return (
+    <View {...pad.handlers} style={{ width: 200, height: 160 }}>
+      <Handle
+        x={pad.x.normalized}
+        y={pad.y.normalized}
+        focused={pad.focusVisible}
+      />
+    </View>
+  );
+}
+```
+
+The pad balances both gestures: it opens and closes both parameters' host gestures together, and a reset restores both axes.
+
+## Returns
+
+- `x`, `y`: each axis's state, with `value`, `normalized`, `min`, `max` and `label`.
+- `disabled`: true when both axes are disabled.
+- `handlers`: spread onto a focusable Soundor `View`.
+- `focusVisible`: true only for keyboard focus.
+
+## Parameters
+
+`useXYPad(xProps, yProps, options?)`
+
+### xProps and yProps
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeProps"
+/>
+
+### options
+
+<auto-type-table
+  path="packages/components/src/internal/xy-interaction.ts"
+  name="XYInteraction"
+/>

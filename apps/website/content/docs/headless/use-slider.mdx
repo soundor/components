@@ -1,0 +1,46 @@
+---
+title: useSlider
+description: Interaction for a custom slider.
+---
+
+`useSlider` gives a [`Slider`](/docs/components/slider)-style interaction to a view of your own: a horizontal, absolute drag puts the value where the pointer is. It takes the same props as the component, so a parameter or a standalone `value` both work.
+
+```tsx
+import { useSlider } from '@soundor/components/headless';
+import { View } from '@soundor/react';
+
+function CustomSlider(props: RangeProps) {
+  const slider = useSlider(props, { inset: 8 });
+  return (
+    <View {...slider.handlers} style={{ width: 200, height: 24 }}>
+      <Thumb position={slider.normalized} focused={slider.focusVisible} />
+    </View>
+  );
+}
+```
+
+Defaults: `axis: 'x'`, `dragMode: 'absolute'`. Use `inset` to keep the thumb inside the track's ends.
+
+## Returns
+
+- `value`, `normalized`, `min`, `max`, `label`, `disabled`: the control's current state. `normalized` is `0`–`1` through the parameter's or the `scale` mapping.
+- `handlers`: spread onto a focusable Soundor `View`. They supply pointer, wheel and keyboard input, and the accessibility role and value.
+- `hovered`, `focusVisible`, `pressed`: interaction state for drawing. `focusVisible` is true only for keyboard focus.
+
+## Parameters
+
+`useSlider(props, options?)`
+
+### props
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeProps"
+/>
+
+### options
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeInteraction"
+/>

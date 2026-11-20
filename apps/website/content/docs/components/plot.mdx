@@ -1,0 +1,111 @@
+---
+title: Plot
+description: A canvas chart for responses and measurements.
+---
+
+Use `Plot` for line, area, bar, step, point and band series on linear or log axes, with draggable markers for editing.
+
+<Demo name="plot" height={290} />
+
+Pass sorted `[x, y]` points or evenly spaced `values` (typed arrays work). A marker with both coordinates and `onMove` is draggable and keyboard-adjustable, and a marker with one coordinate draws a guide line. Plot draws the data it is given; analysis and other DSP belong in the plug-in.
+
+### Handles at the ends of an axis
+
+A plot with draggable markers keeps a safe zone: its values are mapped a few pixels inside the plot area, by a handle's radius and halo, so a handle at the end of an axis is whole and never half outside the frame. The grid and axes still run edge to edge.
+
+A series that should too, such as an EQ response, sets `extend: true`. Its first and last values then carry on, level, to the edges of the plot. Leave it off for data that does not continue past its ends, such as a transfer curve or an envelope.
+
+Plot is built from the [chart helpers](/docs/utils/chart-helpers).
+
+## Examples
+
+Each example is a complete component, running here; its code is under it.
+
+### Parametric EQ
+
+Markers are how a plot becomes an editor. Each band is a draggable marker; the plot only draws, and your state holds the bands. The total is an `area` series, and each band is a faint dashed `line` with `hideInReadout`. All of them set `extend`, so the curve runs to the frame even with a handle at 20 Hz or 20 kHz.
+
+<Demo name="plot-eq" height={300} />
+
+### Live spectrum
+
+For data that changes every frame, keep the `series` configuration fixed and give the plot a `seriesSource`. The samples are written into arrays you own and the plot redraws once per frame, with no React render. See [Live plot data](/docs/guides/live-plot-data).
+
+<Demo name="plot-spectrum" height={300} />
+
+### Level bands with peak hold
+
+Two series on one plot: `bars` for the level and `points` for the peaks. A series with `hideInReadout` stays out of the hover readout.
+
+<Demo name="plot-bars" height={280} />
+
+### Compressor curve
+
+A plot beside a control. The marker sets the threshold and the Slider sets the ratio, and the title's `note` shows both. A marker can be fed only the part of its position that you use: here the handle stays on the curve whatever the y of the drag.
+
+<Demo name="plot-compressor" height={360} />
+
+### Envelope editor
+
+Markers can edit different things: the first sets a time, the second a time and a level. A marker with only `x` draws a dashed guide, here for the point where the key is released.
+
+<Demo name="plot-envelope" height={280} />
+
+### Waveform with playhead
+
+A `band` series draws a region between two lines, the way an overview shows the lowest and highest sample of each slice. The playhead is a marker: dragging it pauses playback with `onMoveStart` and resumes with `onMoveEnd`.
+
+<Demo name="plot-waveform" height={250} />
+
+### Step automation
+
+`steps` holds each value until the next point, which suits sequencers and automation. One small marker per step makes every step draggable.
+
+<Demo name="plot-automation" height={260} />
+
+### Combined with an XYPad
+
+A Plot and an [XYPad](/docs/components/xy-pad) can share state, so the picture follows the gesture. See [the XYPad example](/docs/components/xy-pad#drive-a-response-curve).
+
+## Keyboard and accessibility
+
+A marker with `onMove` is a tab stop. The arrow keys move it, and `Shift` makes the step ten times finer. Double-click resets it, and `Esc` cancels a drag. The marker is announced by its `label` (or "Point 1", "Point 2"…) with both values, such as "X 1.20 kHz, Y 4.0 dB".
+
+The plot itself is announced as an image with its `accessibilityLabel` (the `title` if there is none), so describe what it shows. See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+### Plot props
+
+<auto-type-table
+  path="packages/components/src/components/plot/plot.tsx"
+  name="PlotProps"
+/>
+
+### PlotAxis
+
+<auto-type-table
+  path="packages/components/src/components/plot/plot.tsx"
+  name="PlotAxis"
+/>
+
+### PlotSeries
+
+<auto-type-table
+  path="packages/components/src/chart/series.ts"
+  name="PlotSeries"
+/>
+
+### PlotMarker
+
+<auto-type-table
+  path="packages/components/src/chart/series.ts"
+  name="PlotMarker"
+/>
+
+### PlotSeriesSource
+
+<auto-type-table
+  path="packages/components/src/chart/series.ts"
+  name="PlotSeriesSource"
+/>

@@ -1,0 +1,25 @@
+---
+title: ResizeGrip
+description: A bottom-right handle that resizes the editor.
+---
+
+Render `<ResizeGrip />` at the editor root, outside any centered safe area, to put it in the bottom-right corner. It hides automatically when the host does not allow resize requests. Dragging uses screen coordinates, so resizing a scaling editor does not change the drag distance. The arrow keys resize by 10 editor pixels, or 50 with Shift. The host applies its own size limits and can decline requests.
+
+```tsx
+import { ResizeGrip } from '@soundor/components';
+
+<ResizeGrip />;
+```
+
+For a custom handle, call [`useResizeGrip()`](/docs/headless/use-resize-grip) from `@soundor/components/headless`. Render the handle only when `resizable` is true, spread `handlers` onto its Soundor `View`, and use `focusVisible` to draw its focus ring.
+
+## Keyboard and accessibility
+
+`←` `→` `↑` `↓` resize the editor, and `Shift` makes each step five times larger. The grip is announced as "Resize the editor" with the hint "Drag, or use the arrow keys"; both can be changed. See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/resize-grip/resize-grip.tsx"
+  name="ResizeGripProps"
+/>

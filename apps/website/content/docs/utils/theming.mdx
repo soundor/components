@@ -1,0 +1,37 @@
+---
+title: Theming
+description: Customize design tokens, component slots, and the bundled Geist fonts.
+---
+
+## Default theme
+
+Styled components work without a provider and use bundled Geist and Geist Mono. Components register the faces when needed. Call `await registerFonts()` before rendering to preload both families.
+
+## Overrides
+
+Use `ThemeProvider` from `@soundor/components/theme` to override tokens or component slot styles.
+
+```tsx
+import { ThemeProvider } from '@soundor/components/theme';
+
+<ThemeProvider theme={{ spacing: { spaceLg: 14 } }}>
+  <Editor />
+</ThemeProvider>;
+```
+
+`createTheme` builds a theme to share; nested providers inherit tokens and component slots from the nearest one, and a partial override changes only what it names.
+
+```tsx
+import { createTheme, ThemeProvider } from '@soundor/components/theme';
+
+const theme = createTheme({
+  spacing: { spaceLg: 14 },
+  components: { Knob: { value: { fontSize: 10 } } },
+});
+
+<ThemeProvider theme={theme}>
+  <Knob label="Tone" styles={{ value: { fontSize: 11 } }} />
+</ThemeProvider>;
+```
+
+Precedence is component defaults → theme slots → instance `styles` → instance root `style`. Use `useTheme` and `textStyle` to apply shared tokens to your own views. To use another font, register it with `soundor:ui` and set `font.sans` or `font.mono`.

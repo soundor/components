@@ -1,0 +1,37 @@
+---
+title: Formatters and parsers
+description: Show and read values in percent, Hz, dB, ms, and pan.
+---
+
+`formatters` and `parsers` are exported from `@soundor/components`; `@soundor/components/chart` re-exports `formatters`. Pass them as the `format` and `parse` props of [Knob](/docs/components/knob) and the other range controls, or use them in your own displays. Negative numbers use a true minus sign (`−`).
+
+## formatters
+
+Each takes a number and returns a string.
+
+| Formatter              | Input                       | Output               |
+| ---------------------- | --------------------------- | -------------------- |
+| `formatters.percent`   | `0.5`                       | `50%`                |
+| `formatters.frequency` | `440`, `2500`               | `440 Hz`, `2.50 kHz` |
+| `formatters.decibels`  | `-6`                        | `−6.0 dB`            |
+| `formatters.time`      | milliseconds: `250`, `1500` | `250 ms`, `1.50 s`   |
+| `formatters.pan`       | `-0.5`, `0`                 | `L 50`, `C`          |
+
+## parsers
+
+Each takes typed text and returns a number, or `null` when it cannot read it.
+
+| Parser           | Accepts                                                        | Result                                                                                                                                                              |
+| ---------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parsers.number` | `12`, `−3.5`, `2k`, `2 kHz`, `1.5 s`, `250 ms`, `-6 dB`, `50%` | The number, with `k`, `kHz` and `s` multiplied by 1000 and `%` divided by 100. `Hz`, `ms` and `dB` are accepted and kept as typed. A comma may be the decimal mark. |
+| `parsers.pan`    | `L 30`, `R 12`, `-30`, `C`                                     | `-0.3`, `0.12`, `-0.3`, `0`                                                                                                                                         |
+
+```tsx
+import { formatters, parsers } from '@soundor/components';
+
+<ValueField
+  parameter={parameters.pan}
+  format={formatters.pan}
+  parse={parsers.pan}
+/>;
+```

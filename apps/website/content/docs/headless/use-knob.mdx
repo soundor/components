@@ -1,0 +1,52 @@
+---
+title: useKnob
+description: Interaction for a custom knob.
+---
+
+`useKnob` gives a [`Knob`](/docs/components/knob)-style interaction to a view of your own: a vertical drag over 160 logical pixels turns the value across its range. It takes the same props as the component, so a parameter or a standalone `value` both work.
+
+```tsx
+import { useKnob } from '@soundor/components/headless';
+import { View } from '@soundor/react';
+
+function CustomKnob({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const knob = useKnob({ label: 'Mix', value, onChange, defaultValue: 0.5 });
+  return (
+    <View {...knob.handlers} style={{ width: 64, height: 64 }}>
+      <Dial position={knob.normalized} focused={knob.focusVisible} />
+    </View>
+  );
+}
+```
+
+Defaults: `axis: 'y'`, `distance: 160`. Override them in `options`.
+
+## Returns
+
+- `value`, `normalized`, `min`, `max`, `label`, `disabled`: the control's current state. `normalized` is `0`–`1` through the parameter's or the `scale` mapping.
+- `handlers`: spread onto a focusable Soundor `View`. They supply pointer, wheel and keyboard input, and the accessibility role and value.
+- `hovered`, `focusVisible`, `pressed`: interaction state for drawing. `focusVisible` is true only for keyboard focus.
+
+## Parameters
+
+`useKnob(props, options?)`
+
+### props
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeProps"
+/>
+
+### options
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeInteraction"
+/>

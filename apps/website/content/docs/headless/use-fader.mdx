@@ -1,0 +1,46 @@
+---
+title: useFader
+description: Interaction for a custom fader.
+---
+
+`useFader` gives a [`Fader`](/docs/components/fader)-style interaction to a view of your own: a vertical drag that moves the value relative to where it started. It takes the same props as the component, so a parameter or a standalone `value` both work.
+
+```tsx
+import { useFader } from '@soundor/components/headless';
+import { View } from '@soundor/react';
+
+function CustomFader(props: RangeProps) {
+  const fader = useFader(props);
+  return (
+    <View {...fader.handlers} style={{ width: 28, height: 160 }}>
+      <Cap position={fader.normalized} />
+    </View>
+  );
+}
+```
+
+Defaults: `axis: 'y'`, `dragMode: 'relative'`. The drag keeps its grab offset, so the handle does not jump to the pointer.
+
+## Returns
+
+- `value`, `normalized`, `min`, `max`, `label`, `disabled`: the control's current state. `normalized` is `0`–`1` through the parameter's or the `scale` mapping.
+- `handlers`: spread onto a focusable Soundor `View`. They supply pointer, wheel and keyboard input, and the accessibility role and value.
+- `hovered`, `focusVisible`, `pressed`: interaction state for drawing. `focusVisible` is true only for keyboard focus.
+
+## Parameters
+
+`useFader(props, options?)`
+
+### props
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeProps"
+/>
+
+### options
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeInteraction"
+/>

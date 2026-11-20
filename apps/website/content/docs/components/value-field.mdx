@@ -1,0 +1,98 @@
+---
+title: ValueField
+description: A numeric readout you drag, step, or type into.
+---
+
+Use `ValueField` for exact entry. Drag or use the arrow keys and wheel to change the value; double-click or press Enter to type one.
+
+<Demo name="value-field" height={130} />
+
+## Typing a value
+
+Editing shows the value as text, unit included, with only the number selected.
+
+- **A bare number keeps the prefix and unit shown.** With `1.50 s` showing, typing `2` gives `2.00 s`; with `L 30`, typing `20` gives `L 20`.
+- **Nothing moves.** The text starts at the same place in the preview and in the input, so editing starts without a shift, and typing changes only what follows the caret.
+- **Typed text wins.** Type `800 ms` or `R 20`, or select everything first, and the value is read as you typed it. `format` and `parse` decide which units exist: `parsers.number` reads `ms`, `s`, `k`, `kHz`, `Hz`, `dB` and `%`.
+- **A long value is shown whole.** If the value is wider than the field, its text is made smaller to fit, down to 7 px; past that it is clipped on one line. While you type the field keeps its size and scrolls the text inside it. See [Long values](#long-values) for a width that never shrinks it.
+- **Invalid text is rejected.** The field's border turns red and the value stays as it was. Escape cancels.
+
+## Examples
+
+A prefix and a suffix are not props: they are the text around the number in what `format` returns. The field finds the number in that text and selects only the number when you start typing. A prefix and a suffix stay in the text, so you can change them as well. The first demo above has a suffix, ` s` or ` ms`.
+
+### Plain number
+
+`format` returns the number alone, so there is nothing around it.
+
+<Demo name="value-field-plain" height={130} />
+
+### With a prefix
+
+`formatters.pan` writes `L 30`, `C` or `R 30`. The letter is a prefix: it stays in the text with only `30` selected, so typing `20` keeps `L`, and typing `R 20` changes the side.
+
+<Demo name="value-field-prefix" height={130} />
+
+### With a prefix and a suffix
+
+Both at once: `BW 1.50 oct`. Typing `2` gives `BW 2.00 oct`, and selecting everything lets you retype all of it. A `parse` function that finds the number in any text accepts `2`, `2 oct` or `BW 2`.
+
+<Demo name="value-field-both" height={130} />
+
+### Long values
+
+A value that does not fit is made smaller until it does, so it is always readable in full. This is a safety net more than a design: the field should be wide enough for its longest value.
+
+Drag the slider to sweep a frequency from 20 Hz to 20 kHz. The longest text, `20.0 kHz`, is 56 px wide in the default type, and the field adds 18 px of padding and border. A `width` of 76 shows every value at full size, and 56 shrinks the longer ones.
+
+<Demo name="value-field-overflow" height={270} />
+
+To find your own width, take the longest text `format` can return, usually at the minimum, the maximum and a few values between, and use **7 px per character** in the default type, plus 18. For `20.0 kHz` that is 8 × 7 + 18 = 74, so 76 leaves a little room. A different type size or font needs a different figure: measure the longest text in the demo and add 18.
+
+## Usage
+
+### With a parameter
+
+Pass a generated parameter and the control inherits its range, mapping, formatting, parser and reset value. It opens and closes host gestures and records undo history; set `history={false}` to opt out, or `history={{ label: 'Adjust feedback' }}` to name the entry.
+
+```tsx
+<ValueField parameter={parameters.time} width={72} />
+```
+
+### Without a parameter
+
+Pass `value` and `onChange` (or `defaultValue`) with the range you need. A controlled control should update `value` in response to `onChange`.
+
+```tsx
+const [time, setTime] = useState(250);
+
+<ValueField
+  label="Time"
+  min={1}
+  max={2000}
+  value={time}
+  onChange={setTime}
+  format={formatters.time}
+  parse={parsers.number}
+/>;
+```
+
+## Keyboard and accessibility
+
+The field takes the same keys as a Knob while it is focused. `Enter` opens it for typing, `Enter` again applies and `Esc` leaves the value as it was. While you type, the field is a text input, so the platform's own editing and selection shortcuts apply. An invalid entry is announced with the hint "Enter a valid value". See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+### ValueField props
+
+<auto-type-table
+  path="packages/components/src/components/value-field/value-field.tsx"
+  name="ValueFieldProps"
+/>
+
+### Range props
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeProps"
+/>

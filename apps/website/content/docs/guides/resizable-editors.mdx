@@ -1,0 +1,34 @@
+---
+title: Resizable editors
+description: Let users resize the editor, and keep the layout sensible at any size.
+---
+
+Render [`ResizeGrip`](/docs/components/resize-grip) at the editor's root to put a handle in the bottom-right corner. It appears only when the host allows resizing, so it is safe to leave in every build.
+
+```tsx
+import { ResizeGrip } from '@soundor/components';
+import { View } from '@soundor/react';
+
+export function Editor() {
+  return (
+    <View style={{ flex: 1 }}>
+      <Controls />
+      <ResizeGrip />
+    </View>
+  );
+}
+```
+
+## Placement
+
+Put the grip outside any centered safe area, directly in the view that fills the editor, so it stays in the corner when the editor has another shape than you designed for.
+
+## Behavior
+
+- **Drag** uses screen coordinates, so resizing a scaling editor does not change the drag distance.
+- **Arrow keys** resize by 10 editor pixels, or 50 with Shift.
+- **The host decides.** It applies its own size limits and can decline a request.
+
+## Your own handle
+
+For a different look, use [`useResizeGrip`](/docs/headless/use-resize-grip): render your handle only while `resizable` is true, spread `handlers` onto it, and draw a focus ring from `focusVisible`.

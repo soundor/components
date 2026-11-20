@@ -1,0 +1,63 @@
+---
+title: Getting started
+description: Install Soundor Components and bind controls to plug-in parameters.
+---
+
+Install the package in a [Soundor project](https://soundor.dev/docs):
+
+```sh
+pnpm add @soundor/components
+```
+
+Components work in Soundor's VST3 and web runtimes. Use `@soundor/react` 0.19 and React 19.3 or compatible patch releases. Build with the Soundor CLI to resolve runtime imports and package the bundled fonts.
+
+<Demo name="gallery" height={360} />
+
+## Bind a control to a parameter
+
+```tsx
+import { ControlGroup, Knob, Slider } from '@soundor/components';
+import { parameters } from 'soundor:parameters';
+
+export function DelayControls() {
+  return (
+    <ControlGroup title="Delay">
+      <Knob parameter={parameters.feedback} />
+      <Slider parameter={parameters.mix} />
+    </ControlGroup>
+  );
+}
+```
+
+Bound controls inherit parameter limits and formatting. They manage host gestures and undo history, and support keyboard input.
+
+## Use without a parameter
+
+Every control also works on its own. Pass `value` and `onChange`, with `min`, `max`, `step`, `scale` and `format` as needed:
+
+```tsx
+const [mix, setMix] = useState(0.5);
+
+<Slider label="Mix" value={mix} onChange={setMix} />;
+```
+
+Range controls take drag, wheel, arrows, Page Up/Down, Home/End and double-click to reset. Shift makes adjustments finer and Escape cancels a drag.
+
+See the controls in use in [Orbit](https://soundor.dev/docs/examples/orbit), a Soundor delay plug-in.
+
+## What's in the package
+
+| Import                         | Contains                                                                                |
+| ------------------------------ | --------------------------------------------------------------------------------------- |
+| `@soundor/components`          | The [components](/docs/components/button), `formatters`, `parsers`, and `registerFonts` |
+| `@soundor/components/theme`    | `ThemeProvider`, `createTheme`, `useTheme`, `textStyle`, and `registerFonts`            |
+| `@soundor/components/headless` | The interaction [hooks](/docs/headless/use-knob)                                        |
+| `@soundor/components/chart`    | Scales, geometry, drawing, `formatters`                                                 |
+
+Styled components pair an interaction with a look and need no provider. The headless hooks are the interaction alone: they handle gestures, keyboard input, focus and accessibility, and leave the drawing to you.
+
+## Next steps
+
+- [Theming](/docs/utils/theming): tokens, slots, and fonts.
+- [Button](/docs/components/button) and the rest of the components, each with its props.
+- [useKnob](/docs/headless/use-knob) and the other hooks, to draw controls yourself.

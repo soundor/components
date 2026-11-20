@@ -1,0 +1,69 @@
+---
+title: XYPad
+description: Edit two values with one drag.
+---
+
+Use `XYPad` when two parameters belong together, such as a filter's cutoff and resonance. A drag edits both, and the arrow keys edit one axis at a time. Each axis takes the numeric control props.
+
+<Demo name="xy-pad" height={260} />
+
+## Usage
+
+### With a parameter
+
+Give each axis a generated parameter and the pad inherits its range, mapping, formatting, parser and reset value. It opens and closes host gestures and records undo history; set `history={false}` to opt out, or `history={{ label: 'Adjust feedback' }}` to name the entry.
+
+```tsx
+<XYPad
+  title="Filter"
+  x={{ parameter: parameters.cutoff }}
+  y={{ parameter: parameters.resonance }}
+/>
+```
+
+### Without a parameter
+
+Give each axis its own `value` and `onChange` with the range you need. A controlled control should update `value` in response to `onChange`.
+
+```tsx
+<XYPad
+  title="Filter"
+  x={{
+    label: 'Cutoff',
+    min: 20,
+    max: 20000,
+    scale: 'log',
+    value: cutoff,
+    onChange: setCutoff,
+  }}
+  y={{ label: 'Resonance', value: resonance, onChange: setResonance }}
+/>
+```
+
+## Examples
+
+### Drive a response curve
+
+Put the pad's values in state and draw them: the pad edits cutoff and resonance, and a [Plot](/docs/components/plot) beside it shows the filter they describe. The cutoff axis is `scale: 'log'`, so equal drags cover equal musical distances.
+
+<Demo name="xy-pad-filter" height={260} />
+
+## Keyboard and accessibility
+
+The pad is one tab stop. `←` `→` change X, `↓` `↑` change Y, and `Shift` makes the step ten times finer. Double-click resets both axes. A screen reader hears both values together, such as "Cutoff 1.20 kHz, Resonance 35%", and gets actions to increase and decrease each axis. Give the axes `label`s so they read well. See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+### XYPad props
+
+<auto-type-table
+  path="packages/components/src/components/xy-pad/xy-pad.tsx"
+  name="XYPadProps"
+/>
+
+### Range props
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeProps"
+/>

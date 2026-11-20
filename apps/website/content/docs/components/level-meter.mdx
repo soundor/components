@@ -1,0 +1,27 @@
+---
+title: LevelMeter
+description: dB levels with a held peak and a latched clip.
+---
+
+Use `LevelMeter` for one or more channels. It exposes its level to assistive technology, and its clip indicator stays lit until pressed.
+
+<Demo name="level-meter" height={140} />
+
+## Examples
+
+### Stereo master
+
+Pass one value per channel. Peaks hold for `peakHold` seconds and then fall at `fallRate` dB per second; `warningAt` and `clipAt` change the colour. The indicator at the top latches when the level reaches `clipAt`, and a click on it clears it.
+
+<Demo name="level-meter-stereo" height={290} />
+
+## Keyboard and accessibility
+
+The meter is announced as a progress bar with its label and level. The clip indicator is a separate button, reachable with `Tab` and cleared with `Enter` or `Space`, and it is named, for a meter labelled Master, "Reset Master clip indicator". See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/level-meter/level-meter.tsx"
+  name="LevelMeterProps"
+/>
