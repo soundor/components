@@ -1,0 +1,43 @@
+---
+title: TextField
+description: A single-line input for names, labels and other free text.
+---
+
+Use `TextField` for text that is not a number: preset names, tags, search. For a number you also want to drag, use [ValueField](/docs/components/value-field).
+
+<Demo name="text-field" height={130} />
+
+## Examples
+
+### Validation
+
+The field does not judge the text. Pass `error` when it is wrong and the border turns red and the message replaces the description. Pass nothing when it is fine.
+
+<Demo name="text-field-validation" height={170} />
+
+### Sizes and states
+
+`size` matches the other controls. A disabled field shows its text and can be neither focused nor edited.
+
+<Demo name="text-field-states" height={330} />
+
+## Usage
+
+```tsx
+const [name, setName] = useState('Warm Pad');
+
+<TextField label="Preset name" value={name} onChange={setName} />;
+```
+
+`onChange` runs after every edit. `onSubmit` runs on Enter, which is the place to apply or save. Leave out `value` and pass `defaultValue` to let the field keep its own text.
+
+## Keyboard and accessibility
+
+The field is a text input, so the platform's own editing and selection shortcuts apply. `Enter` calls `onSubmit`. It is named by `label`, or by `accessibilityLabel` when you pass one. `error` is read as the field's hint, so the reason is announced with the field. See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/text-field/text-field.tsx"
+  name="TextFieldProps"
+/>

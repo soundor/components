@@ -1,0 +1,55 @@
+---
+title: Knob
+description: A 270° dial for one numeric value.
+---
+
+Use `Knob` for parameters that read well as a dial, such as feedback or tone.
+
+<Demo name="knob" height={200} />
+
+## Usage
+
+### With a parameter
+
+Pass a generated parameter and the control inherits its range, mapping, formatting, parser and reset value. It opens and closes host gestures and records undo history; set `history={false}` to opt out, or `history={{ label: 'Adjust feedback' }}` to name the entry.
+
+```tsx
+import { Knob, formatters } from '@soundor/components';
+
+<Knob parameter={parameters.feedback} size="lg" format={formatters.percent} />;
+```
+
+### Without a parameter
+
+Pass `value` and `onChange` (or `defaultValue`) with the range you need. A controlled control should update `value` in response to `onChange`.
+
+```tsx
+const [feedback, setFeedback] = useState(0.4);
+
+<Knob
+  label="Feedback"
+  value={feedback}
+  onChange={setFeedback}
+  format={formatters.percent}
+/>;
+```
+
+## Keyboard and accessibility
+
+`←` `→` `↑` `↓` change the value by 1% of the range, `Page Up` and `Page Down` by 10%, and `Home` and `End` go to the minimum and maximum. `Shift` makes any of them ten times finer, in drag and wheel too. Double-click resets the value and `Esc` cancels a drag. A screen reader hears the label and formatted value, and can increment, decrement, set or reset it. See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+### Knob props
+
+<auto-type-table
+  path="packages/components/src/components/knob/knob.tsx"
+  name="KnobProps"
+/>
+
+### Range props
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeProps"
+/>

@@ -1,0 +1,28 @@
+---
+title: SegmentedControl
+description: Single selection from a few options.
+---
+
+Use `SegmentedControl` to choose one of a small set of options. Arrow keys move between options and skip disabled ones.
+
+<Demo name="segmented-control" height={130} />
+
+A parameter can supply the options through `parameter.info.options`.
+
+## Keyboard and accessibility
+
+The group is one tab stop. `←` `↑` select the previous option and `→` `↓` the next, wrapping at the ends; `Home` and `End` select the first and the last. It is announced as a radio group, with each option's state. Use `label` for the group's name and an option's `hint` for anything unclear. See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/segmented-control/segmented-control.tsx"
+  name="SegmentedControlProps"
+/>
+
+### SegmentOption
+
+<auto-type-table
+  path="packages/components/src/components/segmented-control/segmented-control.tsx"
+  name="SegmentOption"
+/>

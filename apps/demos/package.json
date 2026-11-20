@@ -1,0 +1,25 @@
+{
+  "name": "@soundor/components-demos",
+  "private": true,
+  "description": "The live demos the documentation embeds: Soundor Components running in the web runtime.",
+  "type": "module",
+  "scripts": {
+    "build": "soundor build web",
+    "dev": "soundor dev web",
+    "doctor": "soundor doctor",
+    "gen": "soundor gen",
+    "typecheck": "soundor gen && tsc -b"
+  },
+  "dependencies": {
+    "@soundor/components": "workspace:*",
+    "@soundor/react": "catalog:",
+    "@soundor/web-runtime": "catalog:",
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@soundor/config": "catalog:",
+    "@types/react": "catalog:",
+    "soundor": "catalog:",
+    "typescript": "catalog:"
+  }
+}

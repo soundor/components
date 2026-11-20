@@ -1,0 +1,46 @@
+---
+title: useValueField
+description: Interaction for a custom valuefield.
+---
+
+`useValueField` gives a [`ValueField`](/docs/components/value-field)-style interaction to a view of your own: a vertical drag over 200 logical pixels, arrows and the wheel step it. It takes the same props as the component, so a parameter or a standalone `value` both work.
+
+```tsx
+import { useValueField } from '@soundor/components/headless';
+import { View } from '@soundor/react';
+
+function CustomValue(props: RangeProps) {
+  const field = useValueField(props);
+  return (
+    <View {...field.handlers}>
+      <Text>{props.format?.(field.value) ?? String(field.value)}</Text>
+    </View>
+  );
+}
+```
+
+Defaults: `axis: 'y'`, `distance: 200`. Set `onDoubleClick` in `options` to open a text input for typed entry; the `parse` prop turns typed text back into a number.
+
+## Returns
+
+- `value`, `normalized`, `min`, `max`, `label`, `disabled`: the control's current state. `normalized` is `0`–`1` through the parameter's or the `scale` mapping.
+- `handlers`: spread onto a focusable Soundor `View`. They supply pointer, wheel and keyboard input, and the accessibility role and value.
+- `hovered`, `focusVisible`, `pressed`: interaction state for drawing. `focusVisible` is true only for keyboard focus.
+
+## Parameters
+
+`useValueField(props, options?)`
+
+### props
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeProps"
+/>
+
+### options
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeInteraction"
+/>

@@ -1,0 +1,50 @@
+---
+title: Slider
+description: A horizontal control for one numeric value.
+---
+
+Use `Slider` where a horizontal track fits the layout.
+
+<Demo name="slider" height={130} />
+
+## Usage
+
+### With a parameter
+
+Pass a generated parameter and the control inherits its range, mapping, formatting, parser and reset value. It opens and closes host gestures and records undo history; set `history={false}` to opt out, or `history={{ label: 'Adjust feedback' }}` to name the entry.
+
+```tsx
+<Slider parameter={parameters.mix} />
+```
+
+### Without a parameter
+
+Pass `value` and `onChange` (or `defaultValue`) with the range you need. A controlled control should update `value` in response to `onChange`.
+
+```tsx
+const [mix, setMix] = useState(0.5);
+
+<Slider label="Mix" value={mix} onChange={setMix} />;
+```
+
+The default drag is absolute with the track's ends inset; set `dragMode="relative"` to move from where the drag started.
+
+## Keyboard and accessibility
+
+`←` `→` `↑` `↓` change the value by 1% of the range, `Page Up` and `Page Down` by 10%, and `Home` and `End` go to the minimum and maximum. `Shift` makes any of them ten times finer. A click jumps the handle to the pointer (hold `Shift` to grab it where it is), double-click resets the value, and `Esc` cancels a drag. A screen reader hears the label and formatted value, and can increment, decrement, set or reset it. See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+### Slider props
+
+<auto-type-table
+  path="packages/components/src/components/slider/slider.tsx"
+  name="SliderProps"
+/>
+
+### Range props
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeProps"
+/>

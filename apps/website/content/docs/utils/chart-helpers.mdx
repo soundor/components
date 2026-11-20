@@ -1,0 +1,11 @@
+---
+title: Chart helpers
+description: Scales, viewports, and drawing helpers behind Plot and XYPad.
+---
+
+`@soundor/components/chart` exports the pieces `Plot` and `XYPad` are made of:
+
+- **Geometry:** scales and their inverses, viewport and coordinate helpers, ticks, formatting, and hit testing.
+- **Drawing:** clipping, axes, grids, line, area, bar, step, point and band series, markers and handles. Draw on Soundor's `Canvas` context.
+
+Size the canvas with Soundor's `useCanvasSize` for device-pixel accuracy. The geometry helpers have no dependency on the theme or fonts.

@@ -1,0 +1,13 @@
+{
+  "title": "Headless",
+  "pages": [
+    "---Range---",
+    "use-knob",
+    "use-slider",
+    "use-fader",
+    "use-value-field",
+    "---Other---",
+    "use-xy-pad",
+    "use-resize-grip"
+  ]
+}

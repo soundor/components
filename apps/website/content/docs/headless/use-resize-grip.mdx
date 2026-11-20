@@ -1,0 +1,47 @@
+---
+title: useResizeGrip
+description: Drag and keyboard behavior for a custom editor resize handle.
+---
+
+`useResizeGrip` is the interaction behind [`ResizeGrip`](/docs/components/resize-grip): it asks the host to resize the editor from a drag or the arrow keys. Use it to draw a handle of your own.
+
+```tsx
+import { useResizeGrip } from '@soundor/components/headless';
+import { View } from '@soundor/react';
+
+function Grip() {
+  const grip = useResizeGrip({ keyStep: 20 });
+  if (!grip.resizable) return null;
+  return (
+    <View
+      {...grip.handlers}
+      style={{
+        position: 'absolute',
+        right: 0,
+        bottom: 0,
+        width: 18,
+        height: 18,
+      }}
+    >
+      <Corner focused={grip.focusVisible} />
+    </View>
+  );
+}
+```
+
+Render the handle only while `resizable` is true; the host decides, and it applies its own size limits and can decline requests. Dragging uses screen coordinates, so resizing a scaling editor does not change the drag distance. The arrow keys resize by `keyStep` editor pixels, or five times that with Shift.
+
+## Returns
+
+- `handlers`: spread onto a Soundor `View`.
+- `resizable`: whether the host allows resize requests.
+- `focusVisible`: true only for keyboard focus, and only while resizable.
+
+## Parameters
+
+`useResizeGrip(options?)`
+
+<auto-type-table
+  path="packages/components/src/internal/resize-interaction.ts"
+  name="ResizeGripOptions"
+/>

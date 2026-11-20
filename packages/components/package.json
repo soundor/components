@@ -1,0 +1,60 @@
+{
+  "name": "@soundor/components",
+  "version": "0.0.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soundor/components.git",
+    "directory": "packages/components"
+  },
+  "files": [
+    "dist",
+    "assets",
+    "CHANGELOG.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./headless": {
+      "types": "./dist/headless.d.ts",
+      "import": "./dist/headless.js"
+    },
+    "./theme": {
+      "types": "./dist/theme.d.ts",
+      "import": "./dist/theme.js"
+    },
+    "./chart": {
+      "types": "./dist/chart.d.ts",
+      "import": "./dist/chart.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -b && tsdown --clean",
+    "dev": "tsdown --watch",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "devDependencies": {
+    "@soundor/environment": "catalog:",
+    "@soundor/react": "catalog:",
+    "@soundor/testing-library": "catalog:",
+    "@soundor/vitest": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "vitest-environment-soundor": "catalog:"
+  },
+  "peerDependencies": {
+    "@soundor/react": "^0.19.0",
+    "react": "^19.3.0"
+  }
+}

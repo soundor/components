@@ -1,0 +1,26 @@
+{
+  "title": "Components",
+  "defaultOpen": true,
+  "pages": [
+    "---Actions---",
+    "button",
+    "toggle",
+    "segmented-control",
+    "---Range controls---",
+    "knob",
+    "slider",
+    "fader",
+    "value-field",
+    "text-field",
+    "---Displays---",
+    "level-meter",
+    "plot",
+    "xy-pad",
+    "---Layout---",
+    "panel",
+    "control-group",
+    "divider",
+    "---Editor---",
+    "resize-grip"
+  ]
+}

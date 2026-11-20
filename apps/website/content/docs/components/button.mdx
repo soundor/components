@@ -1,0 +1,49 @@
+---
+title: Button
+description: A pressable action, in surface, accent, or ghost style.
+---
+
+Use `Button` to trigger an action, such as loading the next preset.
+
+<Demo name="button" height={150} />
+
+Pass `leading` or `trailing` to add an icon or other content around the label. When `children` is not a string, set `accessibilityLabel`.
+
+## Loading
+
+Set `loading` while the action the button started is under way. The label gives way to a spinner, so the button keeps its width, and presses are ignored until you clear it. Press a button to try it.
+
+<Demo name="button-loading" height={150} />
+
+```tsx
+<Button loading={saving} onPress={save}>
+  Save preset
+</Button>
+```
+
+A loading button is not disabled: it keeps its focus and its look, and assistive technology hears it as busy, still named by its label. Use `disabled` when the action is not available at all.
+
+## Disabled
+
+Set `disabled` when the action is not available: it dims the button, drops it from the tab order and ignores presses. Turn it on and off with your own state; here Apply waits for a change.
+
+<Demo name="button-disabled" height={200} />
+
+```tsx
+<Button variant="accent" disabled={!dirty} onPress={apply}>
+  Apply
+</Button>
+```
+
+Prefer `loading` for an action that is under way. A disabled button that is also `loading` shows the spinner, dimmed, and stays unavailable after loading ends until you clear `disabled`.
+
+## Keyboard and accessibility
+
+A Button is a tab stop. `Enter` or `Space` presses it. Give a button without text, such as an icon, an `accessibilityLabel`. See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/button/button.tsx"
+  name="ButtonProps"
+/>

@@ -1,0 +1,32 @@
+---
+title: Custom controls
+description: Draw a control of your own on top of Soundor interaction hooks.
+---
+
+Use a [headless hook](/docs/headless/use-knob) when the styled components do not fit your design. The hook owns the interaction; you own the pixels.
+
+1. **Call the hook** with the props the matching component takes: a `parameter`, or `value` and `onChange`.
+2. **Spread `handlers`** onto a focusable Soundor `View`. They supply pointer, wheel and keyboard input, plus the accessibility role and value.
+3. **Draw from the state.** `normalized` runs `0`–`1` across the range whatever the parameter's mapping, `focusVisible` is true only for keyboard focus, and `hovered` and `pressed` follow the pointer.
+
+```tsx
+import { useKnob } from '@soundor/components/headless';
+import { View } from '@soundor/react';
+
+function CustomKnob({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const knob = useKnob({ label: 'Mix', value, onChange, defaultValue: 0.5 });
+  return (
+    <View {...knob.handlers} style={{ width: 64, height: 64 }}>
+      <Dial position={knob.normalized} focused={knob.focusVisible} />
+    </View>
+  );
+}
+```
+
+Importing from `@soundor/components/headless` loads neither the theme nor the fonts. Hooks are available for each control: [`useKnob`](/docs/headless/use-knob), [`useSlider`](/docs/headless/use-slider), [`useFader`](/docs/headless/use-fader), [`useValueField`](/docs/headless/use-value-field), [`useXYPad`](/docs/headless/use-xy-pad) and [`useResizeGrip`](/docs/headless/use-resize-grip). For a custom chart, see the [chart helpers](/docs/utils/chart-helpers).

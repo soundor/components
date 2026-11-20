@@ -1,0 +1,48 @@
+---
+title: Live plot data
+description: Feed a Plot from a running signal without re-rendering React.
+---
+
+A `Plot` can draw data that changes every frame, such as a measured spectrum, without a React render per update. Keep the `series` configuration stable and give the plot a `seriesSource`: an object with `get()` and `subscribe(listener)`. Its samples replace the configured data by index, and each notification schedules one canvas draw for the next frame.
+
+```tsx
+import { Plot, formatters, type PlotSeriesSource } from '@soundor/components';
+
+// UI-side store: the plug-in publishes a coherent snapshot, the plot reads it.
+function createSpectrumSource(): PlotSeriesSource & {
+  publish(values: Float32Array): void;
+} {
+  let current: { values: Float32Array }[] | undefined;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => current,
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    publish(values) {
+      current = [{ values }];
+      for (const listener of listeners) listener();
+    },
+  };
+}
+
+const spectrum = createSpectrumSource();
+const series = [{ label: 'Input', type: 'area' as const }];
+
+<Plot
+  width={480}
+  height={200}
+  series={series}
+  seriesSource={spectrum}
+  x={{ domain: [20, 20_000], scale: 'log', format: formatters.frequency }}
+  y={{ domain: [-90, 0], format: formatters.decibels }}
+/>;
+```
+
+- **Stable configuration.** Define `series` outside the component or memoize it; only the samples should change.
+- **Evenly spaced `values`.** With `values`, samples are spread evenly across the x domain. Use `points` for sorted `[x, y]` pairs.
+- **Coherent snapshots.** Keep reusable sample buffers on the UI side and notify only when a whole snapshot is ready.
+- **Analysis stays in the plug-in.** `Plot` draws what it is given; frequency analysis and other DSP belong in the plug-in.
+
+See [Plot](/docs/components/plot) for every prop.

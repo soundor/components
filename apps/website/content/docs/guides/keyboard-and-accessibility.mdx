@@ -1,0 +1,88 @@
+---
+title: Keyboard and accessibility
+description: Shortcuts, pointer tips and what screen readers get from each control.
+---
+
+Every control can be used without a pointer, and the same shortcuts work in every runtime. They also apply to a custom control built on a [headless hook](/docs/headless/use-knob).
+
+## Moving between controls
+
+`Tab` and `Shift+Tab` move focus through the controls in the order they are drawn. A focus ring shows around the focused control, **only** for keyboard focus: a click or a double-click never draws it. Disabled controls are skipped.
+
+Inside a [SegmentedControl](/docs/components/segmented-control) the group is a single stop, and the arrow keys move within it.
+
+## Shortcuts
+
+### Knob, Slider, Fader and ValueField
+
+| Input                      | Does                                            |
+| -------------------------- | ----------------------------------------------- |
+| `←` `↓` / `→` `↑`          | Decrease / increase by 1% of the range          |
+| `Page Down` / `Page Up`    | Decrease / increase by 10% of the range         |
+| `Home` / `End`             | Go to the minimum / maximum                     |
+| `Shift` with any key above | Ten times finer                                 |
+| Mouse wheel                | Change by 1% per notch, `Shift` for finer       |
+| Drag                       | Change; `Shift` while dragging for fine control |
+| Double-click               | Reset to the default value                      |
+| `Esc` while dragging       | Cancel the drag and restore the value           |
+
+Steps follow the control's mapping, so on a log-scaled frequency control 1% is a step along the curve, not a fixed number of hertz. A [Slider](/docs/components/slider) jumps to where you click and then follows the pointer; hold `Shift` as you press to grab the handle where it is instead, without a jump.
+
+[ValueField](/docs/components/value-field) also takes `Enter` to type a value, and `Enter` again to apply it or `Esc` to leave it unchanged. See [Typing a value](/docs/components/value-field#typing-a-value) for what it accepts.
+
+### Buttons
+
+| Input              | Does                              |
+| ------------------ | --------------------------------- |
+| `Enter` or `Space` | Press a Button, switch a Toggle   |
+| `←` `↑` / `→` `↓`  | Select the previous / next option |
+| `Home` / `End`     | Select the first / last option    |
+
+In a SegmentedControl the selection follows focus and wraps around at the ends.
+
+### XYPad and draggable Plot markers
+
+| Input                 | Does                                       |
+| --------------------- | ------------------------------------------ |
+| `←` / `→`             | Decrease / increase X                      |
+| `↓` / `↑`             | Decrease / increase Y                      |
+| `Shift` with an arrow | Ten times finer                            |
+| Drag                  | Move both values; `Shift` for fine control |
+| Double-click          | Reset both axes to their defaults          |
+| `Esc` while dragging  | Cancel the drag                            |
+
+Every marker with `onMove` on a [Plot](/docs/components/plot) is its own tab stop and behaves like an XYPad.
+
+### ResizeGrip
+
+`←` `→` `↑` `↓` resize the editor by a few pixels; `Shift` makes the step five times larger.
+
+## Tips
+
+- **Fine adjustment is `Shift`.** It works on keys, wheel and drag alike, so it is the one habit worth teaching.
+- **Double-click is the reset.** Set the parameter's default and users always have a way back. Bound controls take it from the parameter; others take `defaultValue`.
+- **Typing beats dragging for exact values.** A ValueField beside a Knob or a Fader gives both.
+- **Cancel with `Esc`.** A drag is one gesture for the host, and `Esc` cancels it and restores the value from before.
+
+## What assistive technology gets
+
+| Control                         | Role                       | What it reports                                                     |
+| ------------------------------- | -------------------------- | ------------------------------------------------------------------- |
+| Knob, Slider, Fader, ValueField | `adjustable`               | Label, formatted value, minimum, maximum                            |
+| XYPad, Plot marker              | `adjustable`               | Both values in one phrase, such as "Cutoff 1.20 kHz, Resonance 35%" |
+| Button                          | `button`                   | Label, disabled                                                     |
+| Toggle                          | `switch` or `togglebutton` | Label, on or off                                                    |
+| SegmentedControl                | `radiogroup` of `radio`    | Group label, each option, which one is selected                     |
+| LevelMeter                      | `progressbar`              | Label and level; the clip indicator is a button that clears it      |
+| Plot                            | `image`                    | Its `accessibilityLabel`, or its title                              |
+| Panel, ControlGroup             | `header`                   | The title                                                           |
+
+Adjustable controls also offer the actions a screen reader lists: **increment**, **decrement**, **set value** and **reset to default**. An XYPad adds **Increase** and **Decrease** for its Y axis.
+
+### Making your plug-in accessible
+
+- **Give every control a name.** A bound control takes its label from the parameter. Without one, pass `label` or `accessibilityLabel`: a nameless knob is announced as a number alone.
+- **Describe what is not obvious.** `accessibilityHint` is read after the name: "Drag, or use the arrow keys" is built in for the resize grip, and your own hints belong on anything unusual.
+- **Label plots, and say what they show.** A Plot is announced as an image, so `accessibilityLabel="Compressor transfer curve"` is what a screen reader user gets. Put the numbers that matter in a control beside it: a Plot's draggable markers are reachable, but the curve itself is not described.
+- **Do not rely on colour.** The clip and warning colours of a LevelMeter are also in its reported level, and the accent variants of a Button always have text. Keep that when you theme.
+- **Keep focus visible.** If you restyle a component with `StyleProps`, keep its focus ring, or draw your own from `focusVisible` in a headless hook.

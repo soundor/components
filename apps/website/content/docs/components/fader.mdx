@@ -1,0 +1,55 @@
+---
+title: Fader
+description: A vertical control with optional tick marks.
+---
+
+Use `Fader` for level-style parameters. Its drag is relative to where it started.
+
+<Demo name="fader" height={260} />
+
+## Usage
+
+### With a parameter
+
+Pass a generated parameter and the control inherits its range, mapping, formatting, parser and reset value. It opens and closes host gestures and records undo history; set `history={false}` to opt out, or `history={{ label: 'Adjust feedback' }}` to name the entry.
+
+```tsx
+<Fader parameter={parameters.gain} ticks={[-24, -12, 0, 6]} length={160} />
+```
+
+### Without a parameter
+
+Pass `value` and `onChange` (or `defaultValue`) with the range you need. A controlled control should update `value` in response to `onChange`.
+
+```tsx
+const [gain, setGain] = useState(0);
+
+<Fader
+  label="Gain"
+  min={-24}
+  max={6}
+  value={gain}
+  onChange={setGain}
+  ticks={[-24, -12, 0, 6]}
+/>;
+```
+
+## Keyboard and accessibility
+
+`←` `→` `↑` `↓` change the value by 1% of the range, `Page Up` and `Page Down` by 10%, and `Home` and `End` go to the minimum and maximum. `Shift` makes any of them ten times finer, in drag and wheel too. Double-click resets the value and `Esc` cancels a drag. A screen reader hears the label and formatted value, and can increment, decrement, set or reset it. See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+### Fader props
+
+<auto-type-table
+  path="packages/components/src/components/fader/fader.tsx"
+  name="FaderProps"
+/>
+
+### Range props
+
+<auto-type-table
+  path="packages/components/src/internal/range.ts"
+  name="RangeProps"
+/>
