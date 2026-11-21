@@ -68,7 +68,7 @@ A list or menu keeps focus while it is open, and holds it inside the editor. `Es
 
 ### EnvelopeEditor
 
-Each handle is a tab stop. On the attack, sustain and release handles the arrow keys, `Page Up`, `Page Down`, `Home`, `End` and the wheel work as on a Knob; on the decay handle, `←` `→` move the decay and `↓` `↑` the sustain. Double-click resets a handle's stages, and `Esc` cancels a drag. See [EnvelopeEditor](/docs/components/envelope-editor#editing).
+Each handle is a tab stop. On the attack, sustain and release handles the arrow keys, `Page Up`, `Page Down`, `Home`, `End` and the wheel work as on a Knob; on the decay handle, `←` `→` move the decay and `↓` `↑` the sustain. Double-click resets a handle's stage (on the decay handle, the decay only: the sustain has its own), and `Esc` cancels a drag. See [EnvelopeEditor](/docs/components/envelope-editor#editing).
 
 ### ResizeGrip
 
@@ -98,6 +98,22 @@ Each handle is a tab stop. On the attack, sustain and release handles the arrow 
 | Panel, ControlGroup             | `header`                   | The title                                                                     |
 
 Adjustable controls also offer the actions a screen reader lists: **increment**, **decrement**, **set value** and **reset to default**. An XYPad adds **Increase** and **Decrease** for its Y axis.
+
+### Actions of your own
+
+Every control takes `accessibilityActions` and `onAccessibilityAction`. Your actions are offered after the control's own, which stay first and stay the control's: an action named like one of its own is left out, and asking for one of its own never reaches your handler. A [ContextMenu](/docs/components/context-menu) uses this to offer **Show menu**.
+
+```tsx
+<Knob
+  parameter={parameters.cutoff}
+  accessibilityActions={[{ name: 'learn', label: 'MIDI learn' }]}
+  onAccessibilityAction={(event) => {
+    if (event.actionName === 'learn') startLearn('cutoff');
+  }}
+/>
+```
+
+Every control also takes a `ref` to the node assistive technology is on (a SegmentedControl's is its group, and its options each offer your actions). A Dropdown places its menu beside its trigger by that ref.
 
 ### Making your plug-in accessible
 

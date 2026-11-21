@@ -3,7 +3,7 @@ title: ContextMenu
 description: A menu for what it wraps, at the pointer or from the keyboard.
 ---
 
-Wrap a control in `ContextMenu` to give it a menu. The menu opens on the platform's secondary press (a right-click, or a Control-click on a Mac) at the pointer. From the keyboard, `Shift+F10` or the context menu key opens it beside the focused control. It uses the same items, and the same menu, as a [Dropdown](/docs/components/dropdown).
+Wrap a control in `ContextMenu` to give it a menu. The menu opens on the platform's secondary press (a right-click, or a Control-click on a Mac) or a long touch, at the pointer. From the keyboard, `Shift+F10` or the context menu key opens it beside the focused control, and a screen reader's "Show menu" action does the same. It uses the same items, and the same menu, as a [Dropdown](/docs/components/dropdown).
 
 <Demo name="context-menu" height={300} />
 
@@ -32,14 +32,27 @@ Parameter context menus aren't added to the controls automatically: wrap the one
 
 ## Layout
 
-ContextMenu renders a view around its children, laid out as a column like any view. In a row it is as wide as its child; where the child should grow, give the wrapper `containerStyle={{ flex: 1 }}`.
+ContextMenu adds no view of its own: it attaches to its child, which lays out exactly as it would without it. The child is one element that takes a `ref` and `accessibilityActions`: any control of this library, or a `View`. Its own `ref`, actions and handler keep working.
+
+For a group of controls, wrap them in a `View` and give that to the ContextMenu. A secondary press, a long touch and the keys reach it from any control inside. A screen reader's action, though, is offered by the control it is on, and a plain `View` is not one: where each control should offer "Show menu", give each its own ContextMenu.
+
+```tsx
+<ContextMenu items={() => [...parameterMenuItems(mix), ...more]}>
+  <View style={{ flexDirection: 'row', gap: 12 }}>
+    <Knob parameter={mix} />
+    <Knob parameter={tone} />
+  </View>
+</ContextMenu>
+```
 
 ## Keyboard and accessibility
 
 | Input                                | Does                                                          |
 | ------------------------------------ | ------------------------------------------------------------- |
 | Secondary press                      | Open at the pointer, with focus on the menu                   |
+| A touch held still (500 ms)          | Open at the touch, with focus on the menu                     |
 | `Shift+F10`, or the context menu key | Open beside the focused control, with focus on the first item |
+| A screen reader's "Show menu"        | Open beside the control, with focus on the first item         |
 | `↑` / `↓`, `Home` / `End`, a letter  | Move between items                                            |
 | `Enter`, `Space` or a click          | Run the item                                                  |
 | `Esc`, `Tab` or a click outside      | Close, and give focus back to the control                     |
@@ -48,7 +61,9 @@ ContextMenu renders a view around its children, laid out as a column like any vi
 
 - **Secondary press:** Soundor's `contextmenu` event, on the secondary button going down in the VST3 and web runtimes, with its position in the view. The web runtime's own browser menu is kept away.
 - **Clipboard:** `soundor:ui`'s `clipboard`. Copy and Paste are only offered where the runtime has one. A clipboard the platform refuses, such as a browser that denies permission to read it, makes them do nothing rather than fail.
-- **Not available:** Soundor has no long-press-to-open on touch screens. Screen-reader users open the menu with `Shift+F10` or the context menu key: a custom accessibility action has to be listed by the focused control itself, and the existing controls don't take extra actions. The context menu key is reported where the platform reports it; `Shift+F10` works everywhere.
+- **Long touch:** pointer events of type `touch`. A touch held for `longPressDelay` (500 ms) without moving more than a few pixels opens the menu; one that moves first is the control's drag. `longPressDelay={0}` turns it off.
+- **"Show menu":** a custom accessibility action, added after the control's own (a Knob's increment, decrement, set value and reset). Screen readers list custom actions by their label: VoiceOver's Actions rotor, TalkBack's actions menu, Narrator's and NVDA's where the platform exposes them. macOS's own `AXShowMenu` isn't available to a Soundor control, so VoiceOver users find it under Actions, not with its usual key.
+- **Context menu key:** reported where the platform reports it; `Shift+F10` works everywhere.
 - A menu is drawn inside the editor, as every Soundor overlay is, and is held within the editor's bounds. It can't extend past the plugin window as a system menu can.
 
 ## Props
