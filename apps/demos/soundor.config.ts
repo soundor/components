@@ -1,15 +1,17 @@
 import { defineSoundorConfig } from '@soundor/config';
+import { vst3Runtime } from '@soundor/vst3-runtime';
 import { webRuntime } from '@soundor/web-runtime';
 
 // The plugin the docs' demos run in: a parameter or two for each kind of
-// control, and a UI (src/main.tsx) that shows one demo at a time. Only the
-// web runtime: the demos live in the documentation.
+// control, and a UI (src/main.tsx) that shows one demo at a time. The web
+// build is what the documentation embeds; the VST3 build is for the
+// end-to-end tests in the VST3 host (e2e/vst3), never shipped.
 export default defineSoundorConfig({
   plugin: {
     id: 'dev.soundor.components.demos',
     name: 'Soundor Components demos',
   },
-  runtimes: [webRuntime()],
+  runtimes: [webRuntime(), vst3Runtime()],
   parameters: {
     feedback: {
       type: 'float32',

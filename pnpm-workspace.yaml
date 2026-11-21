@@ -11,6 +11,9 @@ catalog:
   '@soundor/react': ^0.19.0
   '@soundor/testing-library': ^0.19.0
   '@soundor/vitest': ^0.19.0
+  '@soundor/vitest-e2e': ^0.19.0
+  '@soundor/vst3-host': ^0.2.1
+  '@soundor/vst3-runtime': ^0.1.0
   '@soundor/web-runtime': ^0.15.0
   '@tailwindcss/vite': ^4.3.5
   '@tanstack/react-router': 1.170.46
@@ -43,7 +46,8 @@ catalog:
 catalogMode: strict
 engineStrict: true
 minimumReleaseAge: 2880
-# The Soundor 0.19 release is the compatibility target for the initial release.
+# The Soundor 0.19 release is the compatibility target for the initial release,
+# with the VST3 runtime and host released beside it.
 minimumReleaseAgeExclude:
   - '@soundor/config@0.19.0'
   - '@soundor/core@0.19.0'
@@ -59,6 +63,12 @@ minimumReleaseAgeExclude:
   - '@soundor/test-runtime@0.19.0'
   - '@soundor/testing-library@0.19.0'
   - '@soundor/vitest@0.19.0'
+  - '@soundor/vitest-e2e@0.19.0'
+  - '@soundor/vst3-host@0.2.1'
+  - '@soundor/vst3-host-darwin-universal@0.2.1'
+  - '@soundor/vst3-host-linux-x64-gnu@0.2.1'
+  - '@soundor/vst3-host-win32-x64@0.2.1'
+  - '@soundor/vst3-runtime@0.1.0'
   - '@soundor/web-runtime@0.15.0'
   - 'soundor@0.19.0'
   - 'vitest-environment-soundor@0.19.0'

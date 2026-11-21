@@ -20,6 +20,11 @@
       "passThroughEnv": ["CI", "PLAYWRIGHT_BROWSERS_PATH"],
       "cache": false
     },
+    "test:vst3": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["CI", "DISPLAY", "XAUTHORITY"],
+      "cache": false
+    },
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,
