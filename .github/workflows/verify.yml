@@ -20,3 +20,17 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm check
       - run: pnpm --filter @soundor/components pack --pack-destination "$RUNNER_TEMP"
+
+  # The demos' web build in Chromium (apps/demos/e2e): real layout, hit
+  # testing and browser input, which the unit tests' runtime simulates.
+  e2e:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm --filter @soundor/components-demos exec playwright install --with-deps chromium
+      - run: pnpm test:e2e

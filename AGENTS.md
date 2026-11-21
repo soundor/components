@@ -17,6 +17,7 @@ site embeds (web only).
 pnpm install
 pnpm check            # format + lint + build + test, what CI runs
 pnpm --filter @soundor/components exec vitest run src/internal/range.test.tsx -t "<name>"
+pnpm test:e2e         # build the demos, then the browser tests in apps/demos/e2e
 pnpm format:fix
 pnpm dev              # the website, with the demos
 ```
@@ -49,9 +50,16 @@ event wherever it is told.
 
 A test of a fix should fail without the fix; check that it does.
 
-End-to-end behaviour that needs real layout or a real host belongs in
-end-to-end tests (`@soundor/vitest-e2e` with a Debug VST3 build, or Playwright
-on the web build), not in the simulated runtime.
+Behaviour that needs real layout, hit testing or browser input (a drag, the
+wheel, a right-click, where a press lands on a slider) belongs in the browser
+tests: Playwright on the demos' web build, `apps/demos/e2e/*.spec.ts`, one file
+per demo they open with `openDemo(page, '<name>')` (`?demo=<name>`, a file of
+`apps/demos/src/demos`). Find controls by role and name, and read values from
+`aria-valuenow` or `aria-valuetext`, as assistive technology does. Focus does
+not reach the plugin from the page with Tab (it goes through the web host's
+toolbar), so click a control first. Changing a component needs its build:
+`pnpm test:e2e` rebuilds through Turborepo; `pnpm exec playwright test` in
+`apps/demos` runs on the build already there.
 
 ## Conventions
 

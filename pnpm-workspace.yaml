@@ -4,6 +4,8 @@ packages:
 
 catalog:
   '@changesets/cli': ^3.0.3
+  # The Chromium Playwright drives is the one this version installs.
+  '@playwright/test': 1.65.1
   '@soundor/config': ^0.19.0
   '@soundor/environment': ^0.19.0
   '@soundor/react': ^0.19.0
@@ -14,6 +16,7 @@ catalog:
   '@tanstack/react-router': 1.170.46
   '@tanstack/react-start': 1.169.5
   '@types/mdx': ^2.0.13
+  '@types/node': ^24.19.2
   '@types/react': ^19.3.0
   '@types/react-dom': ^19.3.0
   '@vitejs/plugin-react': ^6.2.1
