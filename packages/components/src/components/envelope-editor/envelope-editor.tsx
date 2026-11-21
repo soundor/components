@@ -194,8 +194,28 @@ export function EnvelopeEditor({
   const editor = useEnvelopeEditor(options, space ?? estimate);
   const { geometry, handles } = editor;
   const sustain = handles[2]!;
-  const series = useMemo(
-    (): PlotSeries[] => [
+  const series = useMemo((): PlotSeries[] => {
+    const [first, last] = [geometry.points[0]!, geometry.points.at(-1)!];
+    const span = geometry.domain[1] - geometry.domain[0];
+    // Silence before the note and after the release: level at zero out to
+    // the plot's edges, past the handles' safe zone, fainter than the curve.
+    const silence = (points: [number, number][]): PlotSeries => ({
+      type: 'line',
+      points,
+      color: tint,
+      strokeWidth: 1.5,
+      opacity: 0.35,
+      hideInReadout: true,
+    });
+    return [
+      silence([
+        [first[0] - span, first[1]],
+        [first[0], first[1]],
+      ]),
+      silence([
+        [last[0], last[1]],
+        [last[0] + span, last[1]],
+      ]),
       {
         type: fill ? 'area' : 'line',
         points: geometry.points,
@@ -204,9 +224,8 @@ export function EnvelopeEditor({
         strokeWidth: 2,
         hideInReadout: true,
       },
-    ],
-    [geometry, fill, tint],
-  );
+    ];
+  }, [geometry, fill, tint]);
   const levels = [0, 0.5, 1];
   const active =
     handles.find((handle) => handle.pressed) ??
