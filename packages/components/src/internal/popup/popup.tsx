@@ -165,6 +165,30 @@ export function Popup({
   // Placed before it shows; and again when the view or any option changes.
   useLayoutEffect(place, [place]);
 
+  // An anchor that moves without changing size (a list scrolled under it, a
+  // panel laid out again) tells no observer: its place is checked each
+  // frame while open, and the popup placed again only when it moved.
+  useLayoutEffect(() => {
+    if (!('current' in anchor) || typeof requestAnimationFrame !== 'function')
+      return undefined;
+    let last = boxOf(anchor.current);
+    let frame = requestAnimationFrame(function check() {
+      const box = boxOf(anchor.current);
+      if (
+        box &&
+        last &&
+        (box.x !== last.x ||
+          box.y !== last.y ||
+          box.width !== last.width ||
+          box.height !== last.height)
+      )
+        place();
+      last = box;
+      frame = requestAnimationFrame(check);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [anchor, place]);
+
   // Sizes change without a render: the popup's content, the anchor's layout.
   useLayoutEffect(() => {
     if (typeof ResizeObserver === 'undefined') return undefined;

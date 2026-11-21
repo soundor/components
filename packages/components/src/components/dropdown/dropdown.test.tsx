@@ -1,11 +1,13 @@
 import { Modal, Pressable, Text } from '@soundor/react';
 import {
+  act,
   render,
   screen,
   userEvent,
   within,
 } from '@soundor/testing-library/react';
-import { useState } from 'react';
+import { createRef, useState } from 'react';
+import type { UiNode } from 'soundor:ui';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { Button, Dropdown, type MenuItem } from '../../index';
@@ -183,5 +185,49 @@ describe('Dropdown', () => {
     expect(trigger.focused).toBe(true);
     await user.keyboard('{Escape}');
     expect(onRequestClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('opened by `open` before any press, it is placed beside its trigger, whose own ref still works', async () => {
+    const triggerRef = createRef<UiNode>();
+    const { rerender } = await render(
+      <Dropdown
+        trigger={<Button ref={triggerRef}>Options</Button>}
+        items={actions(() => {})}
+        open={false}
+        onOpenChange={() => {}}
+      />,
+    );
+    const trigger = screen.getByRole('button', { name: 'Options' });
+    expect(triggerRef.current).toBe(trigger);
+    // Layout, as a runtime would report it: the trigger, and the menu's size.
+    const proto = Object.getPrototypeOf(trigger) as UiNode;
+    vi.spyOn(proto, 'getBoundingClientRect').mockImplementation(function (
+      this: UiNode,
+    ) {
+      return (
+        (this as unknown) === trigger
+          ? { x: 50, y: 60, width: 80, height: 24 }
+          : { x: 0, y: 0, width: 120, height: 100 }
+      ) as ReturnType<UiNode['getBoundingClientRect']>;
+    });
+    await act(() =>
+      rerender(
+        <Dropdown
+          trigger={<Button ref={triggerRef}>Options</Button>}
+          items={actions(() => {})}
+          open
+          onOpenChange={() => {}}
+        />,
+      ),
+    );
+    const menu = screen.getByRole('menu');
+    const surface = menu.parent!.parent!;
+    // Below the trigger, at its start: not at the view's corner.
+    expect(surface.style.left).toBe(50);
+    expect(surface.style.top).toBe(88);
+    // Opened in code, focus is on the first item, for the keyboard.
+    expect(within(menu).getByRole('menuitem', { name: 'Reset' }).focused).toBe(
+      true,
+    );
   });
 });
