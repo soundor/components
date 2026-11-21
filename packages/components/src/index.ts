@@ -32,6 +32,10 @@ export { TextField, type TextFieldProps } from './components/text-field';
 export { LevelMeter, type LevelMeterProps } from './components/level-meter';
 export { Plot, type PlotAxis, type PlotProps } from './components/plot';
 export { XYPad, type XYPadProps } from './components/xy-pad';
+export {
+  EnvelopeEditor,
+  type EnvelopeEditorProps,
+} from './components/envelope-editor';
 export { Panel, type PanelProps } from './components/panel';
 export {
   ControlGroup,
@@ -42,7 +46,9 @@ export { ResizeGrip, type ResizeGripProps } from './components/resize-grip';
 export { formatters, parsers } from './internal/format';
 export { registerFonts } from './theme/fonts';
 export type {
+  ADSREnvelope,
   ComponentParameter,
+  EnvelopeStage,
   RangeParameter,
   RangeProps,
   ValueScale,

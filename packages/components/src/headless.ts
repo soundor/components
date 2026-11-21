@@ -13,6 +13,15 @@ export type {
 export type { ValueScale } from './internal/scale';
 export { useXYPad, type XYInteraction } from './internal/xy-interaction';
 export {
+  envelopeGeometry,
+  useEnvelopeEditor,
+  type ADSREnvelope,
+  type EnvelopeGeometry,
+  type EnvelopeHandle,
+  type EnvelopeOptions,
+  type EnvelopeStage,
+} from './internal/envelope-interaction';
+export {
   useResizeGrip,
   type ResizeGripOptions,
 } from './internal/resize-interaction';
