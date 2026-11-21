@@ -31,7 +31,9 @@ type TestNode = ReturnType<typeof screen.getByRole>;
 
 /** The transparent layer under a popup that a press outside it lands on. */
 function backdropOf(menu: TestNode) {
-  return menu.parent!.previousSibling!;
+  // The list, in its scroll frame, in the popup's surface: the backdrop is
+  // the surface's sibling.
+  return menu.parent!.parent!.previousSibling!;
 }
 
 /** A press outside the popup, released. */

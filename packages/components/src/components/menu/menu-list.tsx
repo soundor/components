@@ -3,6 +3,7 @@ import {
   View,
   flushSync,
   usePressable,
+  useScrollbar,
   type StyleProp,
 } from '@soundor/react';
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
@@ -111,6 +112,8 @@ export function MenuList({
   const list = useRef<UiNode | null>(null);
   const nodes = useRef<(UiNode | null)[]>([]);
   const typed = useRef({ text: '', at: 0 });
+  // A bar of the theme's, shown only when the list is longer than its room.
+  const { vertical } = useScrollbar(list);
   const entries = rows.map((row) => (row.separator ? null : row));
   const enabled = entries.map((entry) => !!entry && !entry.disabled);
   const labels = entries.map((entry) => entry?.label ?? '');
@@ -200,45 +203,78 @@ export function MenuList({
   };
 
   return (
-    <View
-      ref={list}
-      focusable
-      accessibilityRole="menu"
-      accessibilityLabel={label}
-      accessibilityActions={[{ name: 'escape' }]}
-      onKeyDown={onKeyDown}
-      scrollIndicators
-      style={{
-        flexShrink: 1,
-        overflowY: 'scroll',
-        padding: theme.spacing.spaceXs,
-      }}
-    >
-      {rows.map((row, index) =>
-        row.separator ? (
+    <View style={{ flexShrink: 1 }}>
+      <View
+        ref={list}
+        focusable
+        accessibilityRole="menu"
+        accessibilityLabel={label}
+        accessibilityActions={[{ name: 'escape' }]}
+        onKeyDown={onKeyDown}
+        scrollIndicators={false}
+        style={{ flexShrink: 1, overflowY: 'scroll' }}
+      >
+        {/* Padded inside the scroll view: padding on it would count as
+            content past its box, and show a scrollbar for nothing. */}
+        <View
+          accessible={false}
+          style={{
+            padding: theme.spacing.spaceXs,
+            // Clear of the scrollbar, when there is one.
+            paddingRight: vertical.visible
+              ? theme.spacing.spaceMd + theme.size.trackSm
+              : theme.spacing.spaceXs,
+          }}
+        >
+          {rows.map((row, index) =>
+            row.separator ? (
+              <View
+                key={row.key}
+                accessible={false}
+                style={part('separator', {
+                  height: theme.size.borderHairline,
+                  marginVertical: theme.spacing.spaceXs,
+                  marginHorizontal: theme.spacing.spaceXs,
+                  backgroundColor: theme.color.divider,
+                })}
+              />
+            ) : (
+              <Row
+                key={row.key}
+                entry={row}
+                checkable={checkable}
+                size={size}
+                part={part}
+                remember={(node) => {
+                  nodes.current[index] = node;
+                }}
+                choose={() => choose(row)}
+              />
+            ),
+          )}
+        </View>
+      </View>
+      {vertical.visible && (
+        <View
+          {...vertical.trackProps}
+          accessible={false}
+          style={{
+            position: 'absolute',
+            top: theme.spacing.spaceXs,
+            bottom: theme.spacing.spaceXs,
+            right: theme.spacing.spaceXxs,
+            width: theme.size.trackSm,
+          }}
+        >
           <View
-            key={row.key}
-            accessible={false}
-            style={part('separator', {
-              height: theme.size.borderHairline,
-              marginVertical: theme.spacing.spaceXs,
-              marginHorizontal: theme.spacing.spaceXs,
-              backgroundColor: theme.color.divider,
-            })}
-          />
-        ) : (
-          <Row
-            key={row.key}
-            entry={row}
-            checkable={checkable}
-            size={size}
-            part={part}
-            remember={(node) => {
-              nodes.current[index] = node;
+            {...vertical.thumbProps}
+            style={{
+              width: theme.size.trackSm,
+              borderRadius: theme.radius.radiusFull,
+              backgroundColor: theme.color.borderStrong,
             }}
-            choose={() => choose(row)}
           />
-        ),
+        </View>
       )}
     </View>
   );
@@ -328,7 +364,9 @@ function Row({ entry, checkable, size, part, remember, choose }: RowProps) {
             numberOfLines={1}
             style={part('label', [
               textStyle(theme, 'body', foreground),
-              { flex: 1, minWidth: 0 },
+              // Grows into the row, from its own width: a menu is as wide
+              // as its longest label.
+              { flexGrow: 1, flexShrink: 1, minWidth: 0 },
               size === 'sm' && { fontSize: 10 },
               size === 'lg' && { fontSize: 12 },
             ])}

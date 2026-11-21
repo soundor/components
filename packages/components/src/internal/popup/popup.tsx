@@ -224,9 +224,12 @@ export function Popup({
               position: 'absolute',
               left: placement?.x ?? 0,
               top: placement?.y ?? 0,
-              minWidth,
-              maxWidth: placement?.maxWidth,
-              maxHeight: placement?.maxHeight,
+              // Only what is known: an undefined would undo the owner's own.
+              ...(minWidth !== undefined && { minWidth }),
+              ...(placement && {
+                maxWidth: placement.maxWidth,
+                maxHeight: placement.maxHeight,
+              }),
               // Laid out, measured and placed before it is seen.
               opacity: shown ? 1 : 0,
             },
