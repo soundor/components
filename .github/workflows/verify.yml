@@ -21,7 +21,7 @@ jobs:
       - run: pnpm check
       - run: pnpm --filter @soundor/components pack --pack-destination "$RUNNER_TEMP"
 
-  # The demos' web build in Chromium (apps/demos/e2e): real layout, hit
+  # The demos' web build in Chromium (apps/demos/e2e/web): real layout, hit
   # testing and browser input, which the unit tests' runtime simulates.
   e2e:
     runs-on: ubuntu-24.04
@@ -45,3 +45,18 @@ jobs:
       - uses: ./.github/actions/setup
       - run: sudo apt-get install -y --no-install-recommends xvfb
       - run: xvfb-run -a pnpm test:vst3
+
+  # The one check to require in branch protection: it passes only when every
+  # job above passed, so new jobs need no settings change, only this list.
+  verify:
+    name: Verify
+    if: always()
+    needs: [check, e2e, vst3]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Every job passed
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "$RESULTS"
+          jq -e 'all(. == "success")' <<< "$RESULTS"
