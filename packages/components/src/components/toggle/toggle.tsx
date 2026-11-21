@@ -1,5 +1,6 @@
 import { Pressable, View } from '@soundor/react';
 
+import { extraActions, type HostProps } from '../../internal/host';
 import { useControlValue, type ComponentParameter } from '../../internal/range';
 import {
   accents,
@@ -14,7 +15,8 @@ import {
 import type { ActionProps } from '../shared/action';
 import { Content } from '../shared/content';
 
-export interface ToggleProps extends ActionProps, StyleProps<'Toggle'> {
+export interface ToggleProps
+  extends ActionProps, HostProps, StyleProps<'Toggle'> {
   parameter?: ComponentParameter<boolean>;
   label?: string;
   offLabel?: string;
@@ -36,8 +38,12 @@ export function Toggle({
   variant = 'button',
   size = 'md',
   color = 'neutral',
+  ref,
+  accessibilityActions,
+  onAccessibilityAction,
   ...props
 }: ToggleProps) {
+  const host = { accessibilityActions, onAccessibilityAction };
   const { theme, slot } = useComponent('Toggle', props);
   const c = theme.color;
   const accent = accents(theme, color);
@@ -63,6 +69,8 @@ export function Toggle({
           ];
   return (
     <Pressable
+      {...extraActions(host, ['activate'])}
+      ref={ref}
       accessibilityRole={variant === 'switch' ? 'switch' : 'togglebutton'}
       accessibilityLabel={props.accessibilityLabel ?? label}
       accessibilityHint={props.accessibilityHint}

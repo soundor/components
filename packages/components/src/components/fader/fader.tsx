@@ -2,6 +2,7 @@ import { Text, View } from '@soundor/react';
 
 import { useFader, type RangeProps } from '../../headless';
 import { trueMinus } from '../../internal/format';
+import { withActions, type HostProps } from '../../internal/host';
 import {
   accents,
   ring,
@@ -12,7 +13,7 @@ import {
   type StyleProps,
 } from '../../theme';
 
-export interface FaderProps extends RangeProps, StyleProps<'Fader'> {
+export interface FaderProps extends RangeProps, HostProps, StyleProps<'Fader'> {
   size?: ControlSize;
   color?: ControlColor;
   length?: number;
@@ -29,8 +30,12 @@ export function Fader({
   length,
   ticks,
   formatTick = defaultTick,
+  ref,
+  accessibilityActions,
+  onAccessibilityAction,
   ...props
 }: FaderProps) {
+  const host = { accessibilityActions, onAccessibilityAction };
   const { theme, slot } = useComponent('Fader', props);
   const [cap, height, preferredLength] = {
     sm: [22, 34, 120],
@@ -65,6 +70,8 @@ export function Fader({
       </Text>
       <View
         {...r.handlers}
+        {...withActions(r.handlers, host)}
+        ref={ref}
         style={slot('control', {
           width,
           height: total,

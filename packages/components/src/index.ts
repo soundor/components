@@ -24,6 +24,7 @@ export {
   type ParameterMenuOptions,
 } from './components/context-menu';
 export type { MenuAction, MenuItem, MenuSeparator } from './components/menu';
+export type { HostProps } from './internal/host';
 export { Knob, type KnobProps } from './components/knob';
 export { Slider, type SliderProps } from './components/slider';
 export { Fader, type FaderProps } from './components/fader';

@@ -3,6 +3,11 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { UiNode } from 'soundor:ui';
 
 import type { ChoiceParameter } from '../../internal/choice';
+import {
+  extraActions,
+  type HostProps,
+  type OwnActions,
+} from '../../internal/host';
 import { useControlValue } from '../../internal/range';
 import {
   controlHeight,
@@ -26,7 +31,7 @@ export interface SegmentOption<T extends string> {
 export type SegmentedControlParameter<T extends string> = ChoiceParameter<T>;
 
 interface SegmentedControlBaseProps
-  extends ActionProps, StyleProps<'SegmentedControl'> {
+  extends ActionProps, HostProps, StyleProps<'SegmentedControl'> {
   label?: string;
   size?: ControlSize;
   fill?: boolean;
@@ -63,6 +68,8 @@ export type SegmentedControlProps<T extends string> =
 
 interface SegmentProps<T extends string> {
   option: SegmentOption<T>;
+  /** The caller's accessibility actions, on each option a screen reader lands on. */
+  extra: OwnActions;
   selected: boolean;
   tabbable: boolean;
   disabled: boolean;
@@ -83,6 +90,7 @@ function Segment<T extends string>({
   styles,
   size,
   fill,
+  extra,
 }: SegmentProps<T>) {
   const { theme, slot } = useComponent('SegmentedControl', styles);
   const c = theme.color;
@@ -91,6 +99,7 @@ function Segment<T extends string>({
     disabled,
     onPress: select,
     accessibilityState: { checked: selected, disabled },
+    accessibilityActions: extra.accessibilityActions,
     ref: (value) => {
       node.current = value;
       remember(value);
@@ -104,6 +113,7 @@ function Segment<T extends string>({
   return (
     <View
       {...pressableProps}
+      onAccessibilityAction={extra.onAccessibilityAction}
       focusable={tabbable}
       accessibilityRole="radio"
       accessibilityLabel={option.label}
@@ -155,8 +165,12 @@ export function SegmentedControl<T extends string>({
   onChange,
   size = 'md',
   fill,
+  ref,
+  accessibilityActions,
+  onAccessibilityAction,
   ...props
 }: SegmentedControlProps<T>) {
+  const host = { accessibilityActions, onAccessibilityAction };
   const { theme, slot } = useComponent('SegmentedControl', props);
   const disabled = props.disabled || parameter?.info.access === 'readOnly';
   const available = options.filter((option) => !option.disabled && !disabled);
@@ -185,8 +199,12 @@ export function SegmentedControl<T extends string>({
     own.setOwn(option.value);
     onChange?.(option.value);
   };
+  const extra = extraActions(host, ['activate']);
   return (
     <View
+      // The group: what a popup is placed beside, and where the options'
+      // keys and secondary presses arrive.
+      ref={ref}
       accessibilityRole="radiogroup"
       accessibilityLabel={props.accessibilityLabel ?? label}
       accessibilityHint={props.accessibilityHint}
@@ -236,6 +254,7 @@ export function SegmentedControl<T extends string>({
           }}
           select={() => select(option)}
           styles={props}
+          extra={extra}
           size={size}
           fill={fill}
         />

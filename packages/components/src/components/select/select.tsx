@@ -3,6 +3,7 @@ import { useRef, type ReactNode } from 'react';
 import type { UiNode } from 'soundor:ui';
 
 import type { ChoiceOption, ChoiceParameter } from '../../internal/choice';
+import { extraActions, setRef, type HostProps } from '../../internal/host';
 import {
   useOpenState,
   type OpenStateProps,
@@ -31,7 +32,7 @@ export type SelectParameter<T extends string> = ChoiceParameter<T>;
 export type SelectOptionState = MenuRowState;
 
 interface SelectBaseProps<T extends string>
-  extends ActionProps, StyleProps<'Select'>, OpenStateProps {
+  extends ActionProps, HostProps, StyleProps<'Select'>, OpenStateProps {
   /** Shown above the field, and what assistive technology calls it. */
   label?: string;
   /** Help shown below the field. */
@@ -149,12 +150,15 @@ export function Select<T extends string>({
     if (disabled || readOnly) return;
     popup.setOpen(!popup.open);
   };
+  const extra = extraActions(props, ['activate']);
   const press = usePressable({
     disabled,
     onPress: toggle,
     accessibilityState: { expanded: open, disabled },
+    accessibilityActions: extra.accessibilityActions,
     ref: (node) => {
       trigger.current = node;
+      setRef(props.ref, node);
     },
   });
   const name = accessibilityLabel ?? label ?? 'Select';
@@ -183,6 +187,7 @@ export function Select<T extends string>({
       )}
       <View
         {...press.pressableProps}
+        onAccessibilityAction={extra.onAccessibilityAction}
         debugId={debugId}
         accessibilityRole="combobox"
         accessibilityLabel={name}

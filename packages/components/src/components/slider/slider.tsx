@@ -1,6 +1,7 @@
 import { Text, View } from '@soundor/react';
 
 import { useSlider, type RangeProps } from '../../headless';
+import { withActions, type HostProps } from '../../internal/host';
 import {
   accents,
   ring,
@@ -11,7 +12,8 @@ import {
   type StyleProps,
 } from '../../theme';
 
-export interface SliderProps extends RangeProps, StyleProps<'Slider'> {
+export interface SliderProps
+  extends RangeProps, HostProps, StyleProps<'Slider'> {
   size?: ControlSize;
   color?: ControlColor;
   width?: number;
@@ -25,8 +27,12 @@ export function Slider({
   color = 'neutral',
   width,
   dragMode = 'absolute',
+  ref,
+  accessibilityActions,
+  onAccessibilityAction,
   ...props
 }: SliderProps) {
+  const host = { accessibilityActions, onAccessibilityAction };
   const { theme, slot } = useComponent('Slider', props);
   const [thumb, height] = { sm: [10, 16], md: [12, 20], lg: [14, 26] }[size]!;
   const track = {
@@ -73,6 +79,8 @@ export function Slider({
       </View>
       <View
         {...r.handlers}
+        {...withActions(r.handlers, host)}
+        ref={ref}
         style={slot('control', {
           height,
           justifyContent: 'center',
