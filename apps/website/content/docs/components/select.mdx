@@ -1,0 +1,81 @@
+---
+title: Select
+description: One value from a list of options, in a compact field.
+---
+
+Use `Select` for a choice with more options than a [SegmentedControl](/docs/components/segmented-control) has room for: a filter type, a waveform, an oversampling factor, a routing mode. The field shows the chosen option and opens its list below it, or above when there is more room there.
+
+<Demo name="select" height={260} />
+
+## Bind it to a parameter
+
+A choice parameter supplies the options, their labels, the label and the value. Choosing an option writes it with undo history, as a SegmentedControl does, and choosing the option already chosen writes nothing. Host automation moves the field like any other change. A parameter with `access: 'readOnly'` makes the field read-only.
+
+```tsx
+import { Select } from '@soundor/components';
+import { parameters } from 'soundor:parameters';
+
+<Select parameter={parameters.filterType} />;
+```
+
+`options`, `value`, `defaultValue` and `onChange` can't be passed with a parameter; use `parameter.subscribe` to observe changes.
+
+## Controlled and uncontrolled
+
+Without a parameter, pass `options` and either `value` with `onChange`, or a `defaultValue`. The value type is inferred from the options.
+
+```tsx
+const [filter, setFilter] = useState<'lowpass' | 'highpass' | 'bandpass'>(
+  'lowpass',
+);
+
+<Select
+  label="Filter Type"
+  value={filter}
+  onChange={setFilter}
+  options={[
+    { value: 'lowpass', label: 'Low Pass' },
+    { value: 'highpass', label: 'High Pass' },
+    { value: 'bandpass', label: 'Band Pass' },
+  ]}
+/>;
+```
+
+With a `placeholder` and no value, the field shows the placeholder until something is chosen; without one, it starts on the first enabled option. `open`, `defaultOpen` and `onOpenChange` control the list itself.
+
+## Disabled options, states and custom rows
+
+An option with `disabled` is shown dimmed and skipped by the keyboard, and its `hint` says why. A disabled field can't be focused; a `readOnly` one can, and shows its value without opening. `size` matches the other controls, and `renderOption` draws a row of your own, such as an icon beside the label. Keep custom rows one line high.
+
+<Demo name="select-states" height={300} />
+
+In the dark palette of an application's theme:
+
+<Demo name="select-states" theme="dark" height={300} />
+
+## Keyboard and accessibility
+
+| Input                                    | Does                                                         |
+| ---------------------------------------- | ------------------------------------------------------------ |
+| Click, `Enter`, `Space`, `↓` or `↑`      | Open the list, with focus on the chosen option               |
+| `↑` / `↓`                                | Previous / next option, skipping disabled ones; wraps around |
+| `Home` / `End`, `Page Up` / `Page Down`  | First / last option, or eight at a time                      |
+| A letter                                 | The next option whose label starts with it                   |
+| `Enter`, `Space` or a click on an option | Choose it and close                                          |
+| `Esc`, `Tab` or a click outside          | Close without a change                                       |
+
+Closing always gives focus back to the field. The field is a `combobox` with its label, its chosen option as its value and whether it is expanded. The list is a `menu` of `menuitem`s with the chosen one `checked`: Soundor's accessibility roles have no listbox or option, so the list is presented as a native popup button's menu is. A long list scrolls, and the focused option is kept in view.
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/select/select.tsx"
+  name="SelectProps"
+/>
+
+### SelectOption
+
+<auto-type-table
+  path="packages/components/src/internal/choice.ts"
+  name="ChoiceOption"
+/>

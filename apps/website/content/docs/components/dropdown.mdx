@@ -1,0 +1,67 @@
+---
+title: Dropdown
+description: A menu of actions opened from a trigger of your own.
+---
+
+Use `Dropdown` for commands: a preset's Save and Copy, a panel's options, a module's Reset. Pass a trigger, such as a [Button](/docs/components/button), and the items. The menu opens beside the trigger and closes when an item is chosen, on `Esc` or `Tab`, or on a press outside it.
+
+<Demo name="dropdown" height={330} />
+
+```tsx
+import { Button, Dropdown } from '@soundor/components';
+
+<Dropdown
+  trigger={<Button>Options</Button>}
+  items={[
+    { id: 'reset', label: 'Reset', onSelect: reset },
+    { type: 'separator' },
+    { id: 'copy', label: 'Copy Value', shortcut: '⌘C', onSelect: copy },
+    { id: 'paste', label: 'Paste Value', shortcut: '⌘V', onSelect: paste },
+  ]}
+/>;
+```
+
+## Items
+
+An item has an `id`, a `label` and an `onSelect`. It can also have:
+
+- `disabled`: shown dimmed and skipped by the keyboard.
+- `icon`: a small glyph before the label.
+- `shortcut`: shown after the label. It is a label only: the menu doesn't bind it, as the editor owns its keys.
+- `checked`: a tick before the label, for an option that is on.
+- `hint`: read after the label by a screen reader.
+
+`{ type: 'separator' }` draws a line between groups. The same items work in a [ContextMenu](/docs/components/context-menu).
+
+`onSelect` runs after the menu has closed and given focus back. An action can therefore open a `Modal`, which then returns focus to the trigger, or remove the menu's owner from the editor.
+
+## Custom triggers
+
+Any element with an `onPress` can be a trigger: a Button, a `Pressable`, or a component of yours that passes `onPress` to one. Its own `onPress` still runs. The menu is placed beside the node that was pressed, and the trigger's `accessibilityState` gains `expanded` while it is open. `side`, `align` and `offset` set where the menu goes when there is room. It flips to the other side when there isn't, and always stays inside the editor.
+
+## Keyboard and accessibility
+
+| Input                             | Does                                                      |
+| --------------------------------- | --------------------------------------------------------- |
+| `Enter` or `Space` on the trigger | Open, with focus on the first item                        |
+| Click on the trigger              | Open, with focus on the menu and nothing highlighted      |
+| `↑` / `↓`, `Home` / `End`         | Move between items, skipping disabled ones and separators |
+| A letter                          | The next item whose label starts with it                  |
+| `Enter`, `Space` or a click       | Run the item                                              |
+| `Esc`, `Tab` or a click outside   | Close, and give focus back to the trigger                 |
+
+The menu is a `menu` named by `accessibilityLabel`, or by the trigger's label. Its items are `menuitem`s, and a shortcut is read as a hint. In a menu opened from a `Modal`, `Esc` closes the menu and leaves the modal open.
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/dropdown/dropdown.tsx"
+  name="DropdownProps"
+/>
+
+### MenuAction
+
+<auto-type-table
+  path="packages/components/src/components/menu/types.ts"
+  name="MenuAction"
+/>

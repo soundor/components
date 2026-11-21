@@ -13,6 +13,8 @@ export interface DemoProps {
    * the whole demo scaled down instead of a part of it to scroll.
    */
   readonly width?: number;
+  /** The demos app's dark palette (`?theme=dark`), an application's ThemeProvider override. */
+  readonly theme?: 'dark';
   /** Its code, highlighted: added at build time (`remark-demos.ts`). */
   readonly children?: ReactNode;
 }
@@ -43,7 +45,13 @@ function clearHost(frame: HTMLIFrameElement) {
   }
 }
 
-export function Demo({ name, height = 260, width, children }: DemoProps) {
+export function Demo({
+  name,
+  height = 260,
+  width,
+  theme,
+  children,
+}: DemoProps) {
   const base = import.meta.env.BASE_URL;
   const box = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
@@ -66,8 +74,8 @@ export function Demo({ name, height = 260, width, children }: DemoProps) {
     observer.observe(node);
     return () => observer.disconnect();
   }, [width]);
-  const src = `${base}demos/index.html?embed&demo=${encodeURIComponent(name)}`;
-  const title = `The ${name} demo, running in the browser`;
+  const src = `${base}demos/index.html?embed&demo=${encodeURIComponent(name)}${theme ? `&theme=${theme}` : ''}`;
+  const title = `The ${name} demo${theme ? `, ${theme}` : ''}, running in the browser`;
   return (
     <figure className="not-prose my-6 overflow-hidden rounded-xl border bg-fd-card">
       {width ? (

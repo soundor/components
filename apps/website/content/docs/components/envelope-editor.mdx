@@ -1,0 +1,100 @@
+---
+title: EnvelopeEditor
+description: An ADSR envelope edited by its handles.
+---
+
+Use `EnvelopeEditor` for an amplitude, filter or modulation envelope: attack, decay, sustain and release, with a handle for each. It draws on a [Plot](/docs/components/plot) and only draws. It computes no samples and runs no envelope; your processor does that with the values it edits.
+
+<Demo name="envelope-editor" height={300} />
+
+## Bind it to parameters
+
+Give any of the stages a parameter. A bound stage takes its range, mapping, formatting and default from the parameter, and reports host gestures and undo history, as a Knob bound to it would.
+
+```tsx
+import { EnvelopeEditor } from '@soundor/components';
+import { parameters } from 'soundor:parameters';
+
+<EnvelopeEditor
+  title="Amp envelope"
+  parameters={{
+    attack: parameters.attack,
+    decay: parameters.decay,
+    sustain: parameters.sustain,
+    release: parameters.release,
+  }}
+/>;
+```
+
+Each handle opens host gestures only for the stages it edits: attack for **A**, decay and sustain for **D**, sustain for **S**, and release for **R**. An arrow key on D opens only the gesture of the stage it moves, so a host recording touch automation doesn't take the other as touched.
+
+## Controlled values
+
+Without parameters, the envelope is in seconds and a level:
+
+| Field     | Unit          | Default range             |
+| --------- | ------------- | ------------------------- |
+| `attack`  | seconds       | 1 ms to 10 s, `timeRange` |
+| `decay`   | seconds       | 1 ms to 10 s, `timeRange` |
+| `sustain` | level, 0 to 1 | 0 to 1                    |
+| `release` | seconds       | 1 ms to 10 s, `timeRange` |
+
+Pass `value` and `onChange`, or a `defaultValue`; `onChange` receives the whole envelope. Stages bound to parameters are in their parameters' own units, and the two can be mixed.
+
+<Demo name="envelope-editor-controlled" height={330} />
+
+```tsx
+const [envelope, setEnvelope] = useState({
+  attack: 0.02,
+  decay: 0.3,
+  sustain: 0.65,
+  release: 0.8,
+});
+
+<EnvelopeEditor value={envelope} onChange={setEnvelope} />;
+```
+
+## How it is drawn
+
+Attack, decay and release are lengths, drawn one after another. Each one takes, across, its value's position through its mapping, from nothing to one stage's width at its longest. The sustain is a level held while a note is, with no time of its own, so it is drawn at a fixed width, `sustainWidth` (half a stage by default). The curve goes from silence up to full level, down to the sustain, holds it, and releases to silence, in straight lines.
+
+- The plot's width doesn't change with the values, so a handle never moves away from the pointer during a drag. A short envelope sits at the left; a long one fills the plot.
+- No handle can pass another, since each stage is a length that can't go below zero.
+- The time across is not to scale. The vertical lines mark each stage's end, and the values under the plot give the times.
+
+### Time scaling
+
+A bound stage uses its parameter's mapping: a log-mapped time parameter shows a 5 ms attack and a 2 s release both large enough to grab. Unbound times use `timeScale`, `'log'` by default, which gives each decade the same room. `'linear'` draws times to scale, which suits a short `timeRange`. A power curve, `{ type: 'power', exponent: 3 }`, is in between, and can reach zero.
+
+## Editing
+
+A press goes to the nearest handle within reach, so handles close together, such as a short attack and decay, stay easy to grab. Handles that coincide are all reachable from the keyboard.
+
+| Input                                   | Does                                                           |
+| --------------------------------------- | -------------------------------------------------------------- |
+| Drag                                    | Move the handle; `Shift` for fine control                      |
+| `Tab`                                   | Next handle: A, D, S, R                                        |
+| A, R: `←` `↓` / `→` `↑`                 | Shorter / longer, by 1% of the travel; `Shift` ten times finer |
+| S: `↓` / `↑`                            | Lower / raise the sustain                                      |
+| D: `←` `→` / `↓` `↑`                    | Decay / sustain                                                |
+| `Page Up` / `Page Down`, `Home` / `End` | A, S and R: 10% at a time, or the minimum and maximum          |
+| Wheel over a handle                     | A, S and R: 1% per notch                                       |
+| Double-click a handle                   | Reset its stages to their defaults                             |
+| `Esc` while dragging                    | Cancel, and restore the values from before                     |
+
+Each handle is an `adjustable` element named after its stage, or its parameter's label, with its formatted value, such as "Attack, 20 ms" or "Decay 300 ms, Sustain 65%". It offers increment, decrement, set value and reset actions. The plot itself is an `image` named by `accessibilityLabel`, the `title`, or "Envelope".
+
+## Themes and layout
+
+The curve and handles take `color`, one of the accent colours, and every other colour is a theme token: the display, grid, text and focus ring follow a `ThemeProvider`. `fill`, `grid`, `axisLabels` and `showValues` turn parts off for a compact layout. `width` and `height` size the display; a `styles.plot` width such as `'100%'` lets it follow its container, and the handles follow any resize. Slots: `root`, `plot`, `handle`, `values`, `label`, `value`.
+
+<Demo name="synth-voice" theme="dark" height={360} width={760} />
+
+For a different look, [`useEnvelopeEditor`](/docs/headless/use-envelope-editor) is the interaction on its own.
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/envelope-editor/envelope-editor.tsx"
+  name="EnvelopeEditorProps"
+/>

@@ -1,0 +1,59 @@
+---
+title: useEnvelopeEditor
+description: Interaction for an ADSR editor of your own.
+---
+
+`useEnvelopeEditor` is [EnvelopeEditor](/docs/components/envelope-editor)'s interaction without its look: the four stages as range controls, a focusable handle for each, and a layer that gives a press to the nearest handle. It takes the same options as the component, and the coordinate space it is drawn in: a Plot's, through its `overlay`, or one of your own from `createCoordinates`.
+
+```tsx
+import { useEnvelopeEditor } from '@soundor/components/headless';
+import { View } from '@soundor/react';
+
+function Handles({ space }: { space: Coordinates }) {
+  const editor = useEnvelopeEditor(
+    { parameters: { attack: parameters.attack, release: parameters.release } },
+    space,
+  );
+  return (
+    <>
+      <View {...editor.layerHandlers} style={fill} />
+      {editor.handles.map((handle) => (
+        <View
+          key={handle.stage}
+          {...handle.handlers}
+          ref={handle.attach}
+          style={{
+            position: 'absolute',
+            left: handle.x - 8,
+            top: handle.y - 8,
+            pointerEvents: 'none',
+          }}
+        >
+          <Dot
+            active={handle.hovered || handle.pressed}
+            ring={handle.focusVisible}
+          />
+        </View>
+      ))}
+    </>
+  );
+}
+```
+
+Give the handles `pointerEvents: 'none'`: the layer under them takes the pointer and gives each press to the nearest handle, which takes focus. `envelopeGeometry` is the visual model alone, a pure function, for drawing the curve.
+
+## Returns
+
+- `value`: the envelope now, each stage in its own units.
+- `text`: each stage's formatted value.
+- `geometry`: the curve's five points and each handle's position, in the plot's units, and the fixed domain across.
+- `handles`: for each stage, its pixel position `x` and `y`, `label`, `handlers`, `attach` (the view's `ref`), `focusVisible`, `hovered` and `pressed`.
+- `layerHandlers`: spread on a view over the whole plot, under the handles.
+- `levelAt(position)`: the level at a height in [0, 1], formatted, for an axis.
+
+## Options
+
+<auto-type-table
+  path="packages/components/src/internal/envelope-interaction.ts"
+  name="EnvelopeOptions"
+/>

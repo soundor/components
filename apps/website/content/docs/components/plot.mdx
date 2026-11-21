@@ -15,6 +15,8 @@ A plot with draggable markers keeps a safe zone: its values are mapped a few pix
 
 A series that should too, such as an EQ response, sets `extend: true`. Its first and last values then carry on, level, to the edges of the plot. Leave it off for data that does not continue past its ends, such as a transfer curve or an envelope.
 
+For handles of your own, `overlay` renders views over the plot in its coordinates: `space.x.map(value)` is where a value is across. `safeZone` keeps them whole at the ends of the axes. [EnvelopeEditor](/docs/components/envelope-editor) is built this way.
+
 Plot is built from the [chart helpers](/docs/utils/chart-helpers).
 
 ## Examples
