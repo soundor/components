@@ -26,6 +26,8 @@ export const layoutOptions = {
   },
   githubUrl: 'https://github.com/soundor/components',
   links: [
+    // In the header only: the sidebar lists the page itself, last.
+    { text: 'Changelog', url: '/docs/changelog', on: 'nav' },
     { text: 'Icons', url: 'https://icons.soundor.dev/', external: true },
     { text: 'Soundor', url: 'https://soundor.dev/', external: true },
   ],
