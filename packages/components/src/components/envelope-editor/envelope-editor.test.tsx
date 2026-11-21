@@ -271,6 +271,20 @@ describe('EnvelopeEditor', () => {
     expect(sustain.endGesture).toHaveBeenCalledTimes(1);
     expect(decay.get()).toBeCloseTo(0.51 ** 2);
 
+    // Double-click on D resets the decay only: the level is the sustain's,
+    // which has its own handle, and its gesture is not opened.
+    const sustainBefore = sustain.get();
+    const sustainGestures = sustain.beginGesture.mock.calls.length;
+    const decayGestures = decay.beginGesture.mock.calls.length;
+    fireEvent.dblClick(layer(), {
+      offsetX: centre(handle('Decay')).x,
+      offsetY: centre(handle('Decay')).y,
+    });
+    expect(decay.get()).not.toBeCloseTo(0.51 ** 2);
+    expect(sustain.get()).toBe(sustainBefore);
+    expect(decay.beginGesture).toHaveBeenCalledTimes(decayGestures + 1);
+    expect(sustain.beginGesture).toHaveBeenCalledTimes(sustainGestures);
+
     // Double-click resets the stages of the handle under it.
     handle('Release').focus();
     await user.keyboard('{ArrowRight}');

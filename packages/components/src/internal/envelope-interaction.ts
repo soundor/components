@@ -234,6 +234,8 @@ export function useEnvelopeEditor(
     dragMode: 'relative',
     travel: [slot, levelTravel],
     keyGesture: 'axis',
+    // The level is the sustain's, which its own handle resets.
+    resetOnDoubleClick: 'x',
     hint: 'Left and right change the decay, up and down the sustain',
   });
   const sustain = useRangeControl(rangeFor('sustain'), {

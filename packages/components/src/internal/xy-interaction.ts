@@ -23,6 +23,12 @@ export interface XYInteraction {
    * automation does not take the other as touched.
    */
   keyGesture?: 'both' | 'axis';
+  /**
+   * What a double-click resets: both axes (the default), or one, where the
+   * other belongs to a control of its own as well (an envelope's decay
+   * handle, whose level is the sustain's).
+   */
+  resetOnDoubleClick?: 'both' | 'x' | 'y';
   describeValue?: (x: number, y: number) => string;
   onPointChange?: (x: number, y: number) => void;
   onInteractionStart?: () => void;
@@ -257,10 +263,11 @@ export function useXYPad(
       event.preventDefault();
     },
     onDoubleClick() {
-      if (!gesture.start('discrete', beginBoth)) return;
+      const which = options.resetOnDoubleClick ?? 'both';
+      const axes = which === 'x' ? [x] : which === 'y' ? [y] : [x, y];
+      if (!gesture.start('discrete', () => begin(...axes))) return;
       try {
-        x.set(x.reset, false);
-        y.set(y.reset, false);
+        for (const axis of axes) axis.set(axis.reset, false);
         notify();
       } finally {
         gesture.end();
