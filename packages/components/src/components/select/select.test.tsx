@@ -11,6 +11,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { Select } from '../../index';
 import { choice } from '../../test-utils';
+import { tokens } from '../../theme/tokens';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -70,9 +71,12 @@ describe('Select', () => {
       'Notch',
       'Peak',
     ]);
-    // The chosen option has focus, and its tick.
+    // The chosen option has focus, and its tick, and is highlighted from
+    // the start: the first focus comes before its pressable is attached.
     expect(items[1]!.focused).toBe(true);
     expect(items[1]!.accessibility.state?.checked).toBe(true);
+    expect(items[1]!.style.backgroundColor).toBe(tokens.color.selected);
+    expect(items[0]!.style.backgroundColor).toBe('transparent');
     expect(items[2]!.accessibility.state?.disabled).toBe(true);
 
     await user.keyboard('{ArrowDown}');

@@ -6,7 +6,7 @@ import {
   useScrollbar,
   type StyleProp,
 } from '@soundor/react';
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { focusedNode, type KeyboardEvent, type UiNode } from 'soundor:ui';
 
 import {
@@ -113,6 +113,9 @@ export function MenuList({
   const list = useRef<UiNode | null>(null);
   const nodes = useRef<(UiNode | null)[]>([]);
   const typed = useRef({ text: '', at: 0 });
+  // The row with focus, from its own focus events: they arrive from the
+  // first focus on, before a pressable's listeners are attached.
+  const [active, setActive] = useState(-1);
   // A bar of the theme's, shown only when the list is longer than its room.
   const { vertical } = useScrollbar(list);
   const entries = rows.map((row) => (row.separator ? null : row));
@@ -145,6 +148,22 @@ export function MenuList({
     if (index >= 0) focusRow(index);
     else list.current?.focus();
     // Once, on open: later renders keep focus where the user put it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The list has no height to scroll in until the popup is placed and held
+  // to the room it has: then, and on any later resize, the focused row is
+  // brought into view.
+  useLayoutEffect(() => {
+    const node = list.current;
+    if (!node || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => {
+      const index = current();
+      if (index >= 0)
+        nodes.current[index]?.scrollIntoView?.({ block: 'nearest' });
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -243,6 +262,12 @@ export function MenuList({
               <Row
                 key={row.key}
                 entry={row}
+                active={active === index}
+                onFocusChange={(focused) =>
+                  setActive((was) =>
+                    focused ? index : was === index ? -1 : was,
+                  )
+                }
                 checkable={checkable}
                 size={size}
                 part={part}
@@ -283,6 +308,9 @@ export function MenuList({
 
 interface RowProps {
   entry: MenuEntry;
+  /** Has focus: highlighted. */
+  active: boolean;
+  onFocusChange: (focused: boolean) => void;
   checkable: boolean;
   size: ControlSize;
   part: MenuListProps['part'];
@@ -290,7 +318,16 @@ interface RowProps {
   choose: () => void;
 }
 
-function Row({ entry, checkable, size, part, remember, choose }: RowProps) {
+function Row({
+  entry,
+  active: focused,
+  onFocusChange,
+  checkable,
+  size,
+  part,
+  remember,
+  choose,
+}: RowProps) {
   const theme = useTheme();
   const c = theme.color;
   const disabled = !!entry.disabled;
@@ -309,7 +346,7 @@ function Row({ entry, checkable, size, part, remember, choose }: RowProps) {
       remember(value);
     },
   });
-  const active = press.focused && !disabled;
+  const active = focused && !disabled;
   const state: MenuRowState = { active, checked, disabled };
   const foreground = disabled
     ? c.textDisabled
@@ -326,6 +363,8 @@ function Row({ entry, checkable, size, part, remember, choose }: RowProps) {
   return (
     <View
       {...press.pressableProps}
+      onFocus={() => onFocusChange(true)}
+      onBlur={() => onFocusChange(false)}
       accessibilityRole="menuitem"
       accessibilityLabel={entry.label}
       accessibilityHint={hint}
