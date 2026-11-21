@@ -1,3 +1,4 @@
+import { View } from '@soundor/react';
 import {
   act,
   fireEvent,
@@ -7,7 +8,8 @@ import {
   waitFor,
   within,
 } from '@soundor/testing-library/react';
-import { clipboard } from 'soundor:ui';
+import { createRef } from 'react';
+import { clipboard, type UiNode } from 'soundor:ui';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -198,5 +200,107 @@ describe('ContextMenu', () => {
 
     await app.unmount();
     expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  test('attaches to its child without a wrapper, keeping its ref and actions, and offers Show menu to a screen reader', async () => {
+    const gain = parameter(0.25);
+    const outer = createRef<UiNode>();
+    const knobRef = createRef<UiNode>();
+    const onAction = vi.fn();
+    await render(
+      <View ref={outer} style={{ flexDirection: 'row' }}>
+        <ContextMenu items={() => parameterMenuItems(gain)}>
+          <Knob
+            parameter={gain}
+            ref={knobRef}
+            accessibilityActions={[{ name: 'learn', label: 'MIDI learn' }]}
+            onAccessibilityAction={onAction}
+          />
+        </ContextMenu>
+      </View>,
+    );
+    const knob = screen.getByRole('adjustable', { name: 'Gain' });
+    // The child's ref still reaches its node.
+    expect(knobRef.current).toBe(knob);
+    // No view of the ContextMenu's own: the Knob's root is the row's child.
+    expect(knob.parent?.parent).toBe(outer.current);
+    // The Knob's actions first, then the caller's, then Show menu.
+    expect(knob.accessibility.actions?.map((action) => action.name)).toEqual([
+      'increment',
+      'decrement',
+      'setValue',
+      'reset',
+      'learn',
+      'showMenu',
+    ]);
+    // Its own still work, and the caller's reaches the caller.
+    fireEvent.accessibilityAction(knob, { actionName: 'increment' });
+    expect(gain.get()).toBeGreaterThan(0.25);
+    fireEvent.accessibilityAction(knob, { actionName: 'learn' });
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(onAction.mock.calls[0]![0].actionName).toBe('learn');
+
+    // Show menu opens it beside the control, on its first item.
+    knob.focus();
+    fireEvent.accessibilityAction(knob, { actionName: 'showMenu' });
+    const menu = screen.getByRole('menu');
+    expect(
+      within(menu).getByRole('menuitem', { name: 'Reset to default' }).focused,
+    ).toBe(true);
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  test("a long touch opens it at the touch; one that moves is the control's drag; a delay of 0 turns it off", async () => {
+    vi.useFakeTimers();
+    const gain = parameter(0.25);
+    const touch = {
+      pointerType: 'touch',
+      isPrimary: true,
+      pointerId: 7,
+    } as const;
+    const { rerender } = await render(
+      <ContextMenu items={() => parameterMenuItems(gain)}>
+        <Knob parameter={gain} />
+      </ContextMenu>,
+    );
+    const knob = screen.getByRole('adjustable', { name: 'Gain' });
+
+    fireEvent.pointerDown(knob, { ...touch, clientX: 20, clientY: 20 });
+    await act(() => vi.advanceTimersByTimeAsync(499));
+    expect(screen.queryByRole('menu')).toBeNull();
+    await act(() => vi.advanceTimersByTimeAsync(1));
+    expect(screen.getByRole('menu')).toBeDefined();
+    fireEvent.pointerUp(knob, { ...touch, clientX: 20, clientY: 20 });
+    // Opening it was no edit: the press's gesture ended as focus left.
+    expect(gain.get()).toBe(0.25);
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    expect(screen.queryByRole('menu')).toBeNull();
+
+    // Moved past the slop: a drag, no menu.
+    fireEvent.pointerDown(knob, { ...touch, clientX: 20, clientY: 20 });
+    fireEvent.pointerMove(knob, { ...touch, clientX: 20, clientY: 40 });
+    await act(() => vi.advanceTimersByTimeAsync(600));
+    expect(screen.queryByRole('menu')).toBeNull();
+    fireEvent.pointerUp(knob, { ...touch, clientX: 20, clientY: 40 });
+
+    // A mouse held down opens nothing; nor does a touch with the delay at 0.
+    fireEvent.pointerDown(knob, {
+      clientX: 20,
+      clientY: 20,
+      button: 0,
+      buttons: 1,
+    });
+    await act(() => vi.advanceTimersByTimeAsync(600));
+    expect(screen.queryByRole('menu')).toBeNull();
+    fireEvent.pointerUp(knob, { clientX: 20, clientY: 20, button: 0 });
+    await rerender(
+      <ContextMenu items={() => parameterMenuItems(gain)} longPressDelay={0}>
+        <Knob parameter={gain} />
+      </ContextMenu>,
+    );
+    fireEvent.pointerDown(knob, { ...touch, clientX: 20, clientY: 20 });
+    await act(() => vi.advanceTimersByTimeAsync(600));
+    expect(screen.queryByRole('menu')).toBeNull();
+    fireEvent.pointerUp(knob, { ...touch, clientX: 20, clientY: 20 });
   });
 });
