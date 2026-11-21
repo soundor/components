@@ -5,6 +5,13 @@ export {
   type SegmentedControlProps,
   type SegmentOption,
 } from './components/segmented-control';
+export {
+  Select,
+  type SelectOption,
+  type SelectOptionState,
+  type SelectParameter,
+  type SelectProps,
+} from './components/select';
 export { Knob, type KnobProps } from './components/knob';
 export { Slider, type SliderProps } from './components/slider';
 export { Fader, type FaderProps } from './components/fader';

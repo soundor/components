@@ -26,3 +26,27 @@ export function parameter(initial = 0.5) {
     parse: parsers.number,
   } satisfies RangeParameter;
 }
+
+/** A choice parameter, as generated: options with labels, set with history. */
+export function choice<const T extends string>(
+  options: readonly { value: T; label: string }[],
+  initial: T,
+  access: 'automatable' | 'manual' | 'readOnly' = 'automatable',
+) {
+  let value = initial;
+  const listeners = new Set<(value: T) => void>();
+  return {
+    info: { label: 'Filter Type', default: initial, options, access },
+    get: () => value,
+    set: vi.fn<(next: T, options?: { history?: unknown }) => void>((next) => {
+      value = next;
+      for (const listener of listeners) listener(next);
+    }),
+    subscribe: (listener: (value: T) => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
