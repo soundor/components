@@ -190,30 +190,35 @@ function Channel({
           overflow: 'hidden',
         })}
       >
-        {segments.map(([from, to, color], index) => {
+        {segments.map(([segmentFrom, segmentTo, color], index) => {
+          if (segmentTo - segmentFrom <= 0) return null;
+          // The outermost segments run a pixel past the track's ends.
+          // Snapped to whole device pixels, a segment's edge can fall short
+          // of the rounded clip, which sits where layout put it, and leave a
+          // flat sliver at fractional scales. The clip trims what goes past.
+          const from = segmentFrom === 0 ? -1 : segmentFrom;
+          const to = segmentTo === length ? length + 1 : segmentTo;
           const size = to - from;
           return (
-            size > 0 && (
-              <View
-                key={index}
-                style={[
-                  { position: 'absolute', backgroundColor: color },
-                  vertical
-                    ? {
-                        bottom: from,
-                        height: size,
-                        left: 0,
-                        right: 0,
-                      }
-                    : {
-                        left: from,
-                        width: size,
-                        top: 0,
-                        bottom: 0,
-                      },
-                ]}
-              />
-            )
+            <View
+              key={index}
+              style={[
+                { position: 'absolute', backgroundColor: color },
+                vertical
+                  ? {
+                      bottom: from,
+                      height: size,
+                      left: 0,
+                      right: 0,
+                    }
+                  : {
+                      left: from,
+                      width: size,
+                      top: 0,
+                      bottom: 0,
+                    },
+              ]}
+            />
           );
         })}
         {peak > 0 && (

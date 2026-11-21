@@ -53,6 +53,23 @@ In a SegmentedControl the selection follows focus and wraps around at the ends.
 
 Every marker with `onMove` on a [Plot](/docs/components/plot) is its own tab stop and behaves like an XYPad.
 
+### Select, Dropdown and ContextMenu
+
+| Input                                              | Does                                                                           |
+| -------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `Enter`, `Space` (and `↓` `↑` on a Select)         | Open; focus goes into the list or menu                                         |
+| `Shift+F10` or the context menu key                | Open a [ContextMenu](/docs/components/context-menu) beside the focused control |
+| `↑` / `↓`, `Home` / `End`, `Page Up` / `Page Down` | Move, skipping disabled items and separators                                   |
+| A letter                                           | The next item whose label starts with it                                       |
+| `Enter` or `Space`                                 | Choose                                                                         |
+| `Esc`, `Tab` or a click outside                    | Close, and give focus back to where it was                                     |
+
+A list or menu keeps focus while it is open, and holds it inside the editor. `Esc` closes the topmost one only: a menu opened from a `Modal` closes and leaves the modal open.
+
+### EnvelopeEditor
+
+Each handle is a tab stop. On the attack, sustain and release handles the arrow keys, `Page Up`, `Page Down`, `Home`, `End` and the wheel work as on a Knob; on the decay handle, `←` `→` move the decay and `↓` `↑` the sustain. Double-click resets a handle's stage (on the decay handle, the decay only: the sustain has its own), and `Esc` cancels a drag. See [EnvelopeEditor](/docs/components/envelope-editor#editing).
+
 ### ResizeGrip
 
 `←` `→` `↑` `↓` resize the editor by a few pixels; `Shift` makes the step five times larger.
@@ -66,18 +83,37 @@ Every marker with `onMove` on a [Plot](/docs/components/plot) is its own tab sto
 
 ## What assistive technology gets
 
-| Control                         | Role                       | What it reports                                                     |
-| ------------------------------- | -------------------------- | ------------------------------------------------------------------- |
-| Knob, Slider, Fader, ValueField | `adjustable`               | Label, formatted value, minimum, maximum                            |
-| XYPad, Plot marker              | `adjustable`               | Both values in one phrase, such as "Cutoff 1.20 kHz, Resonance 35%" |
-| Button                          | `button`                   | Label, disabled                                                     |
-| Toggle                          | `switch` or `togglebutton` | Label, on or off                                                    |
-| SegmentedControl                | `radiogroup` of `radio`    | Group label, each option, which one is selected                     |
-| LevelMeter                      | `progressbar`              | Label and level; the clip indicator is a button that clears it      |
-| Plot                            | `image`                    | Its `accessibilityLabel`, or its title                              |
-| Panel, ControlGroup             | `header`                   | The title                                                           |
+| Control                         | Role                       | What it reports                                                               |
+| ------------------------------- | -------------------------- | ----------------------------------------------------------------------------- |
+| Knob, Slider, Fader, ValueField | `adjustable`               | Label, formatted value, minimum, maximum                                      |
+| XYPad, Plot marker              | `adjustable`               | Both values in one phrase, such as "Cutoff 1.20 kHz, Resonance 35%"           |
+| Button                          | `button`                   | Label, disabled                                                               |
+| Toggle                          | `switch` or `togglebutton` | Label, on or off                                                              |
+| SegmentedControl                | `radiogroup` of `radio`    | Group label, each option, which one is selected                               |
+| LevelMeter                      | `progressbar`              | Label and level; the clip indicator is a button that clears it                |
+| Plot                            | `image`                    | Its `accessibilityLabel`, or its title                                        |
+| Select                          | `combobox`, then a `menu`  | Label, chosen option, whether it is open; each option, the chosen one checked |
+| Dropdown, ContextMenu           | `menu` of `menuitem`       | The menu's label, each item, disabled and checked items, shortcuts as hints   |
+| EnvelopeEditor handle           | `adjustable`               | The stage's name and value, such as "Decay 300 ms, Sustain 65%"               |
+| Panel, ControlGroup             | `header`                   | The title                                                                     |
 
 Adjustable controls also offer the actions a screen reader lists: **increment**, **decrement**, **set value** and **reset to default**. An XYPad adds **Increase** and **Decrease** for its Y axis.
+
+### Actions of your own
+
+Every control takes `accessibilityActions` and `onAccessibilityAction`. Your actions are offered after the control's own, which stay first and stay the control's: an action named like one of its own is left out, and asking for one of its own never reaches your handler. A [ContextMenu](/docs/components/context-menu) uses this to offer **Show menu**.
+
+```tsx
+<Knob
+  parameter={parameters.cutoff}
+  accessibilityActions={[{ name: 'learn', label: 'MIDI learn' }]}
+  onAccessibilityAction={(event) => {
+    if (event.actionName === 'learn') startLearn('cutoff');
+  }}
+/>
+```
+
+Every control also takes a `ref` to the node assistive technology is on (a SegmentedControl's is its group, and its options each offer your actions). A Dropdown places its menu beside its trigger by that ref.
 
 ### Making your plug-in accessible
 

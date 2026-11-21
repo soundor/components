@@ -17,6 +17,18 @@ export interface XYInteraction {
   travel?: readonly [number, number];
   /** Optional keyboard increments expressed in plain units. */
   keyStep?: readonly [number, number];
+  /**
+   * Which host gestures an arrow key opens: both axes' (the default, as a
+   * drag does), or only the axis it moves, so that a host recording touch
+   * automation does not take the other as touched.
+   */
+  keyGesture?: 'both' | 'axis';
+  /**
+   * What a double-click resets: both axes (the default), or one, where the
+   * other belongs to a control of its own as well (an envelope's decay
+   * handle, whose level is the sustain's).
+   */
+  resetOnDoubleClick?: 'both' | 'x' | 'y';
   describeValue?: (x: number, y: number) => string;
   onPointChange?: (x: number, y: number) => void;
   onInteractionStart?: () => void;
@@ -233,7 +245,13 @@ export function useXYPad(
         key === 'ArrowUp'
       ) {
         const axis = key === 'ArrowLeft' || key === 'ArrowRight' ? x : y;
-        if (axis.disabled || !gesture.start('keys', beginBoth)) return;
+        if (
+          axis.disabled ||
+          !(options.keyGesture === 'axis'
+            ? gesture.start(axis === x ? 'keysX' : 'keysY', () => begin(axis))
+            : gesture.start('keys', beginBoth))
+        )
+          return;
         step(
           axis,
           key === 'ArrowRight' || key === 'ArrowUp' ? 1 : -1,
@@ -245,10 +263,11 @@ export function useXYPad(
       event.preventDefault();
     },
     onDoubleClick() {
-      if (!gesture.start('discrete', beginBoth)) return;
+      const which = options.resetOnDoubleClick ?? 'both';
+      const axes = which === 'x' ? [x] : which === 'y' ? [y] : [x, y];
+      if (!gesture.start('discrete', () => begin(...axes))) return;
       try {
-        x.set(x.reset, false);
-        y.set(y.reset, false);
+        for (const axis of axes) axis.set(axis.reset, false);
         notify();
       } finally {
         gesture.end();

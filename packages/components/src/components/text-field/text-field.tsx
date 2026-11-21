@@ -2,6 +2,11 @@ import { Text, TextInput, View } from '@soundor/react';
 import { useRef, useState } from 'react';
 import type { UiNode } from 'soundor:ui';
 
+import {
+  extraActions,
+  useMergedRef,
+  type HostProps,
+} from '../../internal/host';
 import { useControlValue } from '../../internal/range';
 import {
   controlHeight,
@@ -13,7 +18,8 @@ import {
 } from '../../theme';
 import type { ActionProps } from '../shared/action';
 
-export interface TextFieldProps extends ActionProps, StyleProps<'TextField'> {
+export interface TextFieldProps
+  extends ActionProps, HostProps, StyleProps<'TextField'> {
   /** Shown above the field, and what assistive technology calls it. */
   label?: string;
   /** Controlled text; pair it with `onChange`. */
@@ -55,6 +61,7 @@ export function TextField({
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const input = useRef<UiNode>(null);
+  const inputRef = useMergedRef(input, props.ref);
   const invalid = error !== undefined && error !== '';
   const lineHeight = Math.ceil(theme.typography.body.fontSize * 1.3);
   const text = { ...textStyle(theme, 'body', c.text), lineHeight };
@@ -120,7 +127,8 @@ export function TextField({
           </Text>
         ) : (
           <TextInput
-            ref={input}
+            {...extraActions(props, ['setValue', 'activate', 'focus', 'blur'])}
+            ref={inputRef}
             value={own.value}
             placeholder={placeholder}
             accessibilityLabel={name}

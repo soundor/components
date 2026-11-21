@@ -33,6 +33,17 @@ export interface ComponentSlots {
   Button: 'root' | 'label';
   Toggle: 'root' | 'label' | 'indicator' | 'track';
   SegmentedControl: 'root' | 'segment' | 'label';
+  Select:
+    | 'root'
+    | 'label'
+    | 'control'
+    | 'value'
+    | 'icon'
+    | 'description'
+    | 'popup'
+    | 'option';
+  /** Dropdown's and ContextMenu's menu: `root` is its surface. */
+  Menu: 'root' | 'item' | 'label' | 'icon' | 'shortcut' | 'separator';
   Knob: 'root' | 'control' | 'label' | 'value';
   Slider: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';
   Fader: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';
@@ -41,6 +52,7 @@ export interface ComponentSlots {
   LevelMeter: 'root' | 'channel' | 'track' | 'indicator' | 'label';
   Plot: 'root' | 'canvas' | 'title' | 'note';
   XYPad: 'root' | 'canvas' | 'title' | 'note' | 'value';
+  EnvelopeEditor: 'root' | 'plot' | 'handle' | 'values' | 'label' | 'value';
   Panel: 'root' | 'header' | 'title' | 'content';
   ControlGroup: 'root' | 'title' | 'content';
   Divider: 'root';

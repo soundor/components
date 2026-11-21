@@ -10,6 +10,7 @@ import {
 import { viewport } from '../../chart/geometry';
 import { useXYPad, type RangeProps } from '../../headless';
 import { formatters } from '../../internal/format';
+import { withActions, type HostProps } from '../../internal/host';
 import {
   ring,
   textStyle,
@@ -22,7 +23,7 @@ import { useCanvasBox } from '../shared/display';
 import { useDrawing } from '../shared/display';
 import { fillBox } from '../shared/display';
 
-export interface XYPadProps extends StyleProps<'XYPad'> {
+export interface XYPadProps extends HostProps, StyleProps<'XYPad'> {
   x: RangeProps;
   y: RangeProps;
   width?: number;
@@ -57,6 +58,9 @@ export function XYPad({
   label,
   showValues = true,
   debugId,
+  ref,
+  accessibilityActions,
+  onAccessibilityAction,
   ...styles
 }: XYPadProps) {
   const { theme, slot } = useComponent('XYPad', styles);
@@ -116,6 +120,11 @@ export function XYPad({
   return (
     <View
       {...controls.handlers}
+      {...withActions(controls.handlers, {
+        accessibilityActions,
+        onAccessibilityAction,
+      })}
+      ref={ref}
       debugId={debugId}
       style={slot('root', {
         width,

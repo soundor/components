@@ -1,5 +1,5 @@
 import { Canvas, Text, View } from '@soundor/react';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, type ReactNode } from 'react';
 
 import {
   clipToViewport,
@@ -60,6 +60,19 @@ export interface PlotProps extends DisplayCaption, StyleProps<'Plot'> {
   markers?: readonly PlotMarker[];
   legend?: boolean;
   readout?: boolean;
+  /**
+   * Views of your own over the plot, such as handles, laid out in its
+   * coordinates: `space.x.map(value)` is where a value is across, and
+   * `space.inner` the area the axes map to. Drawn above the canvas and the
+   * markers, below the title and legend.
+   */
+  overlay?: (space: Coordinates) => ReactNode;
+  /**
+   * Pixels the axes are mapped inside the plot area, so that a handle of
+   * your own at the end of an axis is whole. Draggable markers keep one of
+   * their own; the larger is used.
+   */
+  safeZone?: number;
   accessibilityLabel?: string;
   debugId?: string;
 }
@@ -142,6 +155,8 @@ export function Plot({
   markers = [],
   legend,
   readout,
+  overlay,
+  safeZone: ownSafeZone = 0,
   title,
   note,
   indicator,
@@ -158,6 +173,7 @@ export function Plot({
   // map inside the plot area, short of its edge by a handle's radius and a bit.
   const safeZone = Math.max(
     0,
+    ownSafeZone,
     ...markers
       .filter(
         (marker) =>
@@ -374,6 +390,7 @@ export function Plot({
           />
         );
       })}
+      {overlay?.(coordinates)}
       {legend && (
         <View
           style={{

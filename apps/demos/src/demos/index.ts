@@ -4,8 +4,12 @@ import type { ComponentType } from 'react';
 import Button from './button';
 import ButtonDisabled from './button-disabled';
 import ButtonLoading from './button-loading';
+import ContextMenu from './context-menu';
 import ControlGroup from './control-group';
 import Divider from './divider';
+import Dropdown from './dropdown';
+import EnvelopeEditor from './envelope-editor';
+import EnvelopeEditorControlled from './envelope-editor-controlled';
 import Fader from './fader';
 import Gallery from './gallery';
 import Knob from './knob';
@@ -21,8 +25,11 @@ import PlotEq from './plot-eq';
 import PlotSpectrum from './plot-spectrum';
 import PlotWaveform from './plot-waveform';
 import SegmentedControl from './segmented-control';
+import Select from './select';
+import SelectStates from './select-states';
 import Showcase from './showcase';
 import Slider from './slider';
+import SynthVoice from './synth-voice';
 import TextField from './text-field';
 import TextFieldStates from './text-field-states';
 import TextFieldValidation from './text-field-validation';
@@ -42,6 +49,10 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   'button-disabled': ButtonDisabled,
   toggle: Toggle,
   'segmented-control': SegmentedControl,
+  select: Select,
+  'select-states': SelectStates,
+  dropdown: Dropdown,
+  'context-menu': ContextMenu,
   knob: Knob,
   showcase: Showcase,
   slider: Slider,
@@ -68,5 +79,8 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   'plot-waveform': PlotWaveform,
   'plot-automation': PlotAutomation,
   'xy-pad-filter': XyPadFilter,
+  'envelope-editor': EnvelopeEditor,
+  'envelope-editor-controlled': EnvelopeEditorControlled,
+  'synth-voice': SynthVoice,
   'level-meter-stereo': LevelMeterStereo,
 };

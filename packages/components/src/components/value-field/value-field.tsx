@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { UiNode } from 'soundor:ui';
 
 import { useValueField, type RangeProps } from '../../headless';
+import { useMergedRef, withActions, type HostProps } from '../../internal/host';
 import {
   controlHeight,
   ring,
@@ -21,7 +22,8 @@ function splitNumber(formatted: string) {
   };
 }
 
-export interface ValueFieldProps extends RangeProps, StyleProps<'ValueField'> {
+export interface ValueFieldProps
+  extends RangeProps, HostProps, StyleProps<'ValueField'> {
   size?: ControlSize;
   width?: number;
 }
@@ -57,6 +59,9 @@ export function ValueField({
   const [keyboardEdit, setKeyboardEdit] = useState(false);
   const numberRange = useRef<[number, number]>([0, 0]);
   const label = useRef<UiNode>(null);
+  // The caller's ref follows focus: the field, or its input while typing.
+  const wellRef = useMergedRef(well, props.ref);
+  const inputRef = useMergedRef(input, props.ref);
   const fitKey = useRef('');
   const base = theme.typography.value.fontSize;
   const [fontSize, setFontSize] = useState(base);
@@ -213,7 +218,7 @@ export function ValueField({
       {isEditing ? (
         <View style={style}>
           <TextInput
-            ref={input}
+            ref={inputRef}
             defaultValue={entry.prefix + entry.number + entry.suffix}
             accessibilityLabel={
               props.accessibilityLabel ?? range.label ?? 'Value'
@@ -248,7 +253,8 @@ export function ValueField({
       ) : (
         <View
           {...range.handlers}
-          ref={well}
+          {...withActions(range.handlers, props)}
+          ref={wellRef}
           style={style}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !range.disabled) {

@@ -1,6 +1,7 @@
-import { Pressable, View } from '@soundor/react';
+import { Pressable, View, type AccessibilityState } from '@soundor/react';
 import { type ReactNode } from 'react';
 
+import { extraActions, type HostProps } from '../../internal/host';
 import {
   controlHeight,
   ring,
@@ -13,7 +14,8 @@ import type { ActionProps } from '../shared/action';
 import { Content } from '../shared/content';
 import { Spinner } from '../shared/spinner';
 
-export interface ButtonProps extends ActionProps, StyleProps<'Button'> {
+export interface ButtonProps
+  extends ActionProps, HostProps, StyleProps<'Button'> {
   children?: ReactNode;
   onPress?: () => void;
   variant?: 'surface' | 'accent' | 'ghost';
@@ -26,6 +28,11 @@ export interface ButtonProps extends ActionProps, StyleProps<'Button'> {
    * The button stays focusable.
    */
   loading?: boolean;
+  /**
+   * State for assistive technology, beside `disabled` and `loading`: a
+   * Dropdown sets `expanded` on its trigger while its menu is open.
+   */
+  accessibilityState?: AccessibilityState;
 }
 
 export function Button({
@@ -38,8 +45,13 @@ export function Button({
   loading = false,
   disabled,
   accessibilityLabel,
+  accessibilityState,
+  ref,
+  accessibilityActions,
+  onAccessibilityAction,
   ...props
 }: ButtonProps) {
+  const host = { accessibilityActions, onAccessibilityAction };
   const { theme, slot } = useComponent('Button', props);
   const c = theme.color;
   const label =
@@ -52,11 +64,15 @@ export function Button({
   }[size];
   return (
     <Pressable
+      {...extraActions(host, ['activate'])}
+      ref={ref}
       accessibilityLabel={label}
       accessibilityHint={props.accessibilityHint}
       debugId={props.debugId}
       disabled={disabled}
-      accessibilityState={loading ? { busy: true } : undefined}
+      accessibilityState={
+        loading ? { ...accessibilityState, busy: true } : accessibilityState
+      }
       onPress={loading ? undefined : onPress}
       style={({ hovered, pressed, focusVisible }) =>
         slot('root', {

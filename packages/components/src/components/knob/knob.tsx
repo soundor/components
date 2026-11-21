@@ -2,6 +2,7 @@ import { Text, View } from '@soundor/react';
 import { Circle, Line, Path, Svg } from '@soundor/react/svg';
 
 import { useKnob, type RangeProps } from '../../headless';
+import { withActions, type HostProps } from '../../internal/host';
 import {
   accents,
   ring,
@@ -24,7 +25,7 @@ function arc(c: number, radius: number, from: number, to: number) {
   return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${b - a > Math.PI ? 1 : 0} 1 ${end.x} ${end.y}`;
 }
 
-export interface KnobProps extends RangeProps, StyleProps<'Knob'> {
+export interface KnobProps extends RangeProps, HostProps, StyleProps<'Knob'> {
   size?: ControlSize;
   color?: ControlColor;
   showLabel?: boolean;
@@ -42,8 +43,12 @@ export function Knob({
   sweep = 270,
   resetOnHome,
   wheelStep,
+  ref,
+  accessibilityActions,
+  onAccessibilityAction,
   ...props
 }: KnobProps) {
+  const host = { accessibilityActions, onAccessibilityAction };
   const { theme, slot } = useComponent('Knob', props);
   const r = useKnob(props, { resetOnHome, wheelStep });
   const c = theme.color;
@@ -72,6 +77,8 @@ export function Knob({
     >
       <Svg
         {...r.handlers}
+        {...withActions(r.handlers, host)}
+        ref={ref}
         width={d}
         height={d}
         viewBox={[0, 0, d, d]}
