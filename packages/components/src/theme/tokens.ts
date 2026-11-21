@@ -19,6 +19,8 @@ export const tokens = {
     warning: '#8a5e0c',
     danger: '#ad3f2e',
     focus: '#9473ca',
+    /** Under a popup, menu or list: what lifts it off the editor. */
+    shadow: 'rgba(30, 34, 28, 0.22)',
     selected: '#30362f',
     selectedForeground: '#e2f1c6',
     control: '#2b2f31',

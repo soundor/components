@@ -2,7 +2,8 @@ import { View, usePressable } from '@soundor/react';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { UiNode } from 'soundor:ui';
 
-import { useControlValue, type ComponentParameter } from '../../internal/range';
+import type { ChoiceParameter } from '../../internal/choice';
+import { useControlValue } from '../../internal/range';
 import {
   controlHeight,
   ring,
@@ -21,17 +22,8 @@ export interface SegmentOption<T extends string> {
   hint?: string;
 }
 
-/**
- * A generated choice parameter. `T` is inferred from `info` alone: a
- * parameter's `set` also accepts an updater function, which as an inference
- * source widens `T` to `string`.
- */
-export type SegmentedControlParameter<T extends string> = {
-  readonly info: {
-    readonly default: T;
-    readonly options: readonly SegmentOption<T>[];
-  };
-} & NoInfer<ComponentParameter<T>>;
+/** A generated choice parameter; see {@link ChoiceParameter}. */
+export type SegmentedControlParameter<T extends string> = ChoiceParameter<T>;
 
 interface SegmentedControlBaseProps
   extends ActionProps, StyleProps<'SegmentedControl'> {
