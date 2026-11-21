@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   check:
+    name: Check
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -21,9 +22,10 @@ jobs:
       - run: pnpm check
       - run: pnpm --filter @soundor/components pack --pack-destination "$RUNNER_TEMP"
 
-  # The demos' web build in Chromium (apps/demos/e2e): real layout, hit
+  # The demos' web build in Chromium (apps/demos/e2e/web): real layout, hit
   # testing and browser input, which the unit tests' runtime simulates.
-  e2e:
+  browser:
+    name: Browser (e2e)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -39,9 +41,25 @@ jobs:
   # (apps/demos/e2e/vst3): the components bound to parameters, and the
   # gestures and edits a host records. Nothing built leaves the runner.
   vst3:
+    name: VST3 (e2e)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - run: sudo apt-get install -y --no-install-recommends xvfb
       - run: xvfb-run -a pnpm test:vst3
+
+  # The one check to require in branch protection: it passes only when every
+  # job above passed, so new jobs need no settings change, only this list.
+  verify:
+    name: Verify
+    if: always()
+    needs: [check, browser, vst3]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Every job passed
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "$RESULTS"
+          jq -e 'all(. == "success")' <<< "$RESULTS"
