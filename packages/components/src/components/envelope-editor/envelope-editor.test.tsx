@@ -285,6 +285,21 @@ describe('EnvelopeEditor', () => {
     expect(decay.beginGesture).toHaveBeenCalledTimes(decayGestures + 1);
     expect(sustain.beginGesture).toHaveBeenCalledTimes(sustainGestures);
 
+    // Alt-click on D resets as the double-click does: the decay only.
+    handle('Decay').focus();
+    await user.keyboard('{ArrowRight}');
+    const changed = decay.get();
+    fireEvent.pointerDown(layer(), {
+      offsetX: centre(handle('Decay')).x,
+      offsetY: centre(handle('Decay')).y,
+      altKey: true,
+    });
+    fireEvent.pointerUp(layer(), { altKey: true });
+    expect(decay.get()).not.toBe(changed);
+    expect(decay.get()).toBe(decay.info.default);
+    expect(sustain.get()).toBe(sustainBefore);
+    expect(sustain.beginGesture).toHaveBeenCalledTimes(sustainGestures);
+
     // Double-click resets the stages of the handle under it.
     handle('Release').focus();
     await user.keyboard('{ArrowRight}');

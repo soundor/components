@@ -278,8 +278,14 @@ export function useRangeControl(
     onPointerLeave: () => setHovered(false),
     onBlur: () => gesture.end(),
     onPointerDown(event) {
+      if (event.button !== 0) return;
+      // Alt-click (Option-click on a Mac) resets, as in Pro Tools and Logic:
+      // no drag, and no Slider jump to the pointer first.
+      if (event.altKey) {
+        if (!range.disabled) discrete(range.reset, false);
+        return;
+      }
       if (
-        event.button !== 0 ||
         !gesture.start('pointer', () => {
           const finish = range.begin();
           setPressed(true);
@@ -337,8 +343,9 @@ export function useRangeControl(
     onPointerCancel(event) {
       if (drag.current?.id === event.pointerId) gesture.end();
     },
-    onDoubleClick() {
-      if (range.disabled) return;
+    onDoubleClick(event) {
+      // The second click of an Alt-click pair: the first one reset.
+      if (range.disabled || event.altKey) return;
       if (options.onDoubleClick) options.onDoubleClick();
       else discrete(range.reset, false);
     },
