@@ -12,4 +12,4 @@ routeTree.gen.ts
 apps/website/public/demos/
 
 # Written from packages/components/CHANGELOG.md by apps/website/scripts/changelog.ts
-apps/website/content/docs/changelog.md
+apps/website/content/docs/changelog.mdx
