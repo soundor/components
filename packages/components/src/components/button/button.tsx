@@ -1,4 +1,4 @@
-import { Pressable, View } from '@soundor/react';
+import { Pressable, View, type AccessibilityState } from '@soundor/react';
 import { type ReactNode } from 'react';
 
 import {
@@ -26,6 +26,11 @@ export interface ButtonProps extends ActionProps, StyleProps<'Button'> {
    * The button stays focusable.
    */
   loading?: boolean;
+  /**
+   * State for assistive technology, beside `disabled` and `loading`: a
+   * Dropdown sets `expanded` on its trigger while its menu is open.
+   */
+  accessibilityState?: AccessibilityState;
 }
 
 export function Button({
@@ -38,6 +43,7 @@ export function Button({
   loading = false,
   disabled,
   accessibilityLabel,
+  accessibilityState,
   ...props
 }: ButtonProps) {
   const { theme, slot } = useComponent('Button', props);
@@ -56,7 +62,9 @@ export function Button({
       accessibilityHint={props.accessibilityHint}
       debugId={props.debugId}
       disabled={disabled}
-      accessibilityState={loading ? { busy: true } : undefined}
+      accessibilityState={
+        loading ? { ...accessibilityState, busy: true } : accessibilityState
+      }
       onPress={loading ? undefined : onPress}
       style={({ hovered, pressed, focusVisible }) =>
         slot('root', {

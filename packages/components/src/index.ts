@@ -12,6 +12,18 @@ export {
   type SelectParameter,
   type SelectProps,
 } from './components/select';
+export {
+  Dropdown,
+  type DropdownProps,
+  type DropdownTriggerProps,
+} from './components/dropdown';
+export {
+  ContextMenu,
+  parameterMenuItems,
+  type ContextMenuProps,
+  type ParameterMenuOptions,
+} from './components/context-menu';
+export type { MenuAction, MenuItem, MenuSeparator } from './components/menu';
 export { Knob, type KnobProps } from './components/knob';
 export { Slider, type SliderProps } from './components/slider';
 export { Fader, type FaderProps } from './components/fader';
