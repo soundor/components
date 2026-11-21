@@ -34,3 +34,14 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm --filter @soundor/components-demos exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+
+  # The demos' Debug VST3 in Soundor's VST3 host, its editor open under Xvfb
+  # (apps/demos/e2e/vst3): the components bound to parameters, and the
+  # gestures and edits a host records. Nothing built leaves the runner.
+  vst3:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: sudo apt-get install -y --no-install-recommends xvfb
+      - run: xvfb-run -a pnpm test:vst3

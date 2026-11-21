@@ -6,6 +6,7 @@
     "dev": "turbo run dev --filter=@soundor/components-website",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
+    "test:vst3": "turbo run test:vst3",
     "lint": "oxlint --deny-warnings .",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",

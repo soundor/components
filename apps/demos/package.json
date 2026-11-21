@@ -6,6 +6,7 @@
   "scripts": {
     "build": "soundor build web",
     "test:e2e": "playwright test",
+    "test:vst3": "soundor build vst3 --debug && vitest run",
     "dev": "soundor dev web",
     "doctor": "soundor doctor",
     "gen": "soundor gen",
@@ -15,15 +16,19 @@
   "dependencies": {
     "@soundor/components": "workspace:*",
     "@soundor/react": "catalog:",
+    "@soundor/vst3-runtime": "catalog:",
     "@soundor/web-runtime": "catalog:",
     "react": "catalog:"
   },
   "devDependencies": {
     "@playwright/test": "catalog:",
     "@soundor/config": "catalog:",
+    "@soundor/vitest-e2e": "catalog:",
+    "@soundor/vst3-host": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "soundor": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
