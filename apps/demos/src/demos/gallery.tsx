@@ -20,10 +20,7 @@ export default function Demo() {
         <Fader parameter={parameters.gain} length={110} />
       </ControlGroup>
       <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-        <SegmentedControl<'sync' | 'free'>
-          label="Mode"
-          parameter={parameters.mode}
-        />
+        <SegmentedControl label="Mode" parameter={parameters.mode} />
         <Toggle label="Bypass" variant="switch" parameter={parameters.bypass} />
         <ValueField
           parameter={parameters.time}

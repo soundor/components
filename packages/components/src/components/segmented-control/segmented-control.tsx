@@ -21,19 +21,53 @@ export interface SegmentOption<T extends string> {
   hint?: string;
 }
 
-export interface SegmentedControlProps<T extends string>
-  extends ActionProps, StyleProps<'SegmentedControl'> {
-  parameter?: ComponentParameter<T> & {
-    info: { readonly options: readonly SegmentOption<T>[] };
+/**
+ * A generated choice parameter. `T` is inferred from `info` alone: a
+ * parameter's `set` also accepts an updater function, which as an inference
+ * source widens `T` to `string`.
+ */
+export type SegmentedControlParameter<T extends string> = {
+  readonly info: {
+    readonly default: T;
+    readonly options: readonly SegmentOption<T>[];
   };
-  options?: readonly SegmentOption<T>[];
-  value?: T;
-  defaultValue?: T;
-  onChange?: (value: T) => void;
+} & NoInfer<ComponentParameter<T>>;
+
+interface SegmentedControlBaseProps
+  extends ActionProps, StyleProps<'SegmentedControl'> {
   label?: string;
   size?: ControlSize;
   fill?: boolean;
 }
+
+/**
+ * Bound to a parameter. The parameter supplies the options, the value and the
+ * label, so none of them can be passed here, and `T` is inferred from it.
+ */
+export interface SegmentedControlParameterProps<
+  T extends string,
+> extends SegmentedControlBaseProps {
+  parameter: SegmentedControlParameter<T>;
+  options?: never;
+  value?: never;
+  defaultValue?: never;
+  onChange?: never;
+}
+
+/** Controlled (`value` + `onChange`) or uncontrolled (`defaultValue`). */
+export interface SegmentedControlValueProps<
+  T extends string,
+> extends SegmentedControlBaseProps {
+  parameter?: undefined;
+  options: readonly SegmentOption<T>[];
+  value?: T;
+  defaultValue?: T;
+  onChange?: (value: T) => void;
+}
+
+export type SegmentedControlProps<T extends string> =
+  | SegmentedControlParameterProps<T>
+  | SegmentedControlValueProps<T>;
 
 interface SegmentProps<T extends string> {
   option: SegmentOption<T>;

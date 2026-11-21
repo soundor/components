@@ -159,7 +159,7 @@ export default function Demo() {
             placeholder="Untitled"
             width={170}
           />
-          <SegmentedControl<'A' | 'B'>
+          <SegmentedControl
             label="Slot"
             value={slot}
             onChange={setSlot}
@@ -280,7 +280,7 @@ export default function Demo() {
               width={170}
               height={170}
             />
-            <SegmentedControl<FilterType>
+            <SegmentedControl
               label="Type"
               value={type}
               onChange={setType}
