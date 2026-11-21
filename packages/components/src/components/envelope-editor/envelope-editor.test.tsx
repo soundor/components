@@ -39,40 +39,51 @@ const centre = (node: TestNode) => ({
 /** The layer over the plot that takes the pointer for the handles. */
 const layer = () => handle('Attack').previousSibling as TestNode;
 
+/** Where a pointer event on the layer is, at a point of the plot. */
+const point = (at: { x: number; y: number }) => ({
+  offsetX: at.x,
+  offsetY: at.y,
+  clientX: at.x,
+  clientY: at.y,
+});
+
 /** A press on the layer at a point of the plot, dragged by (dx, dy), released. */
-function drag(
+async function drag(
   from: { x: number; y: number },
   dx: number,
   dy: number,
   options: { cancel?: 'escape' | 'pointer'; shift?: boolean } = {},
 ) {
+  const user = userEvent.setup();
   const target = layer();
-  const down = {
-    offsetX: from.x,
-    offsetY: from.y,
-    clientX: from.x,
-    clientY: from.y,
-  };
-  fireEvent.pointerDown(target, down);
-  fireEvent.pointerMove(target, {
-    clientX: from.x + dx,
-    clientY: from.y + dy,
-    shiftKey: options.shift,
-  });
-  if (options.cancel === 'escape') {
-    fireEvent.keyDown(screen.getByRole('adjustable', { name: focusedName() }), {
-      key: 'Escape',
-    });
-  }
+  const to = { clientX: from.x + dx, clientY: from.y + dy };
+  await user.pointer({ target, keys: '[MouseLeft>]', ...point(from) });
+  if (options.shift) await user.keyboard('{Shift>}');
+  await user.pointer(to);
+  if (options.shift) await user.keyboard('{/Shift}');
+  if (options.cancel === 'escape') await user.keyboard('{Escape}');
+  // A cancelled pointer: no userEvent for it.
   if (options.cancel === 'pointer') fireEvent.pointerCancel(target);
-  else
-    fireEvent.pointerUp(target, { clientX: from.x + dx, clientY: from.y + dy });
+  else await user.pointer({ keys: '[/MouseLeft]', ...to });
 }
 
-function focusedName() {
-  for (const name of ['Attack', 'Decay', 'Sustain', 'Release'])
-    if (handle(name).focused) return name;
-  return 'Attack';
+/**
+ * A double-click on the layer over a handle; `between` runs before the
+ * second release, which sends the dblclick.
+ */
+async function doubleClick(
+  user: ReturnType<typeof userEvent.setup>,
+  at: { x: number; y: number },
+  between?: () => void,
+) {
+  const press = { target: layer(), ...point(at) };
+  await user.pointer([
+    press,
+    { ...press, keys: '[MouseLeft]', detail: 1 },
+    { ...press, keys: '[MouseLeft>]', detail: 2 },
+  ]);
+  between?.();
+  await user.pointer({ ...press, keys: '[/MouseLeft]' });
 }
 
 // Linear times from 0 to 1 s: a position across a stage is its value.
@@ -144,7 +155,7 @@ describe('EnvelopeEditor', () => {
         onChange={onChange}
       />,
     );
-    drag(centre(handle('Attack')), slot / 4, 30);
+    await drag(centre(handle('Attack')), slot / 4, 30);
     expect(onChange).toHaveBeenLastCalledWith({
       attack: 0.5,
       decay: 0.5,
@@ -153,7 +164,7 @@ describe('EnvelopeEditor', () => {
     });
     expect(handle('Attack').focused).toBe(true);
 
-    drag(centre(handle('Decay')), -slot / 10, -inner.height / 5);
+    await drag(centre(handle('Decay')), -slot / 10, -inner.height / 5);
     const after = onChange.mock.lastCall![0];
     expect(after.decay).toBeCloseTo(0.4);
     expect(after.sustain).toBeCloseTo(0.8);
@@ -161,16 +172,16 @@ describe('EnvelopeEditor', () => {
     // The sustain handle follows the level the decay handle set.
     expect(handle('Sustain').accessibility.value?.text).toBe('80%');
 
-    drag(centre(handle('Sustain')), 200, inner.height / 2);
+    await drag(centre(handle('Sustain')), 200, inner.height / 2);
     expect(onChange.mock.lastCall![0].sustain).toBeCloseTo(0.3);
     expect(onChange.mock.lastCall![0].decay).toBeCloseTo(0.4);
 
-    drag(centre(handle('Release')), slot / 2, -80);
+    await drag(centre(handle('Release')), slot / 2, -80);
     expect(onChange.mock.lastCall![0].release).toBeCloseTo(1);
     // Past the end, it stays at the limit.
-    drag(centre(handle('Release')), slot, 0);
+    await drag(centre(handle('Release')), slot, 0);
     expect(onChange.mock.lastCall![0].release).toBeCloseTo(1);
-    drag(centre(handle('Attack')), -slot * 2, 0);
+    await drag(centre(handle('Attack')), -slot * 2, 0);
     expect(onChange.mock.lastCall![0].attack).toBe(0);
   });
 
@@ -193,20 +204,20 @@ describe('EnvelopeEditor', () => {
     const all = [attack, decay, sustain, release];
     const gestures = () => all.map((p) => p.beginGesture.mock.calls.length);
 
-    drag(centre(handle('Attack')), slot / 10, 0);
+    await drag(centre(handle('Attack')), slot / 10, 0);
     expect(gestures()).toEqual([1, 0, 0, 0]);
     // The parameter's own mapping: position 0.5 + 0.1, squared.
     expect(attack.get()).toBeCloseTo(0.6 ** 2);
     expect(attack.endGesture).toHaveBeenCalledTimes(1);
 
-    drag(centre(handle('Release')), slot / 10, 0);
+    await drag(centre(handle('Release')), slot / 10, 0);
     expect(gestures()).toEqual([1, 0, 0, 1]);
 
-    drag(centre(handle('Sustain')), 0, -10);
+    await drag(centre(handle('Sustain')), 0, -10);
     expect(gestures()).toEqual([1, 0, 1, 1]);
 
     // The decay handle moves two values, and takes both.
-    drag(centre(handle('Decay')), 10, -10);
+    await drag(centre(handle('Decay')), 10, -10);
     expect(gestures()).toEqual([1, 1, 2, 1]);
     expect(all.map((p) => p.endGesture.mock.calls.length)).toEqual([
       1, 1, 2, 1,
@@ -225,17 +236,17 @@ describe('EnvelopeEditor', () => {
     const a = centre(handle('Attack'));
     const d = centre(handle('Decay'));
     expect(d.x - a.x).toBeCloseTo(slot * 0.02);
-    drag({ x: a.x - 1, y: a.y }, slot / 10, 0);
+    await drag({ x: a.x - 1, y: a.y }, slot / 10, 0);
     expect(handle('Attack').focused).toBe(true);
     expect(handle('Attack').accessibility.value?.text).toBe('100 ms');
-    drag({ x: d.x + slot / 10 + 1, y: d.y }, slot / 10, 0);
+    await drag({ x: d.x + slot / 10 + 1, y: d.y }, slot / 10, 0);
     expect(handle('Decay').focused).toBe(true);
     expect(handle('Decay').accessibility.value?.text).toBe(
       'Decay 120 ms, Sustain 100%',
     );
     // Away from every handle, a press does nothing.
     const before = handle('Attack').accessibility.value?.text;
-    drag({ x: inner.left + inner.width - 2, y: inner.top + 2 }, -40, 40);
+    await drag({ x: inner.left + inner.width - 2, y: inner.top + 2 }, -40, 40);
     expect(handle('Attack').accessibility.value?.text).toBe(before);
   });
 
@@ -274,11 +285,13 @@ describe('EnvelopeEditor', () => {
     // Double-click on D resets the decay only: the level is the sustain's,
     // which has its own handle, and its gesture is not opened.
     const sustainBefore = sustain.get();
-    const sustainGestures = sustain.beginGesture.mock.calls.length;
-    const decayGestures = decay.beginGesture.mock.calls.length;
-    fireEvent.dblClick(layer(), {
-      offsetX: centre(handle('Decay')).x,
-      offsetY: centre(handle('Decay')).y,
+    let sustainGestures = 0;
+    let decayGestures = 0;
+    // The presses grab the handle, and open both its gestures; the
+    // dblclick, the decay's only.
+    await doubleClick(user, centre(handle('Decay')), () => {
+      sustainGestures = sustain.beginGesture.mock.calls.length;
+      decayGestures = decay.beginGesture.mock.calls.length;
     });
     expect(decay.get()).not.toBeCloseTo(0.51 ** 2);
     expect(sustain.get()).toBe(sustainBefore);
@@ -289,16 +302,18 @@ describe('EnvelopeEditor', () => {
     handle('Decay').focus();
     await user.keyboard('{ArrowRight}');
     const changed = decay.get();
-    fireEvent.pointerDown(layer(), {
-      offsetX: centre(handle('Decay')).x,
-      offsetY: centre(handle('Decay')).y,
-      altKey: true,
+    const sustainAltGestures = sustain.beginGesture.mock.calls.length;
+    await user.keyboard('{Alt>}');
+    await user.pointer({
+      target: layer(),
+      keys: '[MouseLeft]',
+      ...point(centre(handle('Decay'))),
     });
-    fireEvent.pointerUp(layer(), { altKey: true });
+    await user.keyboard('{/Alt}');
     expect(decay.get()).not.toBe(changed);
     expect(decay.get()).toBe(decay.info.default);
     expect(sustain.get()).toBe(sustainBefore);
-    expect(sustain.beginGesture).toHaveBeenCalledTimes(sustainGestures);
+    expect(sustain.beginGesture).toHaveBeenCalledTimes(sustainAltGestures);
 
     // Delete on D resets the decay only, as a double-click does.
     await user.keyboard('{ArrowRight}');
@@ -312,10 +327,7 @@ describe('EnvelopeEditor', () => {
     handle('Release').focus();
     await user.keyboard('{ArrowRight}');
     expect(handle('Release').accessibility.value?.text).toBe('310 ms');
-    fireEvent.dblClick(layer(), {
-      offsetX: centre(handle('Release')).x,
-      offsetY: centre(handle('Release')).y,
-    });
+    await doubleClick(user, centre(handle('Release')));
     expect(handle('Release').accessibility.value?.text).toBe('300 ms');
   });
 
@@ -328,12 +340,12 @@ describe('EnvelopeEditor', () => {
       />,
     );
     const start = release.get();
-    drag(centre(handle('Release')), slot / 3, 0, { cancel: 'escape' });
+    await drag(centre(handle('Release')), slot / 3, 0, { cancel: 'escape' });
     expect(release.get()).toBe(start);
     expect(release.beginGesture).toHaveBeenCalledTimes(1);
     expect(release.endGesture).toHaveBeenCalledTimes(1);
 
-    drag(centre(handle('Release')), slot / 5, 0, { cancel: 'pointer' });
+    await drag(centre(handle('Release')), slot / 5, 0, { cancel: 'pointer' });
     expect(release.get()).toBeGreaterThan(start);
     expect(release.endGesture).toHaveBeenCalledTimes(2);
   });
@@ -434,7 +446,7 @@ describe('EnvelopeEditor', () => {
     expect(after.y).toBeGreaterThan(before.y);
     // A drag of a stage's travel still moves it by its whole range.
     const wide = (640 - 56 - 14 - 28) / 3.5;
-    drag(after, wide / 4, 0);
+    await drag(after, wide / 4, 0);
     expect(handle('Release').accessibility.value?.text).toBe('750 ms');
     // The handles take the theme's colour.
     const dot = handle('Release').children[1]!;
@@ -445,7 +457,7 @@ describe('EnvelopeEditor', () => {
     const onChange = vi.fn<(value: ADSREnvelope) => void>();
     await render(<EnvelopeEditor disabled onChange={onChange} />);
     expect(handle('Attack').focusable).toBe(false);
-    drag(centre(handle('Attack')), 40, 0);
+    await drag(centre(handle('Attack')), 40, 0);
     expect(onChange).not.toHaveBeenCalled();
   });
 });

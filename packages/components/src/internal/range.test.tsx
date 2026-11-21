@@ -5,6 +5,7 @@ import {
   render,
   screen,
   userEvent,
+  type NodeTarget,
 } from '@soundor/testing-library/react';
 import { createRef } from 'react';
 import type { UiNode } from 'soundor:ui';
@@ -32,15 +33,19 @@ describe('range interactions', () => {
       });
       return <View {...control.handlers} />;
     }
+    const user = userEvent.setup();
     await render(<Dial />);
     const dial = screen.getByRole('adjustable', { name: 'Gain' });
-    fireEvent.pointerDown(dial, { clientY: 100 });
-    fireEvent.pointerMove(dial, { clientY: 60 });
+    await user.pointer([
+      { target: dial, keys: '[MouseLeft>]', clientY: 100 },
+      { clientY: 60 },
+    ]);
     expect(gain.get()).toBeCloseTo(0.5625);
-    fireEvent.pointerMove(dial, { clientY: 20, shiftKey: true });
+    await user.keyboard('{Shift>}');
+    await user.pointer({ clientY: 20 });
     expect(gain.get()).toBeCloseTo(0.600625);
-    fireEvent.keyDown(dial, { key: 'Escape' });
-    fireEvent.pointerUp(dial);
+    await user.keyboard('{/Shift}{Escape}');
+    await user.pointer({ keys: '[/MouseLeft]' });
     expect(gain.get()).toBe(0.25);
     expect(gain.beginGesture).toHaveBeenCalledExactlyOnceWith({
       history: true,
@@ -55,32 +60,35 @@ describe('range interactions', () => {
     vi.useFakeTimers();
     const gain = parameter();
     const next = parameter(0.25);
+    const user = userEvent.setup();
     const app = await render(<Knob parameter={gain} />);
     const dial = screen.getByRole('adjustable', { name: 'Gain' });
-    fireEvent.keyDown(dial, { key: 'ArrowUp' });
-    fireEvent.keyDown(dial, { key: 'PageUp' });
+    await user.tab();
+    await user.keyboard('{ArrowUp}{PageUp}');
     expect(gain.beginGesture).toHaveBeenCalledTimes(1);
     expect(gain.endGesture).not.toHaveBeenCalled();
     await advanceTime(260);
     expect(gain.endGesture).toHaveBeenCalledTimes(1);
 
+    // No wheel in userEvent.
     fireEvent(dial, 'wheel', { deltaY: -1 });
     fireEvent(dial, 'wheel', { deltaY: -1 });
     expect(gain.beginGesture).toHaveBeenCalledTimes(2);
     await advanceTime(260);
     expect(gain.endGesture).toHaveBeenCalledTimes(2);
 
-    fireEvent.pointerDown(dial);
+    await user.pointer({ target: dial, keys: '[MouseLeft>]' });
     await app.rerender(<Knob parameter={next} />);
     expect(gain.endGesture).toHaveBeenCalledTimes(3);
-    fireEvent.pointerUp(dial);
+    await user.pointer({ keys: '[/MouseLeft]' });
     expect(next.endGesture).not.toHaveBeenCalled();
-    fireEvent.pointerDown(dial);
+    await user.pointer({ keys: '[MouseLeft>]' });
     await app.unmount();
     expect(next.endGesture).toHaveBeenCalledTimes(1);
   });
 
   test('slider absolute drag uses insets, fader drag is relative, and reset is accessible', async () => {
+    const user = userEvent.setup();
     await render(
       <>
         <Slider label="Amount" defaultValue={0.2} step={0.1} />
@@ -95,21 +103,21 @@ describe('range interactions', () => {
     Object.defineProperty(fader, 'getBoundingClientRect', {
       value: () => ({ x: 0, y: 0, width: 56, height: 160 }),
     });
-    fireEvent.pointerDown(slider, { clientX: 101 });
-    fireEvent.pointerUp(slider, { clientX: 101 });
+    await user.pointer({ target: slider, keys: '[MouseLeft]', clientX: 101 });
     expect(slider.accessibility.value?.now).toBe(0.8);
+    // A screen reader's action, and a cancelled press: no userEvent for them.
     fireEvent.accessibilityAction(slider, { actionName: 'reset' });
     expect(slider.accessibility.value?.now).toBe(0.2);
-    fireEvent.pointerDown(fader, { clientY: 90 });
+    await user.pointer({ target: fader, keys: '[MouseLeft>]', clientY: 90 });
     expect(fader.accessibility.value?.now).toBe(0.5);
-    fireEvent.pointerMove(fader, { clientY: 61 });
+    await user.pointer({ clientY: 61 });
     fireEvent.pointerCancel(fader);
     expect(fader.accessibility.value?.now).toBeCloseTo(0.75);
-    fireEvent.keyDown(fader, { key: 'Home' });
+    await user.keyboard('{Home}');
     expect(fader.accessibility.value?.now).toBe(0);
-    fireEvent.keyDown(fader, { key: 'End' });
+    await user.keyboard('{End}');
     expect(fader.accessibility.value?.now).toBe(1);
-    fireEvent.dblClick(fader);
+    await user.dblClick(fader);
     expect(fader.accessibility.value?.now).toBe(0.5);
   });
 
@@ -124,28 +132,35 @@ describe('range interactions', () => {
       );
       return <View {...drag.handlers} />;
     }
+    const user = userEvent.setup();
     await render(<Handle />);
     const handle = screen.getByRole('adjustable', { name: 'Point' });
-    fireEvent.pointerDown(handle, { clientX: 55, clientY: 45 });
+    await user.pointer({
+      target: handle,
+      keys: '[MouseLeft>]',
+      clientX: 55,
+      clientY: 45,
+    });
     expect(x.get()).toBe(0.25);
     expect(y.get()).toBe(0.25);
 
-    fireEvent.pointerMove(handle, { clientX: 155, clientY: 145 });
+    await user.pointer({ clientX: 155, clientY: 145 });
     expect(x.get()).toBe(1);
     expect(y.get()).toBe(0);
-    fireEvent.pointerMove(handle, { clientX: 125, clientY: 115 });
+    await user.pointer({ clientX: 125, clientY: 115 });
     expect(x.get()).toBe(1);
     expect(y.get()).toBe(0);
 
-    fireEvent.pointerMove(handle, { clientX: 95, clientY: 65 });
+    await user.pointer({ clientX: 95, clientY: 65 });
     expect(x.get()).toBeCloseTo(0.81);
     expect(y.get()).toBeCloseTo(0.09);
-    fireEvent.pointerUp(handle);
+    await user.pointer({ keys: '[/MouseLeft]' });
     expect(x.endGesture).toHaveBeenCalledTimes(1);
     expect(y.endGesture).toHaveBeenCalledTimes(1);
   });
 
   test('the pad balances both gestures, supports keyboard adjustment and resets both axes', async () => {
+    const user = userEvent.setup();
     const x = parameter(0.25);
     const y = parameter(0.75);
     await render(
@@ -159,52 +174,62 @@ describe('range interactions', () => {
     Object.defineProperty(pad, 'getBoundingClientRect', {
       value: () => ({ x: 0, y: 0, width: 280, height: 180 }),
     });
-    fireEvent.pointerDown(pad, { clientX: 140, clientY: 78 });
+    await user.pointer([
+      { target: pad, keys: '[MouseLeft>]', clientX: 140, clientY: 78 },
+    ]);
     expect(x.get()).toBeCloseTo(0.25);
     expect(y.get()).toBeCloseTo(0.25);
-    fireEvent.pointerMove(pad, { clientX: 257, clientY: 23 });
-    fireEvent.pointerUp(pad);
+    await user.pointer([
+      { clientX: 257, clientY: 23 },
+      { keys: '[/MouseLeft]', clientX: 257, clientY: 23 },
+    ]);
     expect(x.get()).toBe(1);
     expect(y.get()).toBe(1);
     expect(x.endGesture).toHaveBeenCalledTimes(1);
     expect(y.endGesture).toHaveBeenCalledTimes(1);
-    fireEvent.keyDown(pad, { key: 'ArrowDown' });
+    await user.keyboard('{ArrowDown}');
     expect(y.get()).toBeLessThan(1);
     // On the handle, where the drag left it: a double-click resets.
-    await doubleClick(pad, { clientX: 257, clientY: 23 });
+    await doubleClick(user, pad, { clientX: 257, clientY: 23 });
     expect(pad.accessibility.value?.text).toBe('Time 25%, Level 75%');
   });
 });
 
 describe('Alt-click (Option-click on a Mac) resets', () => {
-  test('a Knob: one gesture, and no drag after it; the double-click that follows does nothing more', async () => {
+  test('a Knob: one gesture, and no drag after it; the dblclick of an Alt-double-click does nothing more', async () => {
+    const user = userEvent.setup();
     const gain = parameter(0.25);
     await render(<Knob parameter={gain} />);
     const dial = screen.getByRole('adjustable', { name: 'Gain' });
-    fireEvent.keyDown(dial, { key: 'End' });
+    await user.tab();
+    await user.keyboard('{End}');
     expect(gain.get()).toBe(1);
     const gestures = gain.beginGesture.mock.calls.length;
-    fireEvent.pointerDown(dial, { clientY: 100, altKey: true });
+    await user.keyboard('{Alt>}');
+    await user.pointer({ target: dial, keys: '[MouseLeft>]', clientY: 100 });
     expect(gain.get()).toBe(0.25);
     expect(gain.beginGesture).toHaveBeenCalledTimes(gestures + 1);
     expect(gain.endGesture).toHaveBeenCalledTimes(gestures + 1);
-    fireEvent.pointerMove(dial, { clientY: 40, altKey: true });
-    fireEvent.pointerUp(dial, { altKey: true });
+    await user.pointer([{ clientY: 40 }, { keys: '[/MouseLeft]' }]);
     expect(gain.get()).toBe(0.25);
-    fireEvent.dblClick(dial, { altKey: true });
-    expect(gain.beginGesture).toHaveBeenCalledTimes(gestures + 1);
+    // Each press resets; the dblclick after them, nothing.
+    await user.dblClick(dial);
+    expect(gain.beginGesture).toHaveBeenCalledTimes(gestures + 3);
+    await user.keyboard('{/Alt}');
   });
 
   test('a Slider resets without jumping to the pointer first', async () => {
+    const user = userEvent.setup();
     const gain = parameter(0.25);
     await render(<Slider parameter={gain} />);
     const slider = screen.getByRole('adjustable', { name: 'Gain' });
     Object.defineProperty(slider, 'getBoundingClientRect', {
       value: () => ({ x: 0, y: 0, width: 100, height: 20 }),
     });
-    fireEvent.keyDown(slider, { key: 'End' });
-    fireEvent.pointerDown(slider, { clientX: 90, altKey: true });
-    fireEvent.pointerUp(slider, { clientX: 90, altKey: true });
+    await user.tab();
+    await user.keyboard('{End}{Alt>}');
+    await user.pointer({ target: slider, keys: '[MouseLeft]', clientX: 90 });
+    await user.keyboard('{/Alt}');
     expect(gain.get()).toBe(0.25);
     expect(gain.set).not.toHaveBeenCalledWith(
       expect.closeTo(0.81, 2),
@@ -213,20 +238,23 @@ describe('Alt-click (Option-click on a Mac) resets', () => {
   });
 
   test('a ValueField resets, and its double-click still types a value unless Alt is held', async () => {
+    const user = userEvent.setup();
     const gain = parameter(0.25);
     await render(<ValueField parameter={gain} />);
     const field = screen.getByRole('adjustable', { name: 'Gain' });
-    fireEvent.keyDown(field, { key: 'End' });
-    fireEvent.pointerDown(field, { altKey: true });
-    fireEvent.pointerUp(field, { altKey: true });
+    await user.tab();
+    await user.keyboard('{End}{Alt>}');
+    await user.click(field);
     expect(gain.get()).toBe(0.25);
-    fireEvent.dblClick(field, { altKey: true });
+    await user.dblClick(field);
     expect(screen.queryByRole('textinput', { name: 'Gain' })).toBeNull();
-    fireEvent.dblClick(field);
+    await user.keyboard('{/Alt}');
+    await user.dblClick(field);
     expect(screen.queryByRole('textinput', { name: 'Gain' })).not.toBeNull();
   });
 
   test('an XYPad resets both axes', async () => {
+    const user = userEvent.setup();
     const x = parameter(0.25);
     const y = parameter(0.25);
     await render(
@@ -240,11 +268,14 @@ describe('Alt-click (Option-click on a Mac) resets', () => {
     Object.defineProperty(pad, 'getBoundingClientRect', {
       value: () => ({ x: 0, y: 0, width: 280, height: 180 }),
     });
-    fireEvent.keyDown(pad, { key: 'ArrowUp' });
-    fireEvent.keyDown(pad, { key: 'ArrowRight' });
-    fireEvent.pointerDown(pad, { clientX: 250, clientY: 20, altKey: true });
-    fireEvent.pointerMove(pad, { clientX: 10, clientY: 170, altKey: true });
-    fireEvent.pointerUp(pad, { altKey: true });
+    await user.tab();
+    await user.keyboard('{ArrowUp}{ArrowRight}{Alt>}');
+    await user.pointer([
+      { target: pad, keys: '[MouseLeft>]', clientX: 250, clientY: 20 },
+      { clientX: 10, clientY: 170 },
+      { keys: '[/MouseLeft]' },
+    ]);
+    await user.keyboard('{/Alt}');
     expect(x.get()).toBe(0.25);
     expect(y.get()).toBe(0.25);
   });
@@ -253,6 +284,7 @@ describe('Alt-click (Option-click on a Mac) resets', () => {
     const gain = parameter(0.25);
     gain.set(0.8);
     await render(<Knob parameter={gain} disabled />);
+    // userEvent skips a disabled control; this is the control's own guard.
     fireEvent.pointerDown(screen.getByRole('adjustable', { name: 'Gain' }), {
       altKey: true,
     });
@@ -265,10 +297,10 @@ describe('Alt-click (Option-click on a Mac) resets', () => {
  * clicks as a series, then dblclick.
  */
 async function doubleClick(
-  node: Parameters<typeof fireEvent.click>[0],
+  user: ReturnType<typeof userEvent.setup>,
+  node: NodeTarget,
   at: { clientX?: number; clientY?: number },
 ) {
-  const user = userEvent.setup();
   await user.pointer([
     { target: node, ...at },
     { target: node, keys: '[MouseLeft]', detail: 1, ...at },
@@ -293,32 +325,39 @@ describe('a press on the handle grabs it; elsewhere it jumps', () => {
     Object.defineProperty(node, 'getBoundingClientRect', {
       value: () => ({ x: 0, y: 0, width: 280, height: 180 }),
     });
-    return { x, y, node };
+    return { x, y, node, user: userEvent.setup() };
   };
 
   test('XYPad: a press on the handle does not move it, and a drag keeps the offset', async () => {
-    const { x, y, node } = await pad();
+    const { x, y, node, user } = await pad();
     // The handle, at 50% / 50% (the parameters' 0.25 on a square-root
     // mapping), is at (140, 90) in a 23-pixel inset.
-    fireEvent.pointerDown(node, { clientX: 150, clientY: 95 });
+    await user.pointer({
+      target: node,
+      keys: '[MouseLeft>]',
+      clientX: 150,
+      clientY: 95,
+    });
     expect(x.get()).toBe(0.25);
     expect(y.get()).toBe(0.25);
     expect(x.set).not.toHaveBeenCalled();
-    fireEvent.pointerMove(node, { clientX: 160, clientY: 95 });
-    fireEvent.pointerUp(node);
+    await user.pointer([
+      { clientX: 160, clientY: 95 },
+      { keys: '[/MouseLeft]', clientX: 160, clientY: 95 },
+    ]);
     // Moved by the pointer's 10 pixels, not to the pointer.
     expect(Math.sqrt(x.get())).toBeCloseTo(0.5 + 10 / 234, 3);
   });
 
   test('XYPad: a double-click on the handle resets it in one gesture', async () => {
-    const { x, y, node } = await pad();
-    fireEvent.keyDown(node, { key: 'End' });
-    fireEvent.keyDown(node, { key: 'ArrowRight' });
+    const { x, y, node, user } = await pad();
+    await user.tab();
+    await user.keyboard('{End}{ArrowRight}');
     const before = Math.sqrt(x.get());
     const at = { clientX: 23 + before * 234, clientY: 90 };
     const gestures = x.beginGesture.mock.calls.length;
     x.set.mockClear();
-    await doubleClick(node, at);
+    await doubleClick(user, node, at);
     expect(x.get()).toBe(0.25);
     expect(y.get()).toBe(0.25);
     // Two presses that changed nothing open no gesture of their own; the
@@ -328,12 +367,13 @@ describe('a press on the handle grabs it; elsewhere it jumps', () => {
   });
 
   test('XYPad: a double-click away from the handle jumps there, and does not reset', async () => {
-    const { x, node } = await pad();
-    await doubleClick(node, { clientX: 257, clientY: 90 });
+    const { x, node, user } = await pad();
+    await doubleClick(user, node, { clientX: 257, clientY: 90 });
     expect(x.get()).toBe(1);
   });
 
   test('Slider: on the thumb a press grabs it, and a double-click resets; away, it jumps', async () => {
+    const user = userEvent.setup();
     const gain = parameter(0.25);
     await render(<Slider parameter={gain} width={112} />);
     const slider = screen.getByRole('adjustable', { name: 'Gain' });
@@ -342,14 +382,13 @@ describe('a press on the handle grabs it; elsewhere it jumps', () => {
     });
     // The thumb, at 50%, is at 56 in a 6-pixel inset; 9 pixels off still
     // grabs it.
-    fireEvent.pointerDown(slider, { clientX: 65 });
-    fireEvent.pointerUp(slider, { clientX: 65 });
+    await user.pointer({ target: slider, keys: '[MouseLeft]', clientX: 65 });
     expect(gain.set).not.toHaveBeenCalled();
-    await doubleClick(slider, { clientX: 100 });
+    await doubleClick(user, slider, { clientX: 100 });
     expect(gain.get()).toBeGreaterThan(0.25);
     const moved = gain.get();
     const thumb = 6 + Math.sqrt(moved) * 100;
-    await doubleClick(slider, { clientX: thumb });
+    await doubleClick(user, slider, { clientX: thumb });
     expect(gain.get()).toBe(0.25);
   });
 });
@@ -358,14 +397,15 @@ describe('Delete or Backspace resets the focused control', () => {
   test.each(['Delete', 'Backspace'])(
     '%s on a Knob: one gesture',
     async (key) => {
+      const user = userEvent.setup();
       const gain = parameter(0.25);
       await render(<Knob parameter={gain} />);
-      const dial = screen.getByRole('adjustable', { name: 'Gain' });
-      fireEvent.keyDown(dial, { key: 'End' });
+      await user.tab();
+      await user.keyboard('{End}');
       vi.useFakeTimers();
       await advanceTime(300);
       const gestures = gain.beginGesture.mock.calls.length;
-      fireEvent.keyDown(dial, { key });
+      await user.keyboard(`{${key}}`);
       expect(gain.get()).toBe(0.25);
       expect(gain.beginGesture).toHaveBeenCalledTimes(gestures + 1);
       expect(gain.endGesture).toHaveBeenCalledTimes(gestures + 1);
@@ -373,15 +413,19 @@ describe('Delete or Backspace resets the focused control', () => {
   );
 
   test('not with Command, Control or Alt, nor while disabled', async () => {
+    const user = userEvent.setup();
     const gain = parameter(0.25);
     gain.set(0.8);
     const app = await render(<Knob parameter={gain} />);
-    const dial = () => screen.getByRole('adjustable', { name: 'Gain' });
-    for (const modifier of ['metaKey', 'ctrlKey', 'altKey'])
-      fireEvent.keyDown(dial(), { key: 'Backspace', [modifier]: true });
+    await user.tab();
+    for (const modifier of ['Meta', 'Control', 'Alt'])
+      await user.keyboard(`{${modifier}>}{Backspace}{/${modifier}}`);
     expect(gain.get()).toBe(0.8);
     await app.rerender(<Knob parameter={gain} disabled />);
-    fireEvent.keyDown(dial(), { key: 'Delete' });
+    // userEvent sends no key to a disabled control; this is its own guard.
+    fireEvent.keyDown(screen.getByRole('adjustable', { name: 'Gain' }), {
+      key: 'Delete',
+    });
     expect(gain.get()).toBe(0.8);
   });
 
@@ -397,15 +441,15 @@ describe('Delete or Backspace resets the focused control', () => {
         </View>
       );
     }
+    const user = userEvent.setup();
     await render(<Custom />);
-    fireEvent.keyDown(
-      input.current as unknown as Parameters<typeof fireEvent.keyDown>[0],
-      { key: 'Backspace' },
-    );
+    await user.click(input.current as unknown as NodeTarget);
+    await user.keyboard('{Backspace}');
     expect(gain.get()).toBe(0.8);
   });
 
   test('Slider, Fader and ValueField; an XYPad resets both axes', async () => {
+    const user = userEvent.setup();
     const values = [parameter(0.25), parameter(0.25), parameter(0.25)];
     const x = parameter(0.25);
     const y = parameter(0.25);
@@ -421,12 +465,10 @@ describe('Delete or Backspace resets the focused control', () => {
         />
       </View>,
     );
-    for (const name of ['Slider', 'Fader', 'Field', 'Position']) {
-      const node = screen.getByRole('adjustable', { name });
-      fireEvent.keyDown(node, { key: 'End' });
-      fireEvent.keyDown(node, { key: 'ArrowUp' });
-      fireEvent.keyDown(node, { key: 'ArrowRight' });
-      fireEvent.keyDown(node, { key: 'Delete' });
+    // In tab order.
+    for (const _ of ['Slider', 'Fader', 'Field', 'Position']) {
+      await user.tab();
+      await user.keyboard('{End}{ArrowUp}{ArrowRight}{Delete}');
     }
     for (const value of values) expect(value.get()).toBe(0.25);
     expect(x.get()).toBe(0.25);
