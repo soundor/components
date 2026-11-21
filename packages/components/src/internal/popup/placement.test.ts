@@ -128,4 +128,38 @@ describe('popup placement', () => {
       );
     }
   });
+
+  test('takes the edge padding rather than scroll when it is short by no more', () => {
+    // 242 below the field, between its offset and the view's padding.
+    const near = computePlacement(
+      field,
+      { width: 100, height: 245 },
+      view,
+      options,
+    );
+    expect(near).toMatchObject({ y: 54, side: 'bottom', maxHeight: 246 });
+    const far = computePlacement(
+      field,
+      { width: 100, height: 247 },
+      view,
+      options,
+    );
+    expect(far).toMatchObject({ y: 54, side: 'bottom', maxHeight: 242 });
+    // Above an anchor near the bottom: up to the top edge, not past it.
+    const low = { x: 40, y: 250, width: 120, height: 30 };
+    const above = computePlacement(low, { width: 100, height: 244 }, view, {
+      ...options,
+      side: 'top',
+    });
+    expect(above).toMatchObject({ y: 2, side: 'top', maxHeight: 246 });
+    // Only along the side: across it, the padding stays.
+    const wide = computePlacement(
+      field,
+      { width: 395, height: 80 },
+      view,
+      options,
+    );
+    expect(wide.x).toBe(4);
+    expect(wide.maxWidth).toBe(392);
+  });
 });

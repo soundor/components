@@ -25,7 +25,11 @@ export interface PlacementOptions {
   offset: number;
   /** A shift along the side, after alignment. */
   alignOffset: number;
-  /** The least room kept between the popup and the edge of the bounds. */
+  /**
+   * The room kept between the popup and the edge of the bounds. A popup short
+   * of room by no more than this may use it, rather than scroll for a few
+   * pixels: on the far side of the anchor only.
+   */
   padding: number;
   /** Take the opposite side when the preferred one is short of room and it has more. */
   flip: boolean;
@@ -79,7 +83,7 @@ export function chooseSide(
   const vertical = preferred === 'top' || preferred === 'bottom';
   const length = vertical ? size.height : size.width;
   const here = room(preferred, anchor, bounds, gap);
-  if (!options.flip || length <= here) return preferred;
+  if (!options.flip || length <= here + options.padding) return preferred;
   const there = room(opposite[preferred], anchor, bounds, gap);
   return there > here ? opposite[preferred] : preferred;
 }
@@ -96,7 +100,11 @@ export function computePlacement(
   const side = chooseSide(anchor, size, bounds, options);
   const vertical = side === 'top' || side === 'bottom';
   const gap = options.offset + options.padding;
-  const along = Math.max(0, room(side, anchor, bounds, gap));
+  const length = vertical ? size.height : size.width;
+  const roomAlong = Math.max(0, room(side, anchor, bounds, gap));
+  // Short by no more than the padding: it takes the padding, to the edge.
+  const toEdge = length > roomAlong && length <= roomAlong + options.padding;
+  const along = toEdge ? roomAlong + options.padding : roomAlong;
   const across = Math.max(
     0,
     (vertical ? bounds.width : bounds.height) - 2 * options.padding,
@@ -135,10 +143,19 @@ export function computePlacement(
 
   // Never past the bounds, whatever the anchor: one partly or wholly outside
   // them (scrolled away, or a point at the edge) still has its popup inside.
-  const left = bounds.x + options.padding;
-  const top = bounds.y + options.padding;
-  x = clampTo(x, left, bounds.x + bounds.width - options.padding - width);
-  y = clampTo(y, top, bounds.y + bounds.height - options.padding - height);
+  // The edge it reaches to, when it takes the padding, is the far one.
+  const edge = (end: PopupSide) =>
+    toEdge && end === side ? 0 : options.padding;
+  x = clampTo(
+    x,
+    bounds.x + edge('left'),
+    bounds.x + bounds.width - edge('right') - width,
+  );
+  y = clampTo(
+    y,
+    bounds.y + edge('top'),
+    bounds.y + bounds.height - edge('bottom') - height,
+  );
 
   const scale = options.scale > 0 ? options.scale : 1;
   const snap = (value: number) => Math.round(value * scale) / scale;
