@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import type { PointerEvent } from 'soundor:ui';
 
 import { beginEdits, useGesture } from './gesture';
-import { useRangeModel, type RangeProps } from './range';
+import { isResetKey, useRangeModel, type RangeProps } from './range';
 import { clamp } from './scale';
 
 export interface XYInteraction {
@@ -278,6 +278,9 @@ export function useXYPad(
       const { key } = event;
       if (key === 'Escape' && gesture.is('pointer')) {
         gesture.end(true);
+      } else if (isResetKey(event)) {
+        // The axes a double-click resets.
+        reset();
       } else if (
         key === 'ArrowLeft' ||
         key === 'ArrowRight' ||

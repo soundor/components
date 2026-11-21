@@ -1,7 +1,7 @@
 import { useParameter, type ViewProps } from '@soundor/react';
 import { useMemo, useRef, useState } from 'react';
 import type { HistoryOptions } from 'soundor:history';
-import type { PointerEvent } from 'soundor:ui';
+import type { KeyboardEvent, PointerEvent } from 'soundor:ui';
 
 import { parsers, trueMinus } from './format';
 import { useGesture } from './gesture';
@@ -172,6 +172,21 @@ export function useRangeModel(props: RangeProps) {
     format,
     parse,
   };
+}
+
+/**
+ * Delete, or Backspace (the key a Mac labels "delete"), on the control
+ * itself: the keyboard's reset. Not with a command modifier, which makes a
+ * shortcut of its own, nor from a text input inside a custom control.
+ */
+export function isResetKey(event: KeyboardEvent) {
+  return (
+    (event.key === 'Delete' || event.key === 'Backspace') &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey &&
+    event.target === event.currentTarget
+  );
 }
 
 export interface RangeInteraction {
@@ -372,6 +387,12 @@ export function useRangeControl(
     onKeyDown(event) {
       if (event.key === 'Escape' && gesture.is('pointer')) {
         gesture.end(true);
+        event.preventDefault();
+        return;
+      }
+      if (isResetKey(event)) {
+        if (range.disabled) return;
+        discrete(range.reset, false);
         event.preventDefault();
         return;
       }

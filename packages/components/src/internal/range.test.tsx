@@ -1,4 +1,4 @@
-import { View } from '@soundor/react';
+import { TextInput, View } from '@soundor/react';
 import {
   advanceTime,
   fireEvent,
@@ -6,6 +6,8 @@ import {
   screen,
   userEvent,
 } from '@soundor/testing-library/react';
+import { createRef } from 'react';
+import type { UiNode } from 'soundor:ui';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { useKnob, useXYPad } from '../headless';
@@ -349,5 +351,85 @@ describe('a press on the handle grabs it; elsewhere it jumps', () => {
     const thumb = 6 + Math.sqrt(moved) * 100;
     await doubleClick(slider, { clientX: thumb });
     expect(gain.get()).toBe(0.25);
+  });
+});
+
+describe('Delete or Backspace resets the focused control', () => {
+  test.each(['Delete', 'Backspace'])(
+    '%s on a Knob: one gesture',
+    async (key) => {
+      const gain = parameter(0.25);
+      await render(<Knob parameter={gain} />);
+      const dial = screen.getByRole('adjustable', { name: 'Gain' });
+      fireEvent.keyDown(dial, { key: 'End' });
+      vi.useFakeTimers();
+      await advanceTime(300);
+      const gestures = gain.beginGesture.mock.calls.length;
+      fireEvent.keyDown(dial, { key });
+      expect(gain.get()).toBe(0.25);
+      expect(gain.beginGesture).toHaveBeenCalledTimes(gestures + 1);
+      expect(gain.endGesture).toHaveBeenCalledTimes(gestures + 1);
+    },
+  );
+
+  test('not with Command, Control or Alt, nor while disabled', async () => {
+    const gain = parameter(0.25);
+    gain.set(0.8);
+    const app = await render(<Knob parameter={gain} />);
+    const dial = () => screen.getByRole('adjustable', { name: 'Gain' });
+    for (const modifier of ['metaKey', 'ctrlKey', 'altKey'])
+      fireEvent.keyDown(dial(), { key: 'Backspace', [modifier]: true });
+    expect(gain.get()).toBe(0.8);
+    await app.rerender(<Knob parameter={gain} disabled />);
+    fireEvent.keyDown(dial(), { key: 'Delete' });
+    expect(gain.get()).toBe(0.8);
+  });
+
+  test('not from a text input inside a custom control', async () => {
+    const gain = parameter(0.25);
+    gain.set(0.8);
+    const input = createRef<UiNode>();
+    function Custom() {
+      const control = useKnob({ parameter: gain });
+      return (
+        <View {...control.handlers}>
+          <TextInput ref={input} />
+        </View>
+      );
+    }
+    await render(<Custom />);
+    fireEvent.keyDown(
+      input.current as unknown as Parameters<typeof fireEvent.keyDown>[0],
+      { key: 'Backspace' },
+    );
+    expect(gain.get()).toBe(0.8);
+  });
+
+  test('Slider, Fader and ValueField; an XYPad resets both axes', async () => {
+    const values = [parameter(0.25), parameter(0.25), parameter(0.25)];
+    const x = parameter(0.25);
+    const y = parameter(0.25);
+    await render(
+      <View>
+        <Slider parameter={values[0]!} label="Slider" />
+        <Fader parameter={values[1]!} label="Fader" />
+        <ValueField parameter={values[2]!} label="Field" />
+        <XYPad
+          label="Position"
+          x={{ parameter: x, label: 'Time' }}
+          y={{ parameter: y, label: 'Level' }}
+        />
+      </View>,
+    );
+    for (const name of ['Slider', 'Fader', 'Field', 'Position']) {
+      const node = screen.getByRole('adjustable', { name });
+      fireEvent.keyDown(node, { key: 'End' });
+      fireEvent.keyDown(node, { key: 'ArrowUp' });
+      fireEvent.keyDown(node, { key: 'ArrowRight' });
+      fireEvent.keyDown(node, { key: 'Delete' });
+    }
+    for (const value of values) expect(value.get()).toBe(0.25);
+    expect(x.get()).toBe(0.25);
+    expect(y.get()).toBe(0.25);
   });
 });

@@ -300,6 +300,14 @@ describe('EnvelopeEditor', () => {
     expect(sustain.get()).toBe(sustainBefore);
     expect(sustain.beginGesture).toHaveBeenCalledTimes(sustainGestures);
 
+    // Delete on D resets the decay only, as a double-click does.
+    await user.keyboard('{ArrowRight}');
+    const sustainGesturesBefore = sustain.beginGesture.mock.calls.length;
+    await user.keyboard('{Delete}');
+    expect(decay.get()).toBe(decay.info.default);
+    expect(sustain.get()).toBe(sustainBefore);
+    expect(sustain.beginGesture).toHaveBeenCalledTimes(sustainGesturesBefore);
+
     // Double-click resets the stages of the handle under it.
     handle('Release').focus();
     await user.keyboard('{ArrowRight}');
