@@ -96,6 +96,8 @@ export function XYPad({
       inset,
       insetTop: top,
       travel: [inner.width, inner.height],
+      // The handle and its halo: a press there grabs it where it is.
+      grabRadius: 21,
       label: label ?? title,
     },
   );

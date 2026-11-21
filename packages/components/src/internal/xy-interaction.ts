@@ -29,6 +29,13 @@ export interface XYInteraction {
    * handle, whose level is the sustain's).
    */
   resetOnDoubleClick?: 'both' | 'x' | 'y';
+  /**
+   * Absolute drags: how near the handle's centre, in logical pixels, a press
+   * grabs the handle where it is instead of jumping to the pointer. A
+   * double-click resets only when it lands there: one away from the handle
+   * jumps, and resets nothing. Without it, every press jumps.
+   */
+  grabRadius?: number;
   describeValue?: (x: number, y: number) => string;
   onPointChange?: (x: number, y: number) => void;
   onInteractionStart?: () => void;
@@ -55,6 +62,11 @@ export function useXYPad(
     offsetY: number;
   } | null>(null);
   const absolute = options.dragMode !== 'relative';
+  // Whether the last press was on the handle, and whether the first press
+  // of this series of clicks was: a double-click resets only then, as the
+  // second press finds the handle where the first one moved it.
+  const onHandle = useRef(true);
+  const seriesOnHandle = useRef(true);
   const getBox = (event: PointerEvent) => {
     const box =
       absolute || !options.travel
@@ -201,7 +213,17 @@ export function useXYPad(
       )
         return;
       const box = getBox(event);
-      const jump = absolute && !event.shiftKey;
+      const grab = options.grabRadius;
+      onHandle.current =
+        !absolute ||
+        grab === undefined ||
+        Math.hypot(
+          (box.x - x.normalize(x.get())) * box.width,
+          (box.y - y.normalize(y.get())) * box.height,
+        ) <= grab;
+      // On the handle, or with Shift: grabbed where it is, keeping the offset.
+      const keep = event.shiftKey || (grab !== undefined && onHandle.current);
+      const jump = absolute && !keep;
       const nx = jump ? clamp(box.x) : x.normalize(x.get());
       const ny = jump ? clamp(box.y) : y.normalize(y.get());
       drag.current = {
@@ -210,8 +232,8 @@ export function useXYPad(
         lastY: event.pageY,
         x: nx,
         y: ny,
-        offsetX: absolute && event.shiftKey ? nx - box.x : 0,
-        offsetY: absolute && event.shiftKey ? ny - box.y : 0,
+        offsetX: absolute && keep ? nx - box.x : 0,
+        offsetY: absolute && keep ? ny - box.y : 0,
       };
       if (jump) {
         x.set(x.denormalize(nx));
@@ -281,8 +303,12 @@ export function useXYPad(
       event.preventDefault();
     },
     onDoubleClick(event) {
-      // The second click of an Alt-click pair: the first one reset.
-      if (!event.altKey) reset();
+      // The second click of an Alt-click pair: the first one reset. Away
+      // from the handle, the presses moved it there: no reset.
+      if (!event.altKey && seriesOnHandle.current) reset();
+    },
+    onClick(event) {
+      if (event.detail <= 1) seriesOnHandle.current = onHandle.current;
     },
   };
 

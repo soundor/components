@@ -183,6 +183,13 @@ export interface RangeInteraction {
   inset?: number;
   /** Keep a legacy Home-to-default binding. End still goes to maximum. */
   resetOnHome?: boolean;
+  /**
+   * Absolute drags: how near the thumb's centre, in logical pixels along the
+   * axis, a press grabs it where it is instead of jumping to the pointer. A
+   * double-click resets only when it lands there: one away from the thumb
+   * jumps, and resets nothing. Without it, every press jumps.
+   */
+  grabRadius?: number;
   /** Use an alternate double-click action, such as opening a text input. */
   onDoubleClick?: () => void;
   /** When provided, the wheel increments by this normalized fraction. */
@@ -204,6 +211,11 @@ export function useRangeControl(
     position: number;
     fineOffset: number;
   } | null>(null);
+  // Whether the last press was on the thumb, and whether the first press
+  // of this series of clicks was: a double-click resets only then, as the
+  // second press finds the thumb where the first one moved it.
+  const onThumb = useRef(true);
+  const seriesOnThumb = useRef(true);
   const axis = options.axis ?? 'y';
   const inset = options.inset ?? 0;
   const coord = (event: PointerEvent) =>
@@ -300,19 +312,23 @@ export function useRangeControl(
       const point = coord(event);
       const absolute = options.dragMode === 'absolute';
       const box = absolute ? bounds(event) : { start: 0, travel: 1 };
+      const under = (point - box.start) / box.travel;
+      const grab = options.grabRadius;
+      onThumb.current =
+        !absolute ||
+        grab === undefined ||
+        Math.abs(under - range.normalize(range.get())) * box.travel <= grab;
+      // On the thumb, or with Shift: grabbed where it is, keeping the offset.
+      const keep = event.shiftKey || (grab !== undefined && onThumb.current);
       const position =
-        absolute && !event.shiftKey
-          ? clamp((point - box.start) / box.travel)
-          : range.normalize(range.get());
+        absolute && !keep ? clamp(under) : range.normalize(range.get());
       drag.current = {
         id: event.pointerId,
         last: point,
         position,
-        fineOffset: event.shiftKey
-          ? position - (point - box.start) / box.travel
-          : 0,
+        fineOffset: keep ? position - under : 0,
       };
-      if (absolute) range.set(range.denormalize(position));
+      if (absolute && !keep) range.set(range.denormalize(position));
     },
     onPointerMove(event) {
       const held = drag.current;
@@ -344,10 +360,14 @@ export function useRangeControl(
       if (drag.current?.id === event.pointerId) gesture.end();
     },
     onDoubleClick(event) {
-      // The second click of an Alt-click pair: the first one reset.
-      if (range.disabled || event.altKey) return;
+      // The second click of an Alt-click pair: the first one reset. Away
+      // from the thumb, the presses moved it there: no reset.
+      if (range.disabled || event.altKey || !seriesOnThumb.current) return;
       if (options.onDoubleClick) options.onDoubleClick();
       else discrete(range.reset, false);
+    },
+    onClick(event) {
+      if (event.detail <= 1) seriesOnThumb.current = onThumb.current;
     },
     onKeyDown(event) {
       if (event.key === 'Escape' && gesture.is('pointer')) {
