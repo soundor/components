@@ -3,6 +3,7 @@ import {
   render,
   screen,
   testEditor,
+  userEvent,
 } from '@soundor/testing-library/react';
 import { expect, test } from 'vitest';
 
@@ -13,6 +14,7 @@ test('the grip follows the original screen-space drag across resizes and restore
   await render(<ResizeGrip />);
   const grip = screen.getByRole('button', { name: 'Resize the editor' });
 
+  // Two pointers, and a cancelled one: userEvent has one mouse.
   fireEvent.pointerDown(grip, { pointerId: 1, screenX: 300, screenY: 200 });
   fireEvent.pointerMove(grip, { pointerId: 2, screenX: 340, screenY: 230 });
   expect(testEditor.requests()).toEqual([]);
@@ -50,7 +52,9 @@ test('a fixed editor hides the grip; keyboard resizing uses the current editor s
   ).toBeNull();
 
   testEditor.resize({ width: 900, height: 700, resizable: true });
-  const grip = await screen.findByRole('button', { name: 'Resize the editor' });
-  fireEvent.keyDown(grip, { key: 'ArrowRight', shiftKey: true });
+  await screen.findByRole('button', { name: 'Resize the editor' });
+  const user = userEvent.setup();
+  await user.tab();
+  await user.keyboard('{Shift>}{ArrowRight}{/Shift}');
   expect(testEditor.requests()).toEqual([{ width: 950, height: 700 }]);
 });

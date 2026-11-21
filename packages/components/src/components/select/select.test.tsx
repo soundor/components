@@ -1,6 +1,5 @@
 import {
   act,
-  fireEvent,
   render,
   screen,
   userEvent,
@@ -38,10 +37,8 @@ function backdropOf(menu: TestNode) {
 }
 
 /** A press outside the popup, released. */
-function pressOutside(menu: TestNode) {
-  const backdrop = backdropOf(menu);
-  fireEvent.pointerDown(backdrop);
-  fireEvent.pointerUp(backdrop);
+async function pressOutside(menu: TestNode) {
+  await userEvent.setup().click(backdropOf(menu));
 }
 
 describe('Select', () => {
@@ -149,7 +146,7 @@ describe('Select', () => {
     expect(readOnly.focusable).toBe(true);
     expect(readOnly.accessibility.hint).toBe('Read only');
     await user.click(readOnly);
-    fireEvent.keyDown(readOnly, { key: 'ArrowDown' });
+    await user.keyboard('{ArrowDown}');
     expect(screen.queryByRole('menu')).toBeNull();
 
     const disabled = screen.getByRole('combobox', { name: 'Routing' });
@@ -188,7 +185,7 @@ describe('Select', () => {
       expect(field.focused).toBe(true);
 
       await user.click(field);
-      pressOutside(screen.getByRole('menu'));
+      await pressOutside(screen.getByRole('menu'));
       expect(screen.queryByRole('menu')).toBeNull();
       expect(field.focused).toBe(true);
     }
