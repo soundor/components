@@ -15,20 +15,20 @@ Inside a [SegmentedControl](/docs/components/segmented-control) the group is a s
 
 ### Knob, Slider, Fader and ValueField
 
-| Input                      | Does                                            |
-| -------------------------- | ----------------------------------------------- |
-| `←` `↓` / `→` `↑`          | Decrease / increase by 1% of the range          |
-| `Page Down` / `Page Up`    | Decrease / increase by 10% of the range         |
-| `Home` / `End`             | Go to the minimum / maximum                     |
-| `Shift` with any key above | Ten times finer                                 |
-| Mouse wheel                | Change by 1% per notch, `Shift` for finer       |
-| Drag                       | Change; `Shift` while dragging for fine control |
-| Double-click               | Reset to the default value                      |
-| `Esc` while dragging       | Cancel the drag and restore the value           |
+| Input                      | Does                                               |
+| -------------------------- | -------------------------------------------------- |
+| `←` `↓` / `→` `↑`          | Decrease / increase by 1% of the range             |
+| `Page Down` / `Page Up`    | Decrease / increase by 10% of the range            |
+| `Home` / `End`             | Go to the minimum / maximum                        |
+| `Shift` with any key above | Ten times finer                                    |
+| Mouse wheel                | Change by 1% per notch, `Shift` for finer          |
+| Drag                       | Change; `Shift` while dragging for fine control    |
+| Double-click               | Reset to the default; type a value on a ValueField |
+| `Esc` while dragging       | Cancel the drag and restore the value              |
 
 Steps follow the control's mapping, so on a log-scaled frequency control 1% is a step along the curve, not a fixed number of hertz. A [Slider](/docs/components/slider) jumps to where you click and then follows the pointer; hold `Shift` as you press to grab the handle where it is instead, without a jump.
 
-[ValueField](/docs/components/value-field) also takes `Enter` to type a value, and `Enter` again to apply it or `Esc` to leave it unchanged. See [Typing a value](/docs/components/value-field#typing-a-value) for what it accepts.
+[ValueField](/docs/components/value-field) takes a double-click or `Enter` to type a value, and `Enter` again to apply it or `Esc` to leave it unchanged. See [Typing a value](/docs/components/value-field#typing-a-value) for what it accepts.
 
 ### Buttons
 
@@ -77,7 +77,7 @@ Each handle is a tab stop. On the attack, sustain and release handles the arrow 
 ## Tips
 
 - **Fine adjustment is `Shift`.** It works on keys, wheel and drag alike, so it is the one habit worth teaching.
-- **Double-click is the reset.** Set the parameter's default and users always have a way back. Bound controls take it from the parameter; others take `defaultValue`.
+- **Double-click is the reset** (on a ValueField it types a value, as in a DAW's fields). Set the parameter's default and users always have a way back. Bound controls take it from the parameter; others take `defaultValue`.
 - **Typing beats dragging for exact values.** A ValueField beside a Knob or a Fader gives both.
 - **Cancel with `Esc`.** A drag is one gesture for the host, and `Esc` cancels it and restores the value from before.
 
