@@ -10,3 +10,6 @@ routeTree.gen.ts
 
 # Copied from apps/demos by scripts/sync-demos.ts
 apps/website/public/demos/
+
+# Written from packages/components/CHANGELOG.md by apps/website/scripts/changelog.ts
+apps/website/content/docs/changelog.mdx

@@ -26,6 +26,7 @@ export const layoutOptions = {
   },
   githubUrl: 'https://github.com/soundor/components',
   links: [
+    { text: 'Changelog', url: '/docs/changelog' },
     { text: 'Icons', url: 'https://icons.soundor.dev/', external: true },
     { text: 'Soundor', url: 'https://soundor.dev/', external: true },
   ],

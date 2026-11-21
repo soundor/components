@@ -38,6 +38,10 @@ function Documentation() {
   return (
     <DocsLayout
       {...layoutOptions}
+      // The header and the home page's menu link the changelog; the sidebar lists the docs.
+      links={layoutOptions.links.filter(
+        (link) => link.url !== '/docs/changelog',
+      )}
       tree={source.getPageTree()}
       sidebar={{ tabs: false }}
     >
