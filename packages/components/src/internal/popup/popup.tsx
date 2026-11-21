@@ -18,6 +18,7 @@ import type { KeyboardEvent, UiNode } from 'soundor:ui';
 
 import {
   computePlacement,
+  naturalSize,
   samePlacement,
   type Box,
   type Placement,
@@ -115,6 +116,10 @@ export function Popup({
   // No layout to measure: shown where it would go unconstrained.
   const [unmeasured, setUnmeasured] = useState(false);
   const [minWidth, setMinWidth] = useState<number | undefined>(undefined);
+  // The last placement, whose maximums the surface is held to, and the size
+  // its content was last known to need.
+  const placed = useRef<Placement | null>(null);
+  const natural = useRef<{ width: number; height: number } | null>(null);
   const place = useCallback(() => {
     const target = anchorBox(anchor);
     const own = boxOf(surface.current);
@@ -129,7 +134,9 @@ export function Popup({
       safeArea.width > 0 && safeArea.height > 0
         ? safeArea
         : { x: 0, y: 0, width: view.width, height: view.height };
-    const next = computePlacement(target, own, bounds, {
+    const size = naturalSize(own, placed.current, natural.current);
+    natural.current = size;
+    const next = computePlacement(target, size, bounds, {
       side,
       align,
       offset,
@@ -138,9 +145,10 @@ export function Popup({
       flip,
       scale,
     });
-    setPlacement((previous) =>
-      samePlacement(previous, next) ? previous : next,
-    );
+    if (!samePlacement(placed.current, next)) {
+      placed.current = next;
+      setPlacement(next);
+    }
     if (matchAnchorWidth) setMinWidth(target.width);
   }, [
     anchor,

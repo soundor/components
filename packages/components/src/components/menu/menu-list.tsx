@@ -152,14 +152,23 @@ export function MenuList({
   }, []);
 
   // The list has no height to scroll in until the popup is placed and held
-  // to the room it has: then, and on any later resize, the focused row is
-  // brought into view.
+  // to the room it has: then, and when its height changes again, the focused
+  // row is brought into view. Not once the user has scrolled it: a resize
+  // then would take the list from where they put it.
+  const follow = useRef(true);
+  const stopFollowing = () => {
+    follow.current = false;
+  };
   useLayoutEffect(() => {
     const node = list.current;
     if (!node || typeof ResizeObserver === 'undefined') return undefined;
+    let height = -1;
     const observer = new ResizeObserver(() => {
+      const next = node.clientHeight;
+      if (next === height) return;
+      height = next;
       const index = current();
-      if (index >= 0)
+      if (follow.current && index >= 0)
         nodes.current[index]?.scrollIntoView?.({ block: 'nearest' });
     });
     observer.observe(node);
@@ -223,9 +232,11 @@ export function MenuList({
   };
 
   return (
-    <View style={{ flexShrink: 1 }}>
+    // A press on the scrollbar, as a wheel on the list, is the user's scroll.
+    <View style={{ flexShrink: 1 }} onPointerDown={stopFollowing}>
       <View
         ref={list}
+        onWheel={stopFollowing}
         focusable
         accessibilityRole="menu"
         accessibilityLabel={label}

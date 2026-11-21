@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
   computePlacement,
+  naturalSize,
   samePlacement,
   type PlacementOptions,
 } from './placement';
@@ -161,5 +162,28 @@ describe('popup placement', () => {
     );
     expect(wide.x).toBe(4);
     expect(wide.maxWidth).toBe(392);
+  });
+
+  test('places by the size its content needs, not the maximum it is held to', () => {
+    // 146 above the field, 142 below: neither fits 200.
+    const middle = { x: 40, y: 154, width: 120, height: 30 };
+    const view300 = { x: 0, y: 0, width: 400, height: 334 };
+    const content = { width: 100, height: 200 };
+    const first = computePlacement(middle, content, view300, options);
+    expect(first).toMatchObject({ side: 'top', maxHeight: 146 });
+    // Measured again, held to that maximum: still the content's 200.
+    const measured = { width: 100, height: 146 };
+    const size = naturalSize(measured, first, content);
+    expect(size).toEqual(content);
+    expect(computePlacement(middle, size, view300, options)).toEqual(first);
+    // By the capped size it would have seemed to fit below, and flipped.
+    expect(computePlacement(middle, measured, view300, options).side).toBe(
+      'bottom',
+    );
+    // Under its maximum, a measure is the content's own: it shrank.
+    expect(naturalSize({ width: 100, height: 90 }, first, content)).toEqual({
+      width: 100,
+      height: 90,
+    });
   });
 });

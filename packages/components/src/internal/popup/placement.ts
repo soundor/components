@@ -180,3 +180,23 @@ export function samePlacement(a: Placement | null, b: Placement | null) {
       a.maxWidth === b.maxWidth)
   );
 }
+
+/**
+ * A popup's size as its content would have it, from what it measures. Held to
+ * a placement's maximum it measures that maximum, not its content: on an axis
+ * at its cap, the larger of that and what it was known to need before stands.
+ * Placing by the capped size would let a long list seem to fit the other
+ * side, flip there, and flip back.
+ */
+export function naturalSize(
+  measured: { width: number; height: number },
+  cap: { maxWidth: number; maxHeight: number } | null,
+  previous: { width: number; height: number } | null,
+): { width: number; height: number } {
+  const axis = (size: number, max: number | undefined, before = 0) =>
+    max !== undefined && size >= max - 0.5 ? Math.max(size, before) : size;
+  return {
+    width: axis(measured.width, cap?.maxWidth, previous?.width),
+    height: axis(measured.height, cap?.maxHeight, previous?.height),
+  };
+}
