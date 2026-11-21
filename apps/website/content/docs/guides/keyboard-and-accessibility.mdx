@@ -20,6 +20,7 @@ Inside a [SegmentedControl](/docs/components/segmented-control) the group is a s
 | `←` `↓` / `→` `↑`            | Decrease / increase by 1% of the range             |
 | `Page Down` / `Page Up`      | Decrease / increase by 10% of the range            |
 | `Home` / `End`               | Go to the minimum / maximum                        |
+| `Delete` or `Backspace`      | Reset to the default                               |
 | `Shift` with any key above   | Ten times finer                                    |
 | Mouse wheel                  | Change by 1% per notch, `Shift` for finer          |
 | Drag                         | Change; `Shift` while dragging for fine control    |
@@ -27,7 +28,7 @@ Inside a [SegmentedControl](/docs/components/segmented-control) the group is a s
 | `Alt`-click (`Option`-click) | Reset to the default, ValueField included          |
 | `Esc` while dragging         | Cancel the drag and restore the value              |
 
-Steps follow the control's mapping, so on a log-scaled frequency control 1% is a step along the curve, not a fixed number of hertz. A [Slider](/docs/components/slider) jumps to where you click and then follows the pointer; hold `Shift` as you press to grab the handle where it is instead, without a jump.
+Steps follow the control's mapping, so on a log-scaled frequency control 1% is a step along the curve, not a fixed number of hertz. A [Slider](/docs/components/slider) pressed on its thumb grabs it where it is; pressed elsewhere, it jumps there and then follows the pointer (hold `Shift` to grab the thumb where it is from anywhere). A double-click resets it only on the thumb: one elsewhere jumps, and resets nothing.
 
 [ValueField](/docs/components/value-field) takes a double-click or `Enter` to type a value, and `Enter` again to apply it or `Esc` to leave it unchanged. See [Typing a value](/docs/components/value-field#typing-a-value) for what it accepts.
 
@@ -48,12 +49,13 @@ In a SegmentedControl the selection follows focus and wraps around at the ends.
 | `←` / `→`                    | Decrease / increase X                      |
 | `↓` / `↑`                    | Decrease / increase Y                      |
 | `Shift` with an arrow        | Ten times finer                            |
+| `Delete` or `Backspace`      | Reset both axes to their defaults          |
 | Drag                         | Move both values; `Shift` for fine control |
-| Double-click                 | Reset both axes to their defaults          |
+| Double-click on the handle   | Reset both axes to their defaults          |
 | `Alt`-click (`Option`-click) | Reset, as a double-click does              |
 | `Esc` while dragging         | Cancel the drag                            |
 
-Every marker with `onMove` on a [Plot](/docs/components/plot) is its own tab stop and behaves like an XYPad.
+An XYPad pressed on its handle grabs it where it is; pressed elsewhere, the handle jumps to the pointer, and a double-click there jumps without resetting. Every marker with `onMove` on a [Plot](/docs/components/plot) is its own tab stop and behaves like an XYPad, except that a marker never jumps: it is grabbed where it is.
 
 ### Select, Dropdown and ContextMenu
 
@@ -70,7 +72,7 @@ A list or menu keeps focus while it is open, and holds it inside the editor. `Es
 
 ### EnvelopeEditor
 
-Each handle is a tab stop. On the attack, sustain and release handles the arrow keys, `Page Up`, `Page Down`, `Home`, `End` and the wheel work as on a Knob; on the decay handle, `←` `→` move the decay and `↓` `↑` the sustain. Double-click or `Alt`-click resets a handle's stage (on the decay handle, the decay only: the sustain has its own), and `Esc` cancels a drag. See [EnvelopeEditor](/docs/components/envelope-editor#editing).
+Each handle is a tab stop. On the attack, sustain and release handles the arrow keys, `Page Up`, `Page Down`, `Home`, `End` and the wheel work as on a Knob; on the decay handle, `←` `→` move the decay and `↓` `↑` the sustain. Double-click, `Alt`-click, `Delete` or `Backspace` resets a handle's stage (on the decay handle, the decay only: the sustain has its own), and `Esc` cancels a drag. See [EnvelopeEditor](/docs/components/envelope-editor#editing).
 
 ### ResizeGrip
 
@@ -79,7 +81,7 @@ Each handle is a tab stop. On the attack, sustain and release handles the arrow 
 ## Tips
 
 - **Fine adjustment is `Shift`.** It works on keys, wheel and drag alike, so it is the one habit worth teaching.
-- **Double-click is the reset, and so is `Alt`-click.** `Alt`-click (`Option`-click on a Mac) is the reset in Pro Tools and Logic, and the one that works on a ValueField too, where a double-click types a value. Set the parameter's default and users always have a way back. Bound controls take it from the parameter; others take `defaultValue`.
+- **Double-click is the reset, and so are `Alt`-click and `Delete`.** `Alt`-click (`Option`-click on a Mac) is the reset in Pro Tools and Logic, and the one that works on a ValueField too, where a double-click types a value. Set the parameter's default and users always have a way back. Bound controls take it from the parameter; others take `defaultValue`.
 - **Typing beats dragging for exact values.** A ValueField beside a Knob or a Fader gives both.
 - **Cancel with `Esc`.** A drag is one gesture for the host, and `Esc` cancels it and restores the value from before.
 

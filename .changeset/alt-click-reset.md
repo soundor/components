@@ -3,3 +3,5 @@
 ---
 
 `Alt`-click (`Option`-click on a Mac) resets a Knob, Slider, Fader, ValueField, XYPad, draggable Plot marker or EnvelopeEditor handle to its default, as a double-click does, in one gesture and without a drag or a Slider's jump to the pointer. It is the pointer's reset on a ValueField, whose double-click types a value. The headless hooks get it too.
+
+A press on a Slider's thumb or an XYPad's handle grabs it where it is, and only a press elsewhere jumps to the pointer. A double-click resets only on the thumb or handle: one elsewhere jumps there and resets nothing, where it used to jump, then reset. `useSlider`, `useXYPad` and the other headless hooks take a `grabRadius` option for this.

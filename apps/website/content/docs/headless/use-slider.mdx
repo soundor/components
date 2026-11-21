@@ -19,7 +19,7 @@ function CustomSlider(props: RangeProps) {
 }
 ```
 
-Defaults: `axis: 'x'`, `dragMode: 'absolute'`. Use `inset` to keep the thumb inside the track's ends.
+Defaults: `axis: 'x'`, `dragMode: 'absolute'`. Use `inset` to keep the thumb inside the track's ends, and `grabRadius`, in pixels along the track, for how near the thumb a press grabs it where it is instead of jumping; a double-click resets only there. Without `grabRadius` every press jumps, and every double-click resets.
 
 ## Returns
 

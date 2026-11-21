@@ -29,6 +29,8 @@ function Pad() {
 
 The pad balances both gestures: it opens and closes both parameters' host gestures together, and a reset restores both axes.
 
+In the default absolute drag mode, set `grabRadius` in the options to the size of your handle, in pixels from its centre: a press that near grabs it where it is instead of jumping, and a double-click resets only there. Without it every press jumps, and every double-click resets.
+
 ## Returns
 
 - `x`, `y`: each axis's state, with `value`, `normalized`, `min`, `max` and `label`.

@@ -1,10 +1,13 @@
-import { View } from '@soundor/react';
+import { TextInput, View } from '@soundor/react';
 import {
   advanceTime,
   fireEvent,
   render,
   screen,
+  userEvent,
 } from '@soundor/testing-library/react';
+import { createRef } from 'react';
+import type { UiNode } from 'soundor:ui';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { useKnob, useXYPad } from '../headless';
@@ -167,7 +170,8 @@ describe('range interactions', () => {
     expect(y.endGesture).toHaveBeenCalledTimes(1);
     fireEvent.keyDown(pad, { key: 'ArrowDown' });
     expect(y.get()).toBeLessThan(1);
-    fireEvent.dblClick(pad);
+    // On the handle, where the drag left it: a double-click resets.
+    await doubleClick(pad, { clientX: 257, clientY: 23 });
     expect(pad.accessibility.value?.text).toBe('Time 25%, Level 75%');
   });
 });
@@ -253,5 +257,179 @@ describe('Alt-click (Option-click on a Mac) resets', () => {
       altKey: true,
     });
     expect(gain.get()).toBe(0.8);
+  });
+});
+
+/**
+ * A real double-click at a point: two presses, the runtime counting their
+ * clicks as a series, then dblclick.
+ */
+async function doubleClick(
+  node: Parameters<typeof fireEvent.click>[0],
+  at: { clientX?: number; clientY?: number },
+) {
+  const user = userEvent.setup();
+  await user.pointer([
+    { target: node, ...at },
+    { target: node, keys: '[MouseLeft]', detail: 1, ...at },
+    { target: node, keys: '[MouseLeft]', detail: 2, ...at },
+  ]);
+}
+
+describe('a press on the handle grabs it; elsewhere it jumps', () => {
+  const pad = async () => {
+    const x = parameter(0.25);
+    const y = parameter(0.25);
+    await render(
+      <XYPad
+        label="Position"
+        width={280}
+        height={180}
+        x={{ parameter: x, label: 'Time' }}
+        y={{ parameter: y, label: 'Level' }}
+      />,
+    );
+    const node = screen.getByRole('adjustable', { name: 'Position' });
+    Object.defineProperty(node, 'getBoundingClientRect', {
+      value: () => ({ x: 0, y: 0, width: 280, height: 180 }),
+    });
+    return { x, y, node };
+  };
+
+  test('XYPad: a press on the handle does not move it, and a drag keeps the offset', async () => {
+    const { x, y, node } = await pad();
+    // The handle, at 50% / 50% (the parameters' 0.25 on a square-root
+    // mapping), is at (140, 90) in a 23-pixel inset.
+    fireEvent.pointerDown(node, { clientX: 150, clientY: 95 });
+    expect(x.get()).toBe(0.25);
+    expect(y.get()).toBe(0.25);
+    expect(x.set).not.toHaveBeenCalled();
+    fireEvent.pointerMove(node, { clientX: 160, clientY: 95 });
+    fireEvent.pointerUp(node);
+    // Moved by the pointer's 10 pixels, not to the pointer.
+    expect(Math.sqrt(x.get())).toBeCloseTo(0.5 + 10 / 234, 3);
+  });
+
+  test('XYPad: a double-click on the handle resets it in one gesture', async () => {
+    const { x, y, node } = await pad();
+    fireEvent.keyDown(node, { key: 'End' });
+    fireEvent.keyDown(node, { key: 'ArrowRight' });
+    const before = Math.sqrt(x.get());
+    const at = { clientX: 23 + before * 234, clientY: 90 };
+    const gestures = x.beginGesture.mock.calls.length;
+    x.set.mockClear();
+    await doubleClick(node, at);
+    expect(x.get()).toBe(0.25);
+    expect(y.get()).toBe(0.25);
+    // Two presses that changed nothing open no gesture of their own; the
+    // reset opens one. (An unchanged press still opens and closes one.)
+    expect(x.set).toHaveBeenCalledTimes(1);
+    expect(x.beginGesture.mock.calls.length).toBe(gestures + 3);
+  });
+
+  test('XYPad: a double-click away from the handle jumps there, and does not reset', async () => {
+    const { x, node } = await pad();
+    await doubleClick(node, { clientX: 257, clientY: 90 });
+    expect(x.get()).toBe(1);
+  });
+
+  test('Slider: on the thumb a press grabs it, and a double-click resets; away, it jumps', async () => {
+    const gain = parameter(0.25);
+    await render(<Slider parameter={gain} width={112} />);
+    const slider = screen.getByRole('adjustable', { name: 'Gain' });
+    Object.defineProperty(slider, 'getBoundingClientRect', {
+      value: () => ({ x: 0, y: 0, width: 112, height: 20 }),
+    });
+    // The thumb, at 50%, is at 56 in a 6-pixel inset; 9 pixels off still
+    // grabs it.
+    fireEvent.pointerDown(slider, { clientX: 65 });
+    fireEvent.pointerUp(slider, { clientX: 65 });
+    expect(gain.set).not.toHaveBeenCalled();
+    await doubleClick(slider, { clientX: 100 });
+    expect(gain.get()).toBeGreaterThan(0.25);
+    const moved = gain.get();
+    const thumb = 6 + Math.sqrt(moved) * 100;
+    await doubleClick(slider, { clientX: thumb });
+    expect(gain.get()).toBe(0.25);
+  });
+});
+
+describe('Delete or Backspace resets the focused control', () => {
+  test.each(['Delete', 'Backspace'])(
+    '%s on a Knob: one gesture',
+    async (key) => {
+      const gain = parameter(0.25);
+      await render(<Knob parameter={gain} />);
+      const dial = screen.getByRole('adjustable', { name: 'Gain' });
+      fireEvent.keyDown(dial, { key: 'End' });
+      vi.useFakeTimers();
+      await advanceTime(300);
+      const gestures = gain.beginGesture.mock.calls.length;
+      fireEvent.keyDown(dial, { key });
+      expect(gain.get()).toBe(0.25);
+      expect(gain.beginGesture).toHaveBeenCalledTimes(gestures + 1);
+      expect(gain.endGesture).toHaveBeenCalledTimes(gestures + 1);
+    },
+  );
+
+  test('not with Command, Control or Alt, nor while disabled', async () => {
+    const gain = parameter(0.25);
+    gain.set(0.8);
+    const app = await render(<Knob parameter={gain} />);
+    const dial = () => screen.getByRole('adjustable', { name: 'Gain' });
+    for (const modifier of ['metaKey', 'ctrlKey', 'altKey'])
+      fireEvent.keyDown(dial(), { key: 'Backspace', [modifier]: true });
+    expect(gain.get()).toBe(0.8);
+    await app.rerender(<Knob parameter={gain} disabled />);
+    fireEvent.keyDown(dial(), { key: 'Delete' });
+    expect(gain.get()).toBe(0.8);
+  });
+
+  test('not from a text input inside a custom control', async () => {
+    const gain = parameter(0.25);
+    gain.set(0.8);
+    const input = createRef<UiNode>();
+    function Custom() {
+      const control = useKnob({ parameter: gain });
+      return (
+        <View {...control.handlers}>
+          <TextInput ref={input} />
+        </View>
+      );
+    }
+    await render(<Custom />);
+    fireEvent.keyDown(
+      input.current as unknown as Parameters<typeof fireEvent.keyDown>[0],
+      { key: 'Backspace' },
+    );
+    expect(gain.get()).toBe(0.8);
+  });
+
+  test('Slider, Fader and ValueField; an XYPad resets both axes', async () => {
+    const values = [parameter(0.25), parameter(0.25), parameter(0.25)];
+    const x = parameter(0.25);
+    const y = parameter(0.25);
+    await render(
+      <View>
+        <Slider parameter={values[0]!} label="Slider" />
+        <Fader parameter={values[1]!} label="Fader" />
+        <ValueField parameter={values[2]!} label="Field" />
+        <XYPad
+          label="Position"
+          x={{ parameter: x, label: 'Time' }}
+          y={{ parameter: y, label: 'Level' }}
+        />
+      </View>,
+    );
+    for (const name of ['Slider', 'Fader', 'Field', 'Position']) {
+      const node = screen.getByRole('adjustable', { name });
+      fireEvent.keyDown(node, { key: 'End' });
+      fireEvent.keyDown(node, { key: 'ArrowUp' });
+      fireEvent.keyDown(node, { key: 'ArrowRight' });
+      fireEvent.keyDown(node, { key: 'Delete' });
+    }
+    for (const value of values) expect(value.get()).toBe(0.25);
+    expect(x.get()).toBe(0.25);
+    expect(y.get()).toBe(0.25);
   });
 });

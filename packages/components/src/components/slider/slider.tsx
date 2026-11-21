@@ -40,7 +40,12 @@ export function Slider({
     md: theme.size.trackMd,
     lg: theme.size.trackLg,
   }[size];
-  const r = useSlider(props, { dragMode, inset: thumb! / 2 });
+  // A press on the thumb, or a little either side, grabs it where it is.
+  const r = useSlider(props, {
+    dragMode,
+    inset: thumb! / 2,
+    grabRadius: thumb! / 2 + 4,
+  });
   const accent = accents(theme, color);
   const c = theme.color;
   const lo = Math.min(r.normalized, r.origin);
