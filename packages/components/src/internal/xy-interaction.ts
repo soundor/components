@@ -17,6 +17,12 @@ export interface XYInteraction {
   travel?: readonly [number, number];
   /** Optional keyboard increments expressed in plain units. */
   keyStep?: readonly [number, number];
+  /**
+   * Which host gestures an arrow key opens: both axes' (the default, as a
+   * drag does), or only the axis it moves, so that a host recording touch
+   * automation does not take the other as touched.
+   */
+  keyGesture?: 'both' | 'axis';
   describeValue?: (x: number, y: number) => string;
   onPointChange?: (x: number, y: number) => void;
   onInteractionStart?: () => void;
@@ -233,7 +239,13 @@ export function useXYPad(
         key === 'ArrowUp'
       ) {
         const axis = key === 'ArrowLeft' || key === 'ArrowRight' ? x : y;
-        if (axis.disabled || !gesture.start('keys', beginBoth)) return;
+        if (
+          axis.disabled ||
+          !(options.keyGesture === 'axis'
+            ? gesture.start(axis === x ? 'keysX' : 'keysY', () => begin(axis))
+            : gesture.start('keys', beginBoth))
+        )
+          return;
         step(
           axis,
           key === 'ArrowRight' || key === 'ArrowUp' ? 1 : -1,

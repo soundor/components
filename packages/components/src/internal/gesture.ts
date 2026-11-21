@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 
-type Mode = 'pointer' | 'keys' | 'wheel' | 'discrete';
+type Mode = 'pointer' | 'keys' | 'keysX' | 'keysY' | 'wheel' | 'discrete';
 
 interface Active {
   mode: Mode;
