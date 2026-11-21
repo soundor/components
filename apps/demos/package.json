@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "build": "soundor build web",
+    "test:e2e": "playwright test",
     "dev": "soundor dev web",
     "doctor": "soundor doctor",
     "gen": "soundor gen",
+    "serve": "node scripts/serve.ts",
     "typecheck": "soundor gen && tsc -b"
   },
   "dependencies": {
@@ -17,7 +19,9 @@
     "react": "catalog:"
   },
   "devDependencies": {
+    "@playwright/test": "catalog:",
     "@soundor/config": "catalog:",
+    "@types/node": "catalog:",
     "@types/react": "catalog:",
     "soundor": "catalog:",
     "typescript": "catalog:"

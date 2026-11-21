@@ -15,6 +15,11 @@
     "test": {
       "dependsOn": ["^build"]
     },
+    "test:e2e": {
+      "dependsOn": ["build"],
+      "passThroughEnv": ["CI", "PLAYWRIGHT_BROWSERS_PATH"],
+      "cache": false
+    },
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,

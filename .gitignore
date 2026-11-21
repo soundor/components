@@ -7,6 +7,8 @@ dist/
 .soundor/
 routeTree.gen.ts
 *.tgz
+test-results/
+playwright-report/
 
 # Copied from apps/demos by scripts/sync-demos.ts
 apps/website/public/demos/
