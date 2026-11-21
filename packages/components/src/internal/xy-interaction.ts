@@ -106,6 +106,18 @@ export function useXYPad(
     if (amount === undefined) axis.nudge(direction, 0.01 * rate);
     else axis.set(axis.get() + direction * amount * rate);
   };
+  /** Back to the defaults, of the axes a double-click resets: one gesture. */
+  const reset = () => {
+    const which = options.resetOnDoubleClick ?? 'both';
+    const axes = which === 'x' ? [x] : which === 'y' ? [y] : [x, y];
+    if (!gesture.start('discrete', () => begin(...axes))) return;
+    try {
+      for (const axis of axes) axis.set(axis.reset, false);
+      notify();
+    } finally {
+      gesture.end();
+    }
+  };
   const describe =
     options.describeValue ??
     ((xValue, yValue) =>
@@ -171,8 +183,14 @@ export function useXYPad(
     onFocusVisibleChange: (event) => setFocusVisible(event.focusVisible),
     onBlur: () => gesture.end(),
     onPointerDown(event) {
+      if (event.button !== 0) return;
+      // Alt-click (Option-click on a Mac) resets, as a double-click does,
+      // without moving to the pointer first.
+      if (event.altKey) {
+        reset();
+        return;
+      }
       if (
-        event.button !== 0 ||
         !gesture.start('pointer', () => {
           const finish = beginBoth();
           return (cancel) => {
@@ -262,16 +280,9 @@ export function useXYPad(
       } else return;
       event.preventDefault();
     },
-    onDoubleClick() {
-      const which = options.resetOnDoubleClick ?? 'both';
-      const axes = which === 'x' ? [x] : which === 'y' ? [y] : [x, y];
-      if (!gesture.start('discrete', () => begin(...axes))) return;
-      try {
-        for (const axis of axes) axis.set(axis.reset, false);
-        notify();
-      } finally {
-        gesture.end();
-      }
+    onDoubleClick(event) {
+      // The second click of an Alt-click pair: the first one reset.
+      if (!event.altKey) reset();
     },
   };
 

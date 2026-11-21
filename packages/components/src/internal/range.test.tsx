@@ -8,7 +8,7 @@ import {
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { useKnob, useXYPad } from '../headless';
-import { Fader, Knob, Slider, XYPad } from '../index';
+import { Fader, Knob, Slider, ValueField, XYPad } from '../index';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -169,5 +169,89 @@ describe('range interactions', () => {
     expect(y.get()).toBeLessThan(1);
     fireEvent.dblClick(pad);
     expect(pad.accessibility.value?.text).toBe('Time 25%, Level 75%');
+  });
+});
+
+describe('Alt-click (Option-click on a Mac) resets', () => {
+  test('a Knob: one gesture, and no drag after it; the double-click that follows does nothing more', async () => {
+    const gain = parameter(0.25);
+    await render(<Knob parameter={gain} />);
+    const dial = screen.getByRole('adjustable', { name: 'Gain' });
+    fireEvent.keyDown(dial, { key: 'End' });
+    expect(gain.get()).toBe(1);
+    const gestures = gain.beginGesture.mock.calls.length;
+    fireEvent.pointerDown(dial, { clientY: 100, altKey: true });
+    expect(gain.get()).toBe(0.25);
+    expect(gain.beginGesture).toHaveBeenCalledTimes(gestures + 1);
+    expect(gain.endGesture).toHaveBeenCalledTimes(gestures + 1);
+    fireEvent.pointerMove(dial, { clientY: 40, altKey: true });
+    fireEvent.pointerUp(dial, { altKey: true });
+    expect(gain.get()).toBe(0.25);
+    fireEvent.dblClick(dial, { altKey: true });
+    expect(gain.beginGesture).toHaveBeenCalledTimes(gestures + 1);
+  });
+
+  test('a Slider resets without jumping to the pointer first', async () => {
+    const gain = parameter(0.25);
+    await render(<Slider parameter={gain} />);
+    const slider = screen.getByRole('adjustable', { name: 'Gain' });
+    Object.defineProperty(slider, 'getBoundingClientRect', {
+      value: () => ({ x: 0, y: 0, width: 100, height: 20 }),
+    });
+    fireEvent.keyDown(slider, { key: 'End' });
+    fireEvent.pointerDown(slider, { clientX: 90, altKey: true });
+    fireEvent.pointerUp(slider, { clientX: 90, altKey: true });
+    expect(gain.get()).toBe(0.25);
+    expect(gain.set).not.toHaveBeenCalledWith(
+      expect.closeTo(0.81, 2),
+      expect.anything(),
+    );
+  });
+
+  test('a ValueField resets, and its double-click still types a value unless Alt is held', async () => {
+    const gain = parameter(0.25);
+    await render(<ValueField parameter={gain} />);
+    const field = screen.getByRole('adjustable', { name: 'Gain' });
+    fireEvent.keyDown(field, { key: 'End' });
+    fireEvent.pointerDown(field, { altKey: true });
+    fireEvent.pointerUp(field, { altKey: true });
+    expect(gain.get()).toBe(0.25);
+    fireEvent.dblClick(field, { altKey: true });
+    expect(screen.queryByRole('textinput', { name: 'Gain' })).toBeNull();
+    fireEvent.dblClick(field);
+    expect(screen.queryByRole('textinput', { name: 'Gain' })).not.toBeNull();
+  });
+
+  test('an XYPad resets both axes', async () => {
+    const x = parameter(0.25);
+    const y = parameter(0.25);
+    await render(
+      <XYPad
+        label="Position"
+        x={{ parameter: x, label: 'Time' }}
+        y={{ parameter: y, label: 'Level' }}
+      />,
+    );
+    const pad = screen.getByRole('adjustable', { name: 'Position' });
+    Object.defineProperty(pad, 'getBoundingClientRect', {
+      value: () => ({ x: 0, y: 0, width: 280, height: 180 }),
+    });
+    fireEvent.keyDown(pad, { key: 'ArrowUp' });
+    fireEvent.keyDown(pad, { key: 'ArrowRight' });
+    fireEvent.pointerDown(pad, { clientX: 250, clientY: 20, altKey: true });
+    fireEvent.pointerMove(pad, { clientX: 10, clientY: 170, altKey: true });
+    fireEvent.pointerUp(pad, { altKey: true });
+    expect(x.get()).toBe(0.25);
+    expect(y.get()).toBe(0.25);
+  });
+
+  test('not while disabled', async () => {
+    const gain = parameter(0.25);
+    gain.set(0.8);
+    await render(<Knob parameter={gain} disabled />);
+    fireEvent.pointerDown(screen.getByRole('adjustable', { name: 'Gain' }), {
+      altKey: true,
+    });
+    expect(gain.get()).toBe(0.8);
   });
 });
