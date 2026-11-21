@@ -27,8 +27,8 @@ export default function Demo() {
             </Button>
           }
           items={[
-            { id: 'copy', label: 'Copy Voice', shortcut: '⌘C' },
-            { id: 'paste', label: 'Paste Voice', shortcut: '⌘V' },
+            { id: 'copy', label: 'Copy Voice', shortcut: 'Mod+C' },
+            { id: 'paste', label: 'Paste Voice', shortcut: 'Mod+V' },
             { type: 'separator' },
             { id: 'init', label: 'Initialize Voice' },
           ]}

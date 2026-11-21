@@ -44,6 +44,11 @@ export {
 export { Divider, type DividerProps } from './components/divider';
 export { ResizeGrip, type ResizeGripProps } from './components/resize-grip';
 export { formatters, parsers } from './internal/format';
+export {
+  formatShortcut,
+  type FormatShortcutOptions,
+  type ShortcutPlatform,
+} from './internal/shortcut';
 export { registerFonts } from './theme/fonts';
 export type {
   ADSREnvelope,

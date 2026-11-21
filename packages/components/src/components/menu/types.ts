@@ -17,8 +17,10 @@ export interface MenuAction {
   /** Before the label: a small glyph of your own, in the label's colour. */
   icon?: ReactNode;
   /**
-   * A keyboard shortcut shown after the label, such as `⌘C`. Only shown: the
-   * menu does not bind it, as shortcuts belong to the editor.
+   * A keyboard shortcut shown after the label, in the universal syntax of
+   * `formatShortcut`: `Mod+C` shows as `⌘C` on macOS and `Ctrl+C` on Windows
+   * and Linux. Only shown: the menu does not bind it, as shortcuts belong to
+   * the editor.
    */
   shortcut?: string;
   /** Read after the label, for what it is not clear from it. */

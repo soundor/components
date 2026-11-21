@@ -16,6 +16,7 @@ import {
   matchLabel,
   stepEnabled,
 } from '../../internal/menu/navigation';
+import { formatShortcut } from '../../internal/shortcut';
 import {
   controlHeight,
   textStyle,
@@ -315,9 +316,13 @@ function Row({ entry, checkable, size, part, remember, choose }: RowProps) {
     : active
       ? c.selectedForeground
       : c.text;
+  const shortcut =
+    entry.shortcut === undefined ? undefined : formatShortcut(entry.shortcut);
   const hint =
     entry.hint ??
-    (entry.shortcut === undefined ? undefined : `Shortcut ${entry.shortcut}`);
+    (entry.shortcut === undefined
+      ? undefined
+      : `Shortcut ${formatShortcut(entry.shortcut, { spoken: true })}`);
   return (
     <View
       {...press.pressableProps}
@@ -373,7 +378,7 @@ function Row({ entry, checkable, size, part, remember, choose }: RowProps) {
           >
             {entry.label}
           </Text>
-          {entry.shortcut !== undefined && (
+          {shortcut !== undefined && (
             <Text
               accessible={false}
               style={part('shortcut', [
@@ -389,7 +394,7 @@ function Row({ entry, checkable, size, part, remember, choose }: RowProps) {
                 { marginLeft: theme.spacing.spaceLg },
               ])}
             >
-              {entry.shortcut}
+              {shortcut}
             </Text>
           )}
         </>
