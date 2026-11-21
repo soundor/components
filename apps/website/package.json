@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/sync-demos.ts && vite build && tsc --noEmit",
-    "dev": "node scripts/sync-demos.ts && vite dev --host 0.0.0.0",
+    "build": "node scripts/changelog.ts && node scripts/sync-demos.ts && vite build && tsc --noEmit",
+    "dev": "node scripts/changelog.ts && node scripts/sync-demos.ts && vite dev --host 0.0.0.0",
     "preview": "vite preview"
   },
   "dependencies": {
