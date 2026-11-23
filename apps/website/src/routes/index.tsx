@@ -26,6 +26,7 @@ import { createHighlighterCore, type HighlighterCore } from 'shiki/core';
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
 
 import { Demo } from '../components/demo';
+import { SiteFooter } from '../components/site-footer';
 import { layoutOptions } from '../layout-options';
 
 export const Route = createFileRoute('/')({ component: Home });
@@ -300,6 +301,7 @@ function Home() {
           </section>
         </div>
       </main>
+      <SiteFooter />
     </HomeLayout>
   );
 }
