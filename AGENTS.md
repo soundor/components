@@ -32,8 +32,8 @@ Unit tests use `@soundor/testing-library/react` on the simulated runtime
 **Drive tests with `userEvent`; use `fireEvent` only where `userEvent` cannot
 do it.** `userEvent` sends what a user's action really sends: a press moves
 focus, keys go to the focused node, a click and a double-click carry their
-click counts, and hidden or disabled nodes take nothing. `fireEvent` sends one
-event wherever it is told.
+click counts, and disabled nodes still receive hover but cannot take focus or
+be edited. `fireEvent` sends one event wherever it is told.
 
 - Keys: focus with `user.tab()` (or a press), then `user.keyboard('{End}')`.
   Hold modifiers as a user does: `'{Shift>}{ArrowRight}{/Shift}'`,
@@ -42,12 +42,10 @@ event wherever it is told.
   drag: `{ target, keys: '[MouseLeft>]', clientX }`, then `{ clientX }` to
   move, `{ keys: '[/MouseLeft]' }` to release. A double-click at a point is two
   presses with `detail: 1` and `detail: 2`.
-- `fireEvent` is for what `userEvent` has no way to send: `wheel`,
-  `pointercancel`, `accessibilityAction`, touch and pen, more than one
-  pointer, a button joining one already held, and an event a control must
-  refuse although `userEvent` would not send it (a disabled control's own
-  guard, a read-only control, which reports itself disabled, still taking a
-  right-click). Say why in a comment beside it.
+- Use `user.wheel(target, { deltaY })`, `user.accessibilityAction(target, name)`,
+  and `user.pointer` with `[TouchA>]`, `pointerName: 'TouchA'` to move, and
+  `[/TouchA]` to release. Use `fireEvent.pointerCancel` for cancellation;
+  `userEvent` does not simulate it.
 
 A test of a fix should fail without the fix; check that it does.
 

@@ -82,8 +82,8 @@ export function useRangeModel(props: RangeProps) {
   const max = parameter?.info.max ?? props.max ?? 1;
   const step = parameter?.info.step ?? props.step;
   const reset = parameter?.info.default ?? props.defaultValue ?? min;
-  const disabled =
-    props.disabled === true || parameter?.info.access === 'readOnly';
+  const readOnly = parameter?.info.access === 'readOnly';
+  const disabled = props.disabled === true || readOnly;
   const label = props.label ?? parameter?.info.label;
   const own = useControlValue(parameter, props.value, reset);
   const mapping = useMemo(
@@ -162,6 +162,7 @@ export function useRangeModel(props: RangeProps) {
     max,
     label,
     disabled,
+    readOnly,
     reset,
     get,
     set,
@@ -260,11 +261,14 @@ export function useRangeControl(
   };
   const handlers: ViewProps = {
     debugId: props.debugId,
-    focusable: !range.disabled,
+    focusable: true,
     accessibilityRole: 'adjustable',
     accessibilityLabel: props.accessibilityLabel ?? range.label,
     accessibilityHint: props.accessibilityHint,
-    accessibilityState: { disabled: range.disabled },
+    accessibilityState: {
+      disabled: props.disabled === true,
+      readOnly: !props.disabled && range.readOnly,
+    },
     accessibilityValue: {
       min: range.min,
       max: range.max,
@@ -309,7 +313,7 @@ export function useRangeControl(
       // Alt-click (Option-click on a Mac) resets, as in Pro Tools and Logic:
       // no drag, and no Slider jump to the pointer first.
       if (event.altKey) {
-        if (!range.disabled) discrete(range.reset, false);
+        discrete(range.reset, false);
         return;
       }
       if (
@@ -429,7 +433,7 @@ export function useRangeControl(
     ...range,
     handlers,
     hovered: hovered && !range.disabled,
-    focusVisible: focusVisible && !range.disabled,
+    focusVisible: focusVisible && !props.disabled,
     pressed: pressed && !range.disabled,
     commit: discrete,
   };

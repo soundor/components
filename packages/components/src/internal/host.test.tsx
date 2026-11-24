@@ -1,4 +1,9 @@
-import { fireEvent, render, screen } from '@soundor/testing-library/react';
+import {
+  render,
+  screen,
+  userEvent,
+  type NodeTarget,
+} from '@soundor/testing-library/react';
 import { createRef, type ReactElement, type Ref } from 'react';
 import type { AccessibilityAction, UiNode } from 'soundor:ui';
 import { describe, expect, test, vi } from 'vitest';
@@ -71,7 +76,8 @@ describe('controls take a ref and accessibility actions of yours', () => {
     );
     const node = ref.current;
     expect(node).not.toBeNull();
-    const target = node as unknown as Parameters<typeof fireEvent.click>[0];
+    const target = node as unknown as NodeTarget;
+    const user = userEvent.setup();
     // The ref is the node a screen reader is on, and it offers the action
     // after the control's own.
     if (role !== 'text')
@@ -80,12 +86,12 @@ describe('controls take a ref and accessibility actions of yours', () => {
       node as unknown as { accessibility: { actions?: AccessibilityAction[] } }
     ).accessibility.actions?.map((action) => action.name);
     expect(names?.at(-1)).toBe('learn');
-    fireEvent.accessibilityAction(target, { actionName: 'learn' });
+    await user.accessibilityAction(target, 'learn');
     expect(onAccessibilityAction).toHaveBeenCalledTimes(1);
     // One of the control's own is not passed on.
     const own = names?.[0];
     if (own && own !== 'learn') {
-      fireEvent.accessibilityAction(target, { actionName: own });
+      await user.accessibilityAction(target, own);
       expect(onAccessibilityAction).toHaveBeenCalledTimes(1);
     }
   });
@@ -107,7 +113,7 @@ describe('controls take a ref and accessibility actions of yours', () => {
     );
     const radio = screen.getByRole('radio', { name: 'B' });
     expect(radio.accessibility.actions?.at(-1)?.name).toBe('learn');
-    fireEvent.accessibilityAction(radio, { actionName: 'learn' });
+    await userEvent.setup().accessibilityAction(radio, 'learn');
     expect(onAccessibilityAction).toHaveBeenCalledTimes(1);
   });
 });

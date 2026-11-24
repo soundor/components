@@ -456,7 +456,10 @@ describe('EnvelopeEditor', () => {
   test('disabled, the handles take neither focus nor the pointer', async () => {
     const onChange = vi.fn<(value: ADSREnvelope) => void>();
     await render(<EnvelopeEditor disabled onChange={onChange} />);
-    expect(handle('Attack').focusable).toBe(false);
+    await userEvent.setup().tab();
+    for (const name of ['Attack', 'Decay', 'Sustain', 'Release']) {
+      expect(handle(name).focused).toBe(false);
+    }
     await drag(centre(handle('Attack')), 40, 0);
     expect(onChange).not.toHaveBeenCalled();
   });

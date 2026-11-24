@@ -6,15 +6,15 @@ catalog:
   '@changesets/cli': ^3.0.3
   # The Chromium Playwright drives is the one this version installs.
   '@playwright/test': 1.65.1
-  '@soundor/config': ^0.19.0
-  '@soundor/environment': ^0.19.0
-  '@soundor/react': ^0.19.0
-  '@soundor/testing-library': ^0.19.0
-  '@soundor/vitest': ^0.19.0
-  '@soundor/vitest-e2e': ^0.19.0
-  '@soundor/vst3-host': ^0.2.1
-  '@soundor/vst3-runtime': ^0.1.0
-  '@soundor/web-runtime': ^0.15.0
+  '@soundor/config': ^0.20.0
+  '@soundor/environment': ^0.20.0
+  '@soundor/react': ^0.20.0
+  '@soundor/testing-library': ^0.20.0
+  '@soundor/vitest': ^0.20.0
+  '@soundor/vitest-e2e': ^0.20.0
+  '@soundor/vst3-host': ^0.2.2
+  '@soundor/vst3-runtime': ^0.1.1
+  '@soundor/web-runtime': ^0.16.0
   '@tailwindcss/vite': ^4.3.5
   '@tanstack/react-router': 1.170.46
   '@tanstack/react-start': 1.169.7
@@ -31,7 +31,7 @@ catalog:
   oxfmt: ^0.79.0
   oxlint: ^1.92.0
   react: ^19.3.1
-  soundor: ^0.19.0
+  soundor: ^0.20.0
   react-dom: ^19.3.1
   shiki: ^4.6.0
   tailwindcss: ^4.3.5
@@ -41,37 +41,37 @@ catalog:
   typescript-6: npm:typescript@^6.0.3
   vite: ^8.3.6
   vitest: ^5.1.1
-  vitest-environment-soundor: ^0.19.0
+  vitest-environment-soundor: ^0.20.0
 
 catalogMode: strict
 engineStrict: true
 minimumReleaseAge: 2880
-# The Soundor 0.19 release is the compatibility target for the initial release,
+# The Soundor 0.20 release is the compatibility target for components,
 # with the VST3 runtime and host released beside it.
 minimumReleaseAgeExclude:
-  - '@soundor/config@0.19.0'
-  - '@soundor/core@0.19.0'
-  - '@soundor/devtools-client@0.19.0'
-  - '@soundor/devtools-protocol@0.19.0'
-  - '@soundor/devtools-server@0.19.0'
-  - '@soundor/driver@0.19.0'
-  - '@soundor/engine@0.10.0'
-  - '@soundor/environment@0.19.0'
-  - '@soundor/expression@0.19.0'
-  - '@soundor/react@0.19.0'
-  - '@soundor/runtime-sdk@0.19.0'
-  - '@soundor/test-runtime@0.19.0'
-  - '@soundor/testing-library@0.19.0'
-  - '@soundor/vitest@0.19.0'
-  - '@soundor/vitest-e2e@0.19.0'
-  - '@soundor/vst3-host@0.2.1'
-  - '@soundor/vst3-host-darwin-universal@0.2.1'
-  - '@soundor/vst3-host-linux-x64-gnu@0.2.1'
-  - '@soundor/vst3-host-win32-x64@0.2.1'
-  - '@soundor/vst3-runtime@0.1.0'
-  - '@soundor/web-runtime@0.15.0'
-  - 'soundor@0.19.0'
-  - 'vitest-environment-soundor@0.19.0'
+  - '@soundor/config@0.20.0'
+  - '@soundor/core@0.20.0'
+  - '@soundor/devtools-client@0.20.0'
+  - '@soundor/devtools-protocol@0.20.0'
+  - '@soundor/devtools-server@0.20.0'
+  - '@soundor/driver@0.20.0'
+  - '@soundor/engine@0.11.0'
+  - '@soundor/environment@0.20.0'
+  - '@soundor/expression@0.20.0'
+  - '@soundor/react@0.20.0'
+  - '@soundor/runtime-sdk@0.20.0'
+  - '@soundor/test-runtime@0.20.0'
+  - '@soundor/testing-library@0.20.0'
+  - '@soundor/vitest@0.20.0'
+  - '@soundor/vitest-e2e@0.20.0'
+  - '@soundor/vst3-host@0.2.2'
+  - '@soundor/vst3-host-darwin-universal@0.2.2'
+  - '@soundor/vst3-host-linux-x64-gnu@0.2.2'
+  - '@soundor/vst3-host-win32-x64@0.2.2'
+  - '@soundor/vst3-runtime@0.1.1'
+  - '@soundor/web-runtime@0.16.0'
+  - 'soundor@0.20.0'
+  - 'vitest-environment-soundor@0.20.0'
 autoInstallPeers: false
 strictPeerDependencies: true
 allowBuilds:

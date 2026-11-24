@@ -1,7 +1,6 @@
 import { View } from '@soundor/react';
 import {
   act,
-  fireEvent,
   render,
   screen,
   userEvent,
@@ -155,9 +154,7 @@ describe('ContextMenu', () => {
       { target: knob, keys: '[MouseLeft>]', clientY: 100 },
       { clientY: 60 },
     ]);
-    // The right button joining the left: a browser sends no press of its
-    // own for it, only contextmenu, which userEvent cannot.
-    fireEvent(knob, 'contextmenu', { button: 2, buttons: 3 });
+    await user.pointer({ keys: '[MouseRight]', clientY: 60 });
     expect(screen.queryByRole('menu')).toBeNull();
     await user.pointer({ keys: '[/MouseLeft]', clientY: 60 });
     expect(gain.get()).toBeCloseTo(0.5625);
@@ -189,11 +186,16 @@ describe('ContextMenu', () => {
     expect(make).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu')).toBeNull();
 
-    // A read-only control reports itself disabled, which userEvent skips;
-    // the runtimes still deliver the press, and its menu offers Copy.
     const level = screen.getByRole('adjustable', { name: 'Level' });
-    fireEvent.pointerDown(level, { button: 2, clientX: 30, clientY: 40 });
-    fireEvent.pointerUp(level, { button: 2, clientX: 30, clientY: 40 });
+    expect(level.accessibility.state?.readOnly).toBe(true);
+    const user = userEvent.setup();
+    await user.dblClick(level);
+    await user.keyboard('{End}');
+    await user.wheel(level, { deltaY: -1 });
+    expect(level.focused).toBe(true);
+    expect(meter.set).not.toHaveBeenCalled();
+    expect(meter.beginGesture).not.toHaveBeenCalled();
+    await secondaryPress(level);
     const state = (name: string) =>
       screen.getByRole('menuitem', { name }).accessibility.state?.disabled;
     expect(state('Reset to default')).toBe(true);
@@ -237,15 +239,16 @@ describe('ContextMenu', () => {
       'showMenu',
     ]);
     // Its own still work, and the caller's reaches the caller.
-    fireEvent.accessibilityAction(knob, { actionName: 'increment' });
+    const user = userEvent.setup();
+    await user.accessibilityAction(knob, 'increment');
     expect(gain.get()).toBeGreaterThan(0.25);
-    fireEvent.accessibilityAction(knob, { actionName: 'learn' });
+    await user.accessibilityAction(knob, 'learn');
     expect(onAction).toHaveBeenCalledTimes(1);
     expect(onAction.mock.calls[0]![0].actionName).toBe('learn');
 
     // Show menu opens it beside the control, on its first item.
     knob.focus();
-    fireEvent.accessibilityAction(knob, { actionName: 'showMenu' });
+    await user.accessibilityAction(knob, 'showMenu');
     const menu = screen.getByRole('menu');
     expect(
       within(menu).getByRole('menuitem', { name: 'Reset to default' }).focused,
@@ -256,11 +259,7 @@ describe('ContextMenu', () => {
   test("a long touch opens it at the touch; one that moves is the control's drag; a delay of 0 turns it off", async () => {
     vi.useFakeTimers();
     const gain = parameter(0.25);
-    const touch = {
-      pointerType: 'touch',
-      isPrimary: true,
-      pointerId: 7,
-    } as const;
+    const at = { clientX: 20, clientY: 20 };
     const { rerender } = await render(
       <ContextMenu items={() => parameterMenuItems(gain)}>
         <Knob parameter={gain} />
@@ -269,24 +268,26 @@ describe('ContextMenu', () => {
     const user = userEvent.setup();
     const knob = screen.getByRole('adjustable', { name: 'Gain' });
 
-    // Touch: userEvent's pointer is a mouse.
-    fireEvent.pointerDown(knob, { ...touch, clientX: 20, clientY: 20 });
+    await user.pointer({ target: knob, keys: '[TouchA>]', ...at });
     await act(() => vi.advanceTimersByTimeAsync(499));
     expect(screen.queryByRole('menu')).toBeNull();
     await act(() => vi.advanceTimersByTimeAsync(1));
     expect(screen.getByRole('menu')).toBeDefined();
-    fireEvent.pointerUp(knob, { ...touch, clientX: 20, clientY: 20 });
+    await user.pointer({ keys: '[/TouchA]', ...at });
     // Opening it was no edit: the press's gesture ended as focus left.
     expect(gain.get()).toBe(0.25);
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('menu')).toBeNull();
 
     // Moved past the slop: a drag, no menu.
-    fireEvent.pointerDown(knob, { ...touch, clientX: 20, clientY: 20 });
-    fireEvent.pointerMove(knob, { ...touch, clientX: 20, clientY: 40 });
+    await user.pointer([
+      { target: knob, keys: '[TouchA>]', ...at },
+      { pointerName: 'TouchA', ...at, clientY: 40 },
+    ]);
     await act(() => vi.advanceTimersByTimeAsync(600));
     expect(screen.queryByRole('menu')).toBeNull();
-    fireEvent.pointerUp(knob, { ...touch, clientX: 20, clientY: 40 });
+    await user.pointer({ keys: '[/TouchA]', ...at, clientY: 40 });
+    expect(gain.get()).toBeLessThan(0.25);
 
     // A mouse held down opens nothing; nor does a touch with the delay at 0.
     await user.pointer({
@@ -303,9 +304,9 @@ describe('ContextMenu', () => {
         <Knob parameter={gain} />
       </ContextMenu>,
     );
-    fireEvent.pointerDown(knob, { ...touch, clientX: 20, clientY: 20 });
+    await user.pointer({ target: knob, keys: '[TouchA>]', ...at });
     await act(() => vi.advanceTimersByTimeAsync(600));
     expect(screen.queryByRole('menu')).toBeNull();
-    fireEvent.pointerUp(knob, { ...touch, clientX: 20, clientY: 20 });
+    await user.pointer({ keys: '[/TouchA]', ...at });
   });
 });
