@@ -3,35 +3,47 @@ import {
   ControlGroup,
   Fader,
   Knob,
+  ParameterMenuItems,
   Slider,
   TextField,
-  parameterMenuItems,
+  type HostProps,
   type RangeParameter,
 } from '@soundor/components';
 import { Modal, View } from '@soundor/react';
-import { useState } from 'react';
+import { useState, type ReactElement } from 'react';
 import { parameters } from 'soundor:parameters';
 
 // Right-click a control (or focus it and press Shift+F10) for its menu.
 export default function Demo() {
   const [editing, setEditing] = useState<RangeParameter | null>(null);
   const [error, setError] = useState<string | undefined>();
-  const menu = (parameter: RangeParameter) => () =>
-    parameterMenuItems(parameter, {
-      onEnterValue: () => setEditing(parameter),
-    });
+  // One component for each control's menu: the trigger and its items.
+  const withMenu = (
+    parameter: RangeParameter,
+    control: ReactElement<HostProps>,
+  ) => (
+    <ContextMenu>
+      <ContextMenu.Trigger>{control}</ContextMenu.Trigger>
+      <ContextMenu.Content>
+        <ParameterMenuItems
+          parameter={parameter}
+          onEnterValue={() => setEditing(parameter)}
+        />
+      </ContextMenu.Content>
+    </ContextMenu>
+  );
   return (
     <>
       <ControlGroup title="Delay" direction="row" dividers>
-        <ContextMenu items={menu(parameters.feedback)}>
-          <Knob parameter={parameters.feedback} />
-        </ContextMenu>
-        <ContextMenu items={menu(parameters.mix)}>
-          <Slider parameter={parameters.mix} />
-        </ContextMenu>
-        <ContextMenu items={menu(parameters.gain)}>
-          <Fader parameter={parameters.gain} length={110} />
-        </ContextMenu>
+        {withMenu(
+          parameters.feedback,
+          <Knob parameter={parameters.feedback} />,
+        )}
+        {withMenu(parameters.mix, <Slider parameter={parameters.mix} />)}
+        {withMenu(
+          parameters.gain,
+          <Fader parameter={parameters.gain} length={110} />,
+        )}
       </ControlGroup>
       <Modal
         visible={editing !== null}

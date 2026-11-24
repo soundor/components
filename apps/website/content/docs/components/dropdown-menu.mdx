@@ -1,0 +1,140 @@
+---
+title: DropdownMenu
+description: A menu of actions opened from a control of your own.
+---
+
+Use `DropdownMenu` for commands: a preset's Save and Copy, a panel's options, a module's Reset. `DropdownMenu.Trigger` takes the control that opens it, such as a [Button](/docs/components/button), and `DropdownMenu.Content` the items. The menu opens beside the trigger and closes when an item is chosen, on `Esc` or `Tab`, or on a press outside it.
+
+<Demo name="dropdown-menu" height={330} />
+
+```tsx
+import { Button, DropdownMenu, Menu } from '@soundor/components';
+
+<DropdownMenu>
+  <DropdownMenu.Trigger>
+    <Button>Options</Button>
+  </DropdownMenu.Trigger>
+  <DropdownMenu.Content>
+    <Menu.Item onPress={reset}>Reset</Menu.Item>
+    <Menu.Divider />
+    <Menu.Item onPress={copy}>Copy Value</Menu.Item>
+    <Menu.Item onPress={paste} disabled={!canPaste}>
+      Paste Value
+    </Menu.Item>
+  </DropdownMenu.Content>
+</DropdownMenu>;
+```
+
+## Items
+
+The same items go in a DropdownMenu and a [ContextMenu](/docs/components/context-menu):
+
+- `Menu.Item`: an action. Its label is its text, and `onPress` runs it. It can also have `disabled` (shown dimmed and skipped by the keyboard), `icon` (a small glyph before the label), `checked` (a tick, for an option that is on) and `hint` (read after the label by a screen reader).
+- `Menu.Divider`: a line between groups.
+- `Menu.Label`: a heading over a group. A screen reader reads it; the keyboard passes over it.
+
+`onPress` runs after the menu has closed and given focus back. An action can therefore open a `Modal`, which then returns focus to the trigger, or remove the menu's owner from the editor.
+
+Items are ordinary React elements, so a component of yours can render them, and so can a condition or a `map`. Their order on screen is their order for the keyboard and for typing a label's first letters:
+
+```tsx
+function PresetActions({ preset }: { preset: Preset }) {
+  return (
+    <>
+      <Menu.Label>Preset</Menu.Label>
+      <Menu.Item onPress={() => save(preset)}>Save</Menu.Item>
+      {preset.user && (
+        <Menu.Item onPress={() => remove(preset)}>Delete</Menu.Item>
+      )}
+    </>
+  );
+}
+
+<DropdownMenu.Content>
+  <PresetActions preset={preset} />
+  <Menu.Divider />
+  {recent.map((name) => (
+    <Menu.Item key={name} onPress={() => load(name)}>
+      {name}
+    </Menu.Item>
+  ))}
+</DropdownMenu.Content>;
+```
+
+`Menu` is only the items' namespace: there is no `<Menu>` to render. A `Menu.Item` outside a menu's content throws, saying so.
+
+## Triggers
+
+`DropdownMenu.Trigger` adds no view of its own. It gives its one child the menu, and the child keeps its look, its label and its disabled state: a disabled Button opens nothing. The trigger's `accessibilityState` gains `expanded` while the menu is open, and the menu is named after the trigger's label unless the content has an `accessibilityLabel`.
+
+Any element that takes these props, and passes them on to the node that is pressed, can be a trigger: a Button, a `Pressable`, or a component of yours.
+
+| Prop                 | What the menu does with it                                                     |
+| -------------------- | ------------------------------------------------------------------------------ |
+| `ref`                | Places the menu beside that node. Your own ref on the child still gets it.     |
+| `onPress`            | Opens and closes the menu, after your own `onPress` on the child has run.      |
+| `accessibilityState` | Adds `expanded` to your own state.                                             |
+| `accessibilityLabel` | Names the menu; a child whose `children` is a string is named by it otherwise. |
+
+The menu opens on the trigger's primary press: a click, `Enter`, `Space` or a screen reader's activate. Give the trigger a control whose press only opens the menu: a Toggle or a Knob as a trigger would do its own thing and open the menu as well.
+
+## Placement
+
+`DropdownMenu.Content` takes `side` (below by default), `align` (the trigger's start, centre or end) and `offset`, for where the menu goes when there is room. It flips to the other side when there isn't, follows the trigger if it moves while open, and always stays inside the editor. `anchor` places it beside something else: a node of yours (a ref), or a point in the view.
+
+## Opening it yourself
+
+Pass `open` and `onOpenChange` to `DropdownMenu` to open and close it in code, as from a shortcut. It is placed beside the trigger even before the trigger was ever pressed. Opened this way, focus goes to the first item, as from the keyboard.
+
+```tsx
+const [open, setOpen] = useState(false);
+
+<DropdownMenu open={open} onOpenChange={setOpen}>
+  <DropdownMenu.Trigger>
+    <Button>Preset</Button>
+  </DropdownMenu.Trigger>
+  <DropdownMenu.Content>
+    <PresetActions preset={preset} />
+  </DropdownMenu.Content>
+</DropdownMenu>;
+```
+
+## Keyboard and accessibility
+
+| Input                             | Does                                                    |
+| --------------------------------- | ------------------------------------------------------- |
+| `Enter` or `Space` on the trigger | Open, with focus on the first item                      |
+| Click on the trigger              | Open, with focus on the menu and nothing highlighted    |
+| `↑` / `↓`, `Home` / `End`         | Move between items, skipping disabled ones and dividers |
+| A letter                          | The next item whose label starts with it                |
+| `Enter`, `Space` or a click       | Run the item                                            |
+| `Esc`, `Tab` or a click outside   | Close, and give focus back to the trigger               |
+
+The menu is a `menu`, its items are `menuitem`s, and a `Menu.Label` is a `header`. In a menu opened from a `Modal`, `Esc` closes the menu and leaves the modal open. Soundor has no "has popup" state to give the trigger: assistive technology learns of the menu from `expanded`.
+
+## Migrating from Dropdown
+
+`Dropdown` and its `items` became `DropdownMenu` and its parts in 0.4. See [Migrating to 0.4](/docs/guides/migrating-to-0-4#dropdown).
+
+## Props
+
+### DropdownMenu
+
+<auto-type-table
+  path="packages/components/src/components/dropdown-menu/dropdown-menu.tsx"
+  name="DropdownMenuProps"
+/>
+
+### DropdownMenu.Content
+
+<auto-type-table
+  path="packages/components/src/components/dropdown-menu/dropdown-menu.tsx"
+  name="DropdownMenuContentProps"
+/>
+
+### Menu.Item
+
+<auto-type-table
+  path="packages/components/src/components/menu/menu.tsx"
+  name="MenuItemProps"
+/>

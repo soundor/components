@@ -30,6 +30,7 @@ export interface PlotSeries extends PlotSeriesData {
   extend?: boolean;
 }
 
+/** How `drawMarker` draws a marker: a handle with x and y, a guide line with one. */
 export interface PlotMarker {
   x?: number;
   y?: number;
@@ -37,15 +38,57 @@ export interface PlotMarker {
   color?: string;
   dash?: readonly number[];
   radius?: number;
-  /** Setting onMove makes a marker with x and y draggable and keyboard accessible. */
-  onMove?: (point: Point) => void;
-  onMoveStart?: () => void;
-  onMoveEnd?: () => void;
 }
 
-export interface PlotSeriesSource {
-  get(): readonly PlotSeriesData[] | undefined;
+/**
+ * Live data for one series: a snapshot to read, and a way to hear that a new
+ * one is ready. Each notification schedules one canvas draw for the next
+ * frame, with no React render; `get()` is read when it draws.
+ */
+export interface PlotSource<T> {
+  get(): T | undefined;
   subscribe(listener: () => void): () => void;
+}
+
+/** One series' samples: sorted `[x, y]` points, or `values` spread evenly over the x domain. */
+export type PlotSamples =
+  | { readonly points: readonly Point[]; readonly values?: never }
+  | { readonly values: ArrayLike<number>; readonly points?: never };
+
+/** A band's samples: its lower and upper edges, as sorted `[x, y]` points. */
+export interface PlotBandSamples {
+  readonly lower: readonly Point[];
+  readonly upper: readonly Point[];
+}
+
+/** The smallest and largest x and y of some samples; x is absent for `values`. */
+export interface SampleExtent {
+  x?: readonly [number, number];
+  y?: readonly [number, number];
+}
+
+function widen(
+  range: [number, number] | undefined,
+  value: number,
+): [number, number] | undefined {
+  if (!Number.isFinite(value)) return range;
+  if (!range) return [value, value];
+  if (value < range[0]) range[0] = value;
+  if (value > range[1]) range[1] = value;
+  return range;
+}
+
+/** The extent of a series' data, for an axis with no domain of its own. */
+export function sampleExtent(data: PlotSeriesData): SampleExtent {
+  let x: [number, number] | undefined;
+  let y: [number, number] | undefined;
+  for (const point of [...(data.points ?? []), ...(data.upper ?? [])]) {
+    x = widen(x, point[0]);
+    y = widen(y, point[1]);
+  }
+  const values = data.values;
+  if (values) for (let i = 0; i < values.length; i++) y = widen(y, values[i]!);
+  return { x, y };
 }
 
 export function sampleCount(data: PlotSeriesData) {

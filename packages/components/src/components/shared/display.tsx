@@ -2,8 +2,7 @@ import { Text, View, useCanvasSize, type StyleProp } from '@soundor/react';
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { PointerEvent, UiNode } from 'soundor:ui';
 
-import { type Axis, type Point } from '../../chart/geometry';
-import { type PlotSeriesSource } from '../../chart/series';
+import { type Point } from '../../chart/geometry';
 import { textStyle, type Theme } from '../../theme';
 import { Light } from './light';
 
@@ -91,7 +90,6 @@ export function useCanvasBox(width: number, height: number) {
 export function useDrawing(
   box: ReturnType<typeof useCanvasBox>,
   draw: (ctx: CanvasRenderingContext2D) => void,
-  source?: PlotSeriesSource,
 ) {
   const paint = useRef<(() => void) | null>(null);
   const frame = useRef<number | null>(null);
@@ -116,15 +114,13 @@ export function useDrawing(
     }
     paint.current();
   });
-  useLayoutEffect(() => {
-    const unsubscribe = source?.subscribe(invalidate);
-    if (source) invalidate();
-    return () => {
-      unsubscribe?.();
+  useLayoutEffect(
+    () => () => {
       if (frame.current !== null) cancelAnimationFrame(frame.current);
       frame.current = null;
-    };
-  }, [source, invalidate]);
+    },
+    [],
+  );
   return invalidate;
 }
 
@@ -135,10 +131,6 @@ export const fillBox = {
   right: 0,
   bottom: 0,
 } as const;
-export const fallbacks = {
-  x: { domain: [0, 1] } as Axis,
-  y: { domain: [0, 1] } as Axis,
-};
 export const voices = ['lavender', 'lime', 'coral'] as const;
 
 export function colorFor(theme: Theme, color: string) {

@@ -77,3 +77,98 @@ and the plugin first; the VST3 runtime is Steinberg's SDK, prebuilt, not JUCE.
   `test(components): …`).
 - Add a changeset for any change to the published package.
 - Install snippets in the docs use pnpm and npm only.
+
+## Public component API design
+
+The library is opinionated and high level: complete, accessible audio
+controls with sensible defaults, not a low-level kit like Radix or Base UI.
+**Components are complete by default and composable where their
+functionality requires it.**
+
+```tsx
+// Predictable controls: ordinary props.
+<Knob parameter={parameters.gain} />
+<Button onPress={reset}>Reset</Button>
+
+// Typed data: configuration keeps options, value and onChange related.
+<Select value={filter} onChange={setFilter} options={filterOptions} />
+
+// Naturally variable content: compound parts.
+<ContextMenu>
+  <ContextMenu.Trigger>
+    <Knob parameter={parameters.gain} />
+  </ContextMenu.Trigger>
+  <ContextMenu.Content>
+    <ParameterMenuItems parameter={parameters.gain} />
+  </ContextMenu.Content>
+</ContextMenu>
+```
+
+### Developer experience
+
+- Ease of use over unlimited customization. A component is styled, complete
+  and works with its defaults; keep APIs small and consistent with their
+  neighbours.
+- Design for real audio UIs (plug-in editors, analysers, preset menus), not
+  for parity with general-purpose UI frameworks.
+
+### Composition
+
+- Ordinary props for a predictable structure (a Knob, a Select). Composition
+  for content that naturally varies: menu items, plot series and markers.
+- Expose no internal anatomy without a demonstrated use case.
+- Compound parts are `Component.Part` (`Plot.Line`, `DropdownMenu.Trigger`);
+  the root is `<Component>`, never `<Component.Root>`. A shared namespace with
+  no root of its own (`Menu.Item`) is fine where two roots share parts.
+- Parts find their parent through context and register with it, so custom
+  components, fragments, conditions and `map`s work. Don't rely on
+  `React.Children` inspection or child component identity; take order from
+  the rendered tree.
+- No `asChild`, slots or polymorphic `as` props. A trigger enhances its one
+  child with `cloneElement`, merged refs (`useMergedRef`) and composed
+  handlers (`HostProps`).
+- A part used outside its parent, or a structure TypeScript can't rule out
+  (two `Plot.XAxis`), throws a message that names it.
+
+### TypeScript
+
+- Keep inference between related data: Select's value type comes from its
+  options or parameter. Prefer typed configuration where composition would
+  lose it.
+- Compound parts are typed independently; no generic factories or
+  render-prop APIs to thread types from parent to child.
+- Each part takes only its own props; use discriminated unions for
+  mutually exclusive ones (`points` | `values` | `source`), and check them
+  at run time as well.
+- No `any`, unchecked assertions or broad public types.
+
+### Customization
+
+- Theming is central: tokens and `theme.components` slots, plus `style` and
+  `styles` on the component.
+- Substantially different visuals or behaviour use the headless hooks
+  (`@soundor/components/headless`), not more props on the standard component.
+
+### Accessibility and engine integration
+
+- Accessibility and keyboard interaction are part of every component's
+  defaults, never opt-in.
+- A secondary interaction (a context menu) keeps the control's role, name,
+  value, state, actions, focus and primary input. Append accessibility
+  actions after the control's own (`withActions`, `extraActions`); never
+  replace them. Keep the caller's ref and handlers working.
+- Prefer the engine's semantic APIs over component-level workarounds, and
+  don't depend on unreleased engine APIs. Where a workaround is needed now,
+  isolate it in one internal module with a note on what replaces it (as
+  `internal/menu/context-menu-trigger.ts` does for soundor/soundor#399), and
+  add no public prop that only the workaround needs.
+
+### Performance
+
+- Keep the shared rendering paths: one canvas per display, drawn once per
+  frame at most.
+- High-frequency data (spectra, meters) goes through sources read at draw
+  time, never through React state: a live update causes no React render.
+- Structural changes (an axis, a legend) may render; per-frame changes may
+  not. Don't add expensive abstractions only to support a different public
+  API.

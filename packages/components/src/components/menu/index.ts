@@ -1,1 +1,1 @@
-export type { MenuAction, MenuItem, MenuSeparator } from './types';
+export { Menu, type MenuItemProps, type MenuLabelProps } from './menu';

@@ -6,7 +6,16 @@ import {
   useScrollbar,
   type StyleProp,
 } from '@soundor/react';
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { focusedNode, type KeyboardEvent, type UiNode } from 'soundor:ui';
 
 import {
@@ -32,40 +41,70 @@ export interface MenuRowState {
   disabled: boolean;
 }
 
-export interface MenuEntry {
-  key: string;
-  label: string;
-  separator?: false;
-  disabled?: boolean;
-  icon?: ReactNode;
-  hint?: string;
-  checked?: boolean;
-  /** In place of the label and icon. */
-  render?: (state: MenuRowState) => ReactNode;
-  select?: () => void;
-}
-
-export type MenuRow = MenuEntry | { key: string; separator: true };
-
-export type MenuPart = 'item' | 'label' | 'icon' | 'separator';
+export type MenuPart = 'item' | 'label' | 'icon' | 'separator' | 'heading';
 
 export interface MenuListProps {
-  rows: readonly MenuRow[];
   /**
-   * What has focus when the list opens: a row by index (the chosen option of
-   * a Select), the first or the last enabled row (opened with the keyboard),
-   * or the list itself (opened with the pointer, nothing highlighted yet).
+   * The rows: `MenuRow`s, dividers and headings, at any depth (fragments,
+   * conditions, components of your own). Their order on screen is their
+   * order for the keyboard.
    */
-  initialFocus: number | 'first' | 'last' | 'list';
+  children?: ReactNode;
+  /**
+   * What has focus when the list opens: the first or the last enabled row
+   * (opened with the keyboard), the checked row (a Select's chosen option,
+   * or the first if it can't be), or the list itself (opened with the
+   * pointer, nothing highlighted yet).
+   */
+  initialFocus: 'first' | 'last' | 'checked' | 'list';
   /** What assistive technology calls the menu. */
   label?: string;
-  /** Leave room for a tick before every label. */
+  /**
+   * Leave room for a tick before every label. A list with a row that has
+   * `checked` set does, without it.
+   */
   checkable?: boolean;
   size: ControlSize;
-  /** Closes the popup; a choice runs after it has. */
+  /**
+   * Closes the popup; a choice runs after it has. A list with no row in it
+   * closes as it opens: there is nothing to choose.
+   */
   close: () => void;
   /** A part's style, with the theme's and the instance's slots. */
   part: (part: MenuPart, base: StyleProp) => StyleProp;
+}
+
+/** What a row tells its list: read when the keyboard moves. */
+interface RowInfo {
+  label: string;
+  disabled: boolean;
+  checked: boolean;
+}
+
+interface MenuListContext {
+  size: ControlSize;
+  checkable: boolean;
+  part: MenuListProps['part'];
+  /** A row's node and what the keyboard needs of it, until it unmounts. */
+  register: (node: UiNode, info: { current: RowInfo }) => () => void;
+  /** A row with `checked` set: every row leaves room for the tick. */
+  reportCheckable: () => () => void;
+  choose: (select: (() => void) | undefined) => void;
+}
+
+const ListContext = createContext<MenuListContext | null>(null);
+
+/**
+ * The list a row is in. Rows render only inside a menu's content: one
+ * outside is a mistake, said at once rather than drawn without a menu.
+ */
+export function useMenuList(component: string): MenuListContext {
+  const list = useContext(ListContext);
+  if (!list)
+    throw new Error(
+      `${component} belongs inside a DropdownMenu.Content or a ContextMenu.Content.`,
+    );
+  return list;
 }
 
 const pageLength = 8;
@@ -92,58 +131,93 @@ export function surfaceStyle(theme: Theme) {
 }
 
 /**
- * The rows of a menu, or a Select's options, in a popup: one engine for both.
+ * The rows under `root` that registered, in the order they are laid out:
+ * the tree's order, whatever order they mounted in. A row's own subtree
+ * (its icon and label) holds no rows, and is not searched.
+ */
+function rowsIn(root: UiNode | null, rows: ReadonlyMap<UiNode, unknown>) {
+  const found: UiNode[] = [];
+  if (!root || rows.size === 0) return found;
+  const visit = (node: UiNode) => {
+    for (const child of node.children) {
+      if (rows.has(child)) found.push(child);
+      else visit(child);
+    }
+  };
+  visit(root);
+  return found;
+}
+
+/**
+ * A menu's rows, or a Select's options, in a popup: one engine for both.
  * Focus moves from row to row (so assistive technology announces each), the
  * pointer highlights what it is over, and the arrow keys, Home, End, Page Up
  * and Page Down skip what is disabled. Typing a label's first letters goes to
  * it. A choice closes the menu first, then runs.
+ *
+ * Rows find the list through context and register their node with it, so
+ * any React composition of them works: the keyboard follows them in the
+ * order they are laid out, read from the tree each time a key moves.
  */
 export function MenuList({
-  rows,
+  children,
   initialFocus,
   label,
-  checkable = false,
+  checkable: checkableProp = false,
   size,
   close,
   part,
 }: MenuListProps) {
   const theme = useTheme();
   const list = useRef<UiNode | null>(null);
-  const nodes = useRef<(UiNode | null)[]>([]);
+  const rows = useRef(new Map<UiNode, { current: RowInfo }>());
   const typed = useRef({ text: '', at: 0 });
-  // The row with focus, from its own focus events: they arrive from the
-  // first focus on, before a pressable's listeners are attached.
-  const [active, setActive] = useState(-1);
   // A bar of the theme's, shown only when the list is longer than its room.
   const { vertical } = useScrollbar(list);
-  const entries = rows.map((row) => (row.separator ? null : row));
-  const enabled = entries.map((entry) => !!entry && !entry.disabled);
-  const labels = entries.map((entry) => entry?.label ?? '');
+  const [checkables, setCheckables] = useState(0);
+  const checkable = checkableProp || checkables > 0;
+  const closeRef = useRef(close);
+  useLayoutEffect(() => {
+    closeRef.current = close;
+  });
 
-  const focusRow = (index: number, reveal = true) => {
-    const node = nodes.current[index];
+  const ordered = () => {
+    const nodes = rowsIn(list.current, rows.current);
+    const infos = nodes.map((node) => rows.current.get(node)!.current);
+    return {
+      nodes,
+      enabled: infos.map((info) => !info.disabled),
+      labels: infos.map((info) => info.label),
+      checked: infos.map((info) => info.checked),
+    };
+  };
+  const focusRow = (node: UiNode | undefined, reveal = true) => {
     if (!node) return;
     node.focus();
     if (reveal) node.scrollIntoView?.({ block: 'nearest' });
   };
-  const current = () => {
-    const focused = focusedNode();
-    return focused ? nodes.current.indexOf(focused) : -1;
-  };
 
   // Focused inside the FocusScope before it looks for something to focus.
+  // The rows' own layout effects ran first: they have all registered.
   useLayoutEffect(() => {
+    const { nodes, enabled, checked } = ordered();
+    if (nodes.length === 0) {
+      // Nothing to choose: closed as it opened.
+      closeRef.current();
+      return;
+    }
+    const chosen = checked.findIndex((on, i) => on && enabled[i]);
     const index =
       initialFocus === 'first'
         ? firstEnabled(enabled)
         : initialFocus === 'last'
           ? lastEnabled(enabled)
-          : initialFocus === 'list'
-            ? -1
-            : enabled[initialFocus]
-              ? initialFocus
-              : firstEnabled(enabled);
-    if (index >= 0) focusRow(index);
+          : initialFocus === 'checked'
+            ? chosen >= 0
+              ? chosen
+              : firstEnabled(enabled)
+            : -1;
+    if (index >= 0) focusRow(nodes[index]);
     else list.current?.focus();
     // Once, on open: later renders keep focus where the user put it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,26 +239,40 @@ export function MenuList({
       const next = node.clientHeight;
       if (next === height) return;
       height = next;
-      const index = current();
-      if (follow.current && index >= 0)
-        nodes.current[index]?.scrollIntoView?.({ block: 'nearest' });
+      const focused = focusedNode();
+      if (follow.current && focused && rows.current.has(focused))
+        focused.scrollIntoView?.({ block: 'nearest' });
     });
     observer.observe(node);
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const choose = (entry: MenuEntry) => {
-    if (entry.disabled) return;
+  const register = useCallback((node: UiNode, info: { current: RowInfo }) => {
+    rows.current.set(node, info);
+    return () => {
+      if (rows.current.get(node) === info) rows.current.delete(node);
+    };
+  }, []);
+  const reportCheckable = useCallback(() => {
+    setCheckables((count) => count + 1);
+    return () => setCheckables((count) => count - 1);
+  }, []);
+  const choose = useCallback((select: (() => void) | undefined) => {
     // Closed, and focus given back, before the action: it may open a modal
     // that should return focus to the trigger, or unmount the menu's owner.
-    flushSync(close);
-    entry.select?.();
-  };
+    flushSync(() => closeRef.current());
+    select?.();
+  }, []);
+  const context = useMemo(
+    () => ({ size, checkable, part, register, reportCheckable, choose }),
+    [size, checkable, part, register, reportCheckable, choose],
+  );
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
-    const from = current();
+    const { nodes, enabled, labels } = ordered();
+    const focused = focusedNode();
+    const from = focused ? nodes.indexOf(focused) : -1;
     let next = -1;
     switch (event.key) {
       case 'ArrowDown':
@@ -226,7 +314,7 @@ export function MenuList({
       }
     }
     event.preventDefault();
-    if (next >= 0) focusRow(next);
+    if (next >= 0) focusRow(nodes[next]);
   };
 
   return (
@@ -255,38 +343,9 @@ export function MenuList({
               : theme.spacing.spaceXs,
           }}
         >
-          {rows.map((row, index) =>
-            row.separator ? (
-              <View
-                key={row.key}
-                accessible={false}
-                style={part('separator', {
-                  height: theme.size.borderHairline,
-                  marginVertical: theme.spacing.spaceXs,
-                  marginHorizontal: theme.spacing.spaceXs,
-                  backgroundColor: theme.color.divider,
-                })}
-              />
-            ) : (
-              <Row
-                key={row.key}
-                entry={row}
-                active={active === index}
-                onFocusChange={(focused) =>
-                  setActive((was) =>
-                    focused ? index : was === index ? -1 : was,
-                  )
-                }
-                checkable={checkable}
-                size={size}
-                part={part}
-                remember={(node) => {
-                  nodes.current[index] = node;
-                }}
-                choose={() => choose(row)}
-              />
-            ),
-          )}
+          <ListContext.Provider value={context}>
+            {children}
+          </ListContext.Provider>
         </View>
       </View>
       {vertical.visible && (
@@ -315,48 +374,91 @@ export function MenuList({
   );
 }
 
-interface RowProps {
-  entry: MenuEntry;
-  /** Has focus: highlighted. */
-  active: boolean;
-  onFocusChange: (focused: boolean) => void;
-  checkable: boolean;
-  size: ControlSize;
-  part: MenuListProps['part'];
-  remember: (node: UiNode | null) => void;
-  choose: () => void;
+export interface MenuRowProps {
+  /** What it says, what assistive technology reads, and what typing finds. */
+  label: string;
+  /** Shown, dimmed, and skipped by the keyboard. */
+  disabled?: boolean;
+  /** Before the label: a small glyph of your own, in the label's colour. */
+  icon?: ReactNode;
+  /** Read after the label, for what it is not clear from it. */
+  hint?: string;
+  /** A tick before the label, for an option that is on. */
+  checked?: boolean;
+  /** In place of the label and icon: a Select's `renderOption`. */
+  render?: (state: MenuRowState) => ReactNode;
+  /** Chosen: runs once the menu has closed and given focus back. */
+  select?: () => void;
+  /** What threw for a row outside a list names. */
+  component?: string;
 }
 
-function Row({
-  entry,
-  active: focused,
-  onFocusChange,
-  checkable,
-  size,
-  part,
-  remember,
-  choose,
-}: RowProps) {
+/**
+ * One row of a MenuList: a `menuitem` that takes focus as the pointer moves
+ * over it, and is chosen by a click, Enter or Space.
+ */
+export function MenuRow({
+  label,
+  disabled = false,
+  icon,
+  hint,
+  checked,
+  render,
+  select,
+  component = 'Menu.Item',
+}: MenuRowProps) {
+  const list = useMenuList(component);
+  const { size, checkable, part, register, reportCheckable, choose } = list;
   const theme = useTheme();
   const c = theme.color;
-  const disabled = !!entry.disabled;
-  const checked = !!entry.checked;
   const node = useRef<UiNode | null>(null);
+  const unregister = useRef<(() => void) | null>(null);
+  // Its own focus, from its own events: they arrive from the first focus on,
+  // before a pressable's listeners are attached.
+  const [focused, setFocused] = useState(false);
+  const info = useRef<RowInfo>({ label, disabled, checked: !!checked });
+  useLayoutEffect(() => {
+    info.current = { label, disabled, checked: !!checked };
+  });
+  // Registered as its node attaches, in the commit: before the list's
+  // first layout effect looks for a row to focus.
+  const attach = useCallback(
+    (value: UiNode | null) => {
+      node.current = value;
+      unregister.current?.();
+      unregister.current = value ? register(value, info) : null;
+    },
+    [register],
+  );
+  // And taken back as it unmounts, whatever the ref is told.
+  useLayoutEffect(
+    () => () => {
+      unregister.current?.();
+      unregister.current = null;
+    },
+    [],
+  );
+  const hasCheck = checked !== undefined;
+  useLayoutEffect(
+    () => (hasCheck ? reportCheckable() : undefined),
+    [hasCheck, reportCheckable],
+  );
   const press = usePressable({
     disabled,
-    onPress: choose,
+    onPress: () => {
+      if (!disabled) choose(select);
+    },
     // The pointer highlights what it is over, as focus does.
     onHoverIn: () => {
       if (!disabled && !node.current?.focused) node.current?.focus();
     },
-    accessibilityState: checkable ? { checked, disabled } : { disabled },
-    ref: (value) => {
-      node.current = value;
-      remember(value);
-    },
+    accessibilityState: checkable
+      ? { checked: !!checked, disabled }
+      : { disabled },
+    ref: attach,
   });
   const active = focused && !disabled;
-  const state: MenuRowState = { active, checked, disabled };
+  const state: MenuRowState = { active, checked: !!checked, disabled };
   const foreground = disabled
     ? c.textDisabled
     : active
@@ -365,11 +467,11 @@ function Row({
   return (
     <View
       {...press.pressableProps}
-      onFocus={() => onFocusChange(true)}
-      onBlur={() => onFocusChange(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       accessibilityRole="menuitem"
-      accessibilityLabel={entry.label}
-      accessibilityHint={entry.hint}
+      accessibilityLabel={label}
+      accessibilityHint={hint}
       style={part('item', {
         flexDirection: 'row',
         alignItems: 'center',
@@ -381,8 +483,8 @@ function Row({
         cursor: disabled ? 'default' : 'pointer',
       })}
     >
-      {entry.render ? (
-        entry.render(state)
+      {render ? (
+        render(state)
       ) : (
         <>
           {checkable && (
@@ -393,7 +495,7 @@ function Row({
               {checked && <CheckIcon color={foreground} />}
             </View>
           )}
-          {entry.icon !== undefined && (
+          {icon !== undefined && (
             <View
               accessible={false}
               style={part('icon', {
@@ -402,7 +504,7 @@ function Row({
                 opacity: disabled ? theme.opacity.opacityDisabled : 1,
               })}
             >
-              {entry.icon}
+              {icon}
             </View>
           )}
           <Text
@@ -417,10 +519,50 @@ function Row({
               size === 'lg' && { fontSize: 12 },
             ])}
           >
-            {entry.label}
+            {label}
           </Text>
         </>
       )}
     </View>
+  );
+}
+
+/** A line between groups of rows. */
+export function MenuDivider() {
+  const { part } = useMenuList('Menu.Divider');
+  const theme = useTheme();
+  return (
+    <View
+      accessible={false}
+      style={part('separator', {
+        height: theme.size.borderHairline,
+        marginVertical: theme.spacing.spaceXs,
+        marginHorizontal: theme.spacing.spaceXs,
+        backgroundColor: theme.color.divider,
+      })}
+    />
+  );
+}
+
+/** A heading over a group of rows: read, never focused or chosen. */
+export function MenuHeading({ children }: { children: string }) {
+  const { part, size } = useMenuList('Menu.Label');
+  const theme = useTheme();
+  return (
+    <Text
+      accessibilityRole="header"
+      numberOfLines={1}
+      style={part('heading', [
+        textStyle(theme, 'technical', theme.color.textMuted),
+        {
+          paddingHorizontal: theme.spacing.spaceMd,
+          paddingTop: theme.spacing.spaceSm,
+          paddingBottom: theme.spacing.spaceXs,
+        },
+        size === 'lg' && { fontSize: 11 },
+      ])}
+    >
+      {children.toUpperCase()}
+    </Text>
   );
 }

@@ -30,7 +30,7 @@ export interface ButtonProps
   loading?: boolean;
   /**
    * State for assistive technology, beside `disabled` and `loading`: a
-   * Dropdown sets `expanded` on its trigger while its menu is open.
+   * DropdownMenu sets `expanded` on its trigger while its menu is open.
    */
   accessibilityState?: AccessibilityState;
 }

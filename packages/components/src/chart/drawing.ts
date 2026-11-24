@@ -77,7 +77,13 @@ export function drawAxes(
   y: readonly AxisLabel[],
   colors: { axis: string; label: string; background: string },
   font: string,
+  /** Which axes to draw, lines and labels: both by default. */
+  shown: { x?: boolean; y?: boolean } = {},
 ) {
+  const showX = shown.x ?? true;
+  const showY = shown.y ?? true;
+  if (!showX) x = [];
+  if (!showY) y = [];
   const bottom = Math.floor(rect.top + rect.height) + 0.5;
   const left = Math.floor(rect.left) + 0.5;
   const right = rect.left + rect.width;
@@ -85,9 +91,14 @@ export function drawAxes(
   ctx.strokeStyle = colors.axis;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(left, rect.top);
-  ctx.lineTo(left, bottom);
-  ctx.lineTo(right, bottom);
+  if (showY) {
+    ctx.moveTo(left, rect.top);
+    ctx.lineTo(left, bottom);
+  }
+  if (showX) {
+    ctx.moveTo(left, bottom);
+    ctx.lineTo(right, bottom);
+  }
   for (const tick of x)
     if (contains(rect, tick.at, rect.top))
       segment(ctx, tick.at, bottom, tick.at, bottom + 3);

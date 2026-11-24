@@ -3,16 +3,21 @@ title: Live plot data
 description: Feed a Plot from a running signal without re-rendering React.
 ---
 
-A `Plot` can draw data that changes every frame, such as a measured spectrum, without a React render per update. Keep the `series` configuration stable and give the plot a `seriesSource`: an object with `get()` and `subscribe(listener)`. Its samples replace the configured data by index, and each notification schedules one canvas draw for the next frame.
+A `Plot` can draw data that changes every frame, such as a measured spectrum, without a React render per update. Give the series a `source`: an object with `get()` and `subscribe(listener)`. The plot reads `get()` when it draws, and each notification asks for one canvas frame. Updates from several sources in the same frame draw once.
 
 ```tsx
-import { Plot, formatters, type PlotSeriesSource } from '@soundor/components';
+import {
+  Plot,
+  formatters,
+  type PlotSamples,
+  type PlotSource,
+} from '@soundor/components';
 
 // UI-side store: the plug-in publishes a coherent snapshot, the plot reads it.
-function createSpectrumSource(): PlotSeriesSource & {
+function createSpectrumSource(): PlotSource<PlotSamples> & {
   publish(values: Float32Array): void;
 } {
-  let current: { values: Float32Array }[] | undefined;
+  let current: PlotSamples | undefined;
   const listeners = new Set<() => void>();
   return {
     get: () => current,
@@ -21,28 +26,28 @@ function createSpectrumSource(): PlotSeriesSource & {
       return () => listeners.delete(listener);
     },
     publish(values) {
-      current = [{ values }];
+      current = { values };
       for (const listener of listeners) listener();
     },
   };
 }
 
-const spectrum = createSpectrumSource();
-const series = [{ label: 'Input', type: 'area' as const }];
+const input = createSpectrumSource();
+const output = createSpectrumSource();
 
-<Plot
-  width={480}
-  height={200}
-  series={series}
-  seriesSource={spectrum}
-  x={{ domain: [20, 20_000], scale: 'log', format: formatters.frequency }}
-  y={{ domain: [-90, 0], format: formatters.decibels }}
-/>;
+<Plot width={480} height={200}>
+  <Plot.XAxis domain={[20, 20_000]} scale="log" format={formatters.frequency} />
+  <Plot.YAxis domain={[-90, 0]} format={formatters.decibels} />
+  <Plot.Area label="Input" source={input} opacity={0.2} />
+  <Plot.Area label="Output" source={output} opacity={0.4} />
+  <Plot.Legend />
+</Plot>;
 ```
 
-- **Stable configuration.** Define `series` outside the component or memoize it; only the samples should change.
-- **Evenly spaced `values`.** With `values`, samples are spread evenly across the x domain. Use `points` for sorted `[x, y]` pairs.
+- **One source per series.** Each series reads its own; there is no list to keep in step with the series.
+- **Stable sources.** Create a source once, outside the component or in a ref. A series subscribes as it mounts, unsubscribes as it unmounts or is given another source, and reads the snapshot only when it draws.
+- **Evenly spaced `values`.** With `values`, samples are spread evenly across the x domain. Use `points` for sorted `[x, y]` pairs. A `Plot.Band`'s source gives `{ lower, upper }`.
 - **Coherent snapshots.** Keep reusable sample buffers on the UI side and notify only when a whole snapshot is ready.
 - **Analysis stays in the plug-in.** `Plot` draws what it is given; frequency analysis and other DSP belong in the plug-in.
 
-See [Plot](/docs/components/plot) for every prop.
+See [Plot](/docs/components/plot) for every part.

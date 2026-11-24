@@ -13,17 +13,25 @@ export {
   type SelectProps,
 } from './components/select';
 export {
-  Dropdown,
-  type DropdownProps,
-  type DropdownTriggerProps,
-} from './components/dropdown';
+  DropdownMenu,
+  type DropdownMenuContentProps,
+  type DropdownMenuProps,
+  type DropdownMenuTriggerProps,
+  type DropdownMenuTriggerTarget,
+} from './components/dropdown-menu';
 export {
   ContextMenu,
-  parameterMenuItems,
+  ParameterMenuItems,
+  type ContextMenuContentProps,
   type ContextMenuProps,
-  type ParameterMenuOptions,
+  type ContextMenuTriggerProps,
+  type ParameterMenuItemsProps,
 } from './components/context-menu';
-export type { MenuAction, MenuItem, MenuSeparator } from './components/menu';
+export {
+  Menu,
+  type MenuItemProps,
+  type MenuLabelProps,
+} from './components/menu';
 export type { HostProps } from './internal/host';
 export type { PopupAnchor } from './internal/popup/popup';
 export { Knob, type KnobProps } from './components/knob';
@@ -32,7 +40,22 @@ export { Fader, type FaderProps } from './components/fader';
 export { ValueField, type ValueFieldProps } from './components/value-field';
 export { TextField, type TextFieldProps } from './components/text-field';
 export { LevelMeter, type LevelMeterProps } from './components/level-meter';
-export { Plot, type PlotAxis, type PlotProps } from './components/plot';
+export {
+  Plot,
+  usePlotCoordinates,
+  type PlotAreaProps,
+  type PlotAxis,
+  type PlotAxisProps,
+  type PlotBandProps,
+  type PlotBarsProps,
+  type PlotGuideProps,
+  type PlotLineProps,
+  type PlotMarkerProps,
+  type PlotPointsProps,
+  type PlotProps,
+  type PlotSeriesSamples,
+  type PlotStepsProps,
+} from './components/plot';
 export { XYPad, type XYPadProps } from './components/xy-pad';
 export {
   EnvelopeEditor,
@@ -60,10 +83,5 @@ export type {
   RangeProps,
   ValueScale,
 } from './headless';
-export type {
-  PlotMarker,
-  PlotSeries,
-  PlotSeriesData,
-  PlotSeriesSource,
-} from './chart/series';
+export type { PlotBandSamples, PlotSamples, PlotSource } from './chart/series';
 export type { ControlColor, ControlSize, AccentColor } from './theme';

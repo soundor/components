@@ -1,0 +1,11 @@
+---
+'@soundor/components': minor
+---
+
+Make menus and Plot compositional. See the "Migrating to 0.4" guide for before-and-after examples.
+
+- `Dropdown` is replaced by `DropdownMenu`, with `DropdownMenu.Trigger` (which enhances its one child, such as a Button, without adding a view) and `DropdownMenu.Content`. Placement props move to the content.
+- `ContextMenu` takes a `ContextMenu.Trigger` and a `ContextMenu.Content` in place of `items` and its child. The trigger keeps the child's role, name, value, actions and focus. `longPressDelay` is removed: a long touch opens the menu after 500 ms until Soundor's engine handles the gesture.
+- Menu items are `Menu.Item`, `Menu.Divider` and the new `Menu.Label`, shared by both menus and usable from components of your own, fragments, conditions and lists. `Menu.Item` takes its label as children and `onPress` in place of `onSelect`. `parameterMenuItems()` becomes the `ParameterMenuItems` component. The `MenuItem`, `MenuAction`, `MenuSeparator` and `DropdownTriggerProps` types are removed.
+- `Plot` takes its parts as children: `Plot.XAxis`, `Plot.YAxis`, `Plot.Grid`, `Plot.Line`, `Plot.Area`, `Plot.Steps`, `Plot.Bars`, `Plot.Points`, `Plot.Band`, `Plot.Marker`, `Plot.HorizontalLine`, `Plot.VerticalLine`, `Plot.Legend` and `Plot.Readout`. The `series`, `seriesSource`, `x`, `y`, `markers`, `legend`, `readout` and `overlay` props are removed. Live data is a `source` on each series (`PlotSource<PlotSamples>`), still drawn without a React render; views of your own inside a Plot read its coordinates with `usePlotCoordinates()`. An axis left out spans the data and draws no labels, and the grid is drawn only with `Plot.Grid`. The `PlotSeries`, `PlotMarker` and `PlotSeriesSource` exports are removed from the package root.
+- `@soundor/components/chart`: `PlotSeriesSource` is replaced by `PlotSource`, `PlotMarker` loses its unused callbacks, and `drawAxes` takes which axes to draw. The theme's `Menu` slots gain `heading`.

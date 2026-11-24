@@ -2,44 +2,132 @@ import {
   act,
   advanceTime,
   cleanup,
+  fireEvent,
   render,
   screen,
   userEvent,
 } from '@soundor/testing-library/react';
-import { useState } from 'react';
-import type { UiNode } from 'soundor:ui';
+import { Profiler, useState, type ReactNode } from 'react';
+import type { PointerEvent } from 'soundor:ui';
 import { afterEach, expect, test, vi } from 'vitest';
 
-import { Plot } from '../../index';
+import { Plot, usePlotCoordinates, type PlotSamples } from '../../index';
 
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
+
+type Point = readonly [number, number];
+
+/**
+ * A canvas that draws: the simulated runtime has no layout and no 2D
+ * context, so a ResizeObserver reports the size and a context records the
+ * colours series and markers are drawn in.
+ */
+function stubCanvas() {
+  const observers = new Map<unknown, ResizeObserverCallback>();
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(private readonly callback: ResizeObserverCallback) {}
+      observe(node: unknown) {
+        observers.set(node, this.callback);
+      }
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+  const strokes: string[] = [];
+  const calls = { clearRect: [] as number[][], setTransform: [] as number[][] };
+  const ctx = new Proxy({} as Record<string | symbol, unknown>, {
+    get(target, key) {
+      if (key in target) return target[key];
+      if (key === 'measureText') return () => ({ width: 5 });
+      if (key === 'clearRect' || key === 'setTransform')
+        return (...args: number[]) => calls[key].push(args);
+      return () => {};
+    },
+    set(target, key, value) {
+      if (key === 'strokeStyle') strokes.push(String(value));
+      target[key] = value;
+      return true;
+    },
+  });
+  const canvas = () => screen.getByRole('image');
+  const resize = (width: number, height: number, scale = 1) =>
+    act(() => {
+      const node = canvas();
+      Object.defineProperty(node, 'getContext', {
+        value: () => ctx,
+        configurable: true,
+      });
+      observers.get(node)?.(
+        [
+          {
+            target: node,
+            contentRect: {
+              x: 0,
+              y: 0,
+              width,
+              height,
+              top: 0,
+              left: 0,
+              right: width,
+              bottom: height,
+            },
+            borderBoxSize: [{ inlineSize: width, blockSize: height }],
+            contentBoxSize: [{ inlineSize: width, blockSize: height }],
+            devicePixelContentBoxSize: [
+              { inlineSize: width * scale, blockSize: height * scale },
+            ],
+          },
+        ] as unknown as ResizeObserverEntry[],
+        {} as ResizeObserver,
+      );
+    });
+  return { calls, strokes, resize };
+}
+
+function liveSource<T>(initial: T) {
+  let current = initial;
+  const listeners = new Set<() => void>();
+  return {
+    get: vi.fn(() => current),
+    subscribe: vi.fn((listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    }),
+    publish(next: T) {
+      current = next;
+      for (const listener of listeners) listener();
+    },
+    listeners,
+  };
+}
 
 test('Plot provides accessible draggable markers', async () => {
   const user = userEvent.setup();
-  const onMove = vi.fn<(point: readonly [number, number]) => void>();
+  const onMove = vi.fn<(point: Point) => void>();
   function Fixture() {
-    const [point, setPoint] = useState<readonly [number, number]>([0.5, 0.5]);
+    const [point, setPoint] = useState<Point>([0.5, 0.5]);
     return (
-      <Plot
-        width={260}
-        height={160}
-        series={[]}
-        accessibilityLabel="Response"
-        markers={[
-          {
-            x: point[0],
-            y: point[1],
-            label: 'Band 1',
-            onMove: (next) => {
-              onMove(next);
-              setPoint(next);
-            },
-          },
-        ]}
-      />
+      <Plot width={260} height={160} accessibilityLabel="Response">
+        <Plot.XAxis domain={[0, 1]} />
+        <Plot.YAxis domain={[0, 1]} />
+        <Plot.Marker
+          x={point[0]}
+          y={point[1]}
+          label="Band 1"
+          onMove={(next) => {
+            onMove(next);
+            setPoint(next);
+          }}
+        />
+      </Plot>
     );
   }
   await render(<Fixture />);
@@ -57,17 +145,12 @@ test('Plot keeps a marker at the end of an axis in reach, whatever its size', as
     [333.33, 187.1],
   ] as const) {
     await render(
-      <Plot
-        width={width}
-        height={height}
-        series={[]}
-        x={{ domain: [20, 20_000], scale: 'log' }}
-        y={{ domain: [-12, 12] }}
-        markers={[
-          { x: 20_000, y: 12, label: 'Top right', onMove: () => {} },
-          { x: 20, y: -12, label: 'Bottom left', onMove: () => {} },
-        ]}
-      />,
+      <Plot width={width} height={height}>
+        <Plot.XAxis domain={[20, 20_000]} scale="log" />
+        <Plot.YAxis domain={[-12, 12]} />
+        <Plot.Marker x={20_000} y={12} label="Top right" onMove={() => {}} />
+        <Plot.Marker x={20} y={-12} label="Bottom left" onMove={() => {}} />
+      </Plot>,
     );
     expect(screen.getByRole('adjustable', { name: 'Top right' })).toBeDefined();
     expect(
@@ -77,94 +160,307 @@ test('Plot keeps a marker at the end of an axis in reach, whatever its size', as
   }
 });
 
-test('Plot redraws a resized high-DPI buffer and coalesces incoming series frames', async () => {
-  let observed: UiNode | undefined;
-  let layout: ResizeObserverCallback | undefined;
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      constructor(callback: ResizeObserverCallback) {
-        layout = callback;
-      }
-      observe(node: UiNode) {
-        observed = node;
-      }
-      disconnect() {}
-    },
-  );
-  let publish = () => {};
-  const source = {
-    get: vi.fn<() => { values: Float32Array }[]>(() => [
-      { values: new Float32Array([0, 1]) },
-    ]),
-    subscribe: vi.fn<(invalidate: () => void) => () => void>((invalidate) => {
-      publish = invalidate;
-      return () => {
-        publish = () => {};
-      };
-    }),
-  };
+test('unlabelled draggable markers are numbered in the order they are drawn; plain ones are not controls', async () => {
   await render(
-    <Plot width={260} height={160} series={[{}]} seriesSource={source} />,
+    <Plot width={260} height={160}>
+      <Plot.XAxis domain={[0, 1]} />
+      <Plot.YAxis domain={[0, 1]} />
+      <Plot.Marker x={0.2} y={0.2} onMove={() => {}} />
+      <Plot.Marker x={0.4} y={0.4} />
+      <Plot.HorizontalLine value={0.5} label="0 dB" />
+      <Plot.VerticalLine value={0.5} />
+      <Plot.Marker x={0.6} y={0.6} onMove={() => {}} />
+    </Plot>,
   );
-  expect(observed).toBeDefined();
-  const clearRect =
-    vi.fn<(x: number, y: number, width: number, height: number) => void>();
-  const setTransform = vi.fn<(...matrix: number[]) => void>();
-  const ctx = {
-    clearRect,
-    setTransform,
-    save() {},
-    restore() {},
-    beginPath() {},
-    moveTo() {},
-    lineTo() {},
-    stroke() {},
-    rect() {},
-    clip() {},
-    setLineDash() {},
-    fillRect() {},
-    fillText() {},
-    measureText: () => ({ width: 5 }),
-  };
-  Object.defineProperty(observed, 'getContext', { value: () => ctx });
-  const resize = (width: number, height: number, scale: number) =>
-    act(() => {
-      layout?.(
-        [
-          {
-            target: observed!,
-            contentRect: {
-              x: 0,
-              y: 0,
-              width,
-              height,
-              top: 0,
-              left: 0,
-              right: width,
-              bottom: height,
-            },
-            borderBoxSize: [{ inlineSize: width, blockSize: height }],
-            contentBoxSize: [{ inlineSize: width, blockSize: height }],
-            devicePixelContentBoxSize: [
-              { inlineSize: width * scale, blockSize: height * scale },
-            ],
-          },
-        ],
-        {} as ResizeObserver,
-      );
-    });
-  await resize(260, 160, 2);
-  expect(observed!.width).toBe(520);
-  expect(setTransform).toHaveBeenLastCalledWith(2, 0, 0, 2, 0, 0);
-  await resize(330, 180, 1.5);
-  expect(observed!.width).toBe(495);
-  expect(clearRect).toHaveBeenLastCalledWith(0, 0, 330, 180);
-  source.get.mockClear();
-  publish();
-  publish();
-  publish();
-  await advanceTime(20);
-  expect(source.get).toHaveBeenCalledTimes(1);
-  expect(source.subscribe).toHaveBeenCalledTimes(1);
+  expect(
+    screen.getAllByRole('adjustable').map((node) => node.accessibility.label),
+  ).toEqual(['Point 1', 'Point 2']);
 });
+
+test('a marker drag starts and ends its gesture, also when the pointer is cancelled', async () => {
+  const onMoveStart = vi.fn();
+  const onMoveEnd = vi.fn();
+  await render(
+    <Plot width={260} height={160}>
+      <Plot.Marker
+        x={0.5}
+        y={0.5}
+        label="Playhead"
+        onMove={() => {}}
+        onMoveStart={onMoveStart}
+        onMoveEnd={onMoveEnd}
+      />
+    </Plot>,
+  );
+  const user = userEvent.setup();
+  const marker = screen.getByRole('adjustable', { name: 'Playhead' });
+  // No layout here: the handle's box, as a runtime would report it.
+  for (const node of [marker, marker.parent!])
+    Object.defineProperty(node, 'getBoundingClientRect', {
+      value: () => ({ x: 88, y: 68, width: 24, height: 24 }),
+    });
+  let pointer = -1;
+  marker.addEventListener('pointerdown', (event) => {
+    pointer = (event as unknown as PointerEvent).pointerId;
+  });
+  await user.pointer([
+    { target: marker, keys: '[MouseLeft>]', clientX: 100, clientY: 80 },
+    { clientX: 120, clientY: 80 },
+  ]);
+  expect(onMoveStart).toHaveBeenCalledTimes(1);
+  await fireEvent.pointerCancel(marker, { pointerId: pointer });
+  expect(onMoveEnd).toHaveBeenCalledTimes(1);
+});
+
+test('without axes, the domain is the static data’s extent', async () => {
+  const onMove = vi.fn<(point: Point) => void>();
+  await render(
+    <Plot width={260} height={160}>
+      <Plot.Line
+        points={[
+          [0, 0],
+          [100, 10],
+        ]}
+      />
+      <Plot.Marker x={50} y={5} label="Mid" onMove={onMove} />
+    </Plot>,
+  );
+  const user = userEvent.setup();
+  screen.getByRole('adjustable', { name: 'Mid' }).focus();
+  // A step is a hundredth of each axis: 1 across, 0.1 up.
+  await user.keyboard('{ArrowRight}{ArrowUp}');
+  expect(onMove.mock.lastCall![0][0]).toBeCloseTo(51);
+  expect(onMove.mock.lastCall![0][1]).toBeCloseTo(5.1);
+});
+
+test('series draw in tree order, whatever order they mount in, through components and conditions of yours', async () => {
+  const canvas = stubCanvas();
+  const line = (color: string) => (
+    <Plot.Line
+      color={color}
+      points={[
+        [0, 0],
+        [1, 1],
+      ]}
+    />
+  );
+  function Spectrum({ shown }: { shown: boolean }) {
+    return shown ? line('#000002') : null;
+  }
+  function Fixture({ shown }: { shown: boolean }) {
+    return (
+      <Plot width={260} height={160}>
+        {line('#000001')}
+        <Spectrum shown={shown} />
+        <>{line('#000003')}</>
+      </Plot>
+    );
+  }
+  const colors = ['#000001', '#000002', '#000003'];
+  const { rerender } = await render(<Fixture shown={false} />);
+  await canvas.resize(260, 160);
+  canvas.strokes.length = 0;
+  // Mounted last, but between the others in the tree.
+  await rerender(<Fixture shown />);
+  await advanceTime(20);
+  const frame = canvas.strokes.filter((color) => colors.includes(color));
+  expect(frame.slice(-3)).toEqual(colors);
+
+  // Taken away: no longer drawn.
+  canvas.strokes.length = 0;
+  await rerender(<Fixture shown={false} />);
+  await advanceTime(20);
+  expect(canvas.strokes).not.toContain('#000002');
+  expect(
+    canvas.strokes.filter((color) => colors.includes(color)).slice(-2),
+  ).toEqual(['#000001', '#000003']);
+});
+
+test('markers and guide lines draw over every series', async () => {
+  const canvas = stubCanvas();
+  await render(
+    <Plot width={260} height={160}>
+      <Plot.VerticalLine value={0.5} color="#00000a" />
+      <Plot.Line
+        color="#000001"
+        points={[
+          [0, 0],
+          [1, 1],
+        ]}
+      />
+    </Plot>,
+  );
+  await canvas.resize(260, 160);
+  const order = canvas.strokes.filter(
+    (c) => c === '#000001' || c === '#00000a',
+  );
+  expect(order.slice(-2)).toEqual(['#000001', '#00000a']);
+});
+
+test('the legend lists labelled series in order, and follows them coming and going', async () => {
+  function Fixture({ output }: { output: boolean }) {
+    return (
+      <Plot width={260} height={160} title="Spectrum">
+        <Plot.Legend />
+        <Plot.Area label="Input" values={[0, 1]} />
+        {output && <Plot.Line label="Output" values={[1, 0]} />}
+        <Plot.Line values={[0.5, 0.5]} />
+      </Plot>
+    );
+  }
+  const { rerender } = await render(<Fixture output={false} />);
+  expect(screen.queryByText('INPUT')).not.toBeNull();
+  expect(screen.queryByText('OUTPUT')).toBeNull();
+  await rerender(<Fixture output />);
+  expect(screen.queryByText('OUTPUT')).not.toBeNull();
+  await rerender(<Fixture output={false} />);
+  expect(screen.queryByText('OUTPUT')).toBeNull();
+});
+
+test('a resized high-DPI buffer redraws, and live sources draw once a frame with no React render', async () => {
+  const canvas = stubCanvas();
+  const input = liveSource<PlotSamples>({ values: new Float32Array([0, 1]) });
+  const output = liveSource<PlotSamples>({
+    points: [
+      [0, 1],
+      [1, 0],
+    ],
+  });
+  const renders = vi.fn();
+  await render(
+    <Profiler id="plot" onRender={renders}>
+      <Plot width={260} height={160}>
+        <Plot.Area source={input} />
+        <Plot.Line source={output} />
+      </Plot>
+    </Profiler>,
+  );
+  await canvas.resize(260, 160, 2);
+  expect(screen.getByRole('image').width).toBe(520);
+  expect(canvas.calls.setTransform.at(-1)).toEqual([2, 0, 0, 2, 0, 0]);
+  await canvas.resize(330, 180, 1.5);
+  expect(screen.getByRole('image').width).toBe(495);
+  expect(canvas.calls.clearRect.at(-1)).toEqual([0, 0, 330, 180]);
+
+  input.get.mockClear();
+  output.get.mockClear();
+  renders.mockClear();
+  // A burst of updates from both: one frame, each read once.
+  input.publish({ values: new Float32Array([1, 0]) });
+  output.publish({ values: new Float32Array([0.5]) });
+  input.publish({ values: new Float32Array([0, 0]) });
+  await advanceTime(20);
+  expect(input.get).toHaveBeenCalledTimes(1);
+  expect(output.get).toHaveBeenCalledTimes(1);
+  expect(renders).not.toHaveBeenCalled();
+  expect(input.subscribe).toHaveBeenCalledTimes(1);
+  expect(output.subscribe).toHaveBeenCalledTimes(1);
+});
+
+test('a series unsubscribes from a source it no longer has, and as it unmounts', async () => {
+  const first = liveSource<PlotSamples>({ values: [0, 1] });
+  const second = liveSource<PlotSamples>({ values: [1, 0] });
+  const fixture = (source?: typeof first) => (
+    <Plot width={260} height={160}>
+      {source && <Plot.Line source={source} />}
+    </Plot>
+  );
+  const { rerender } = await render(fixture(first));
+  expect(first.listeners.size).toBe(1);
+  await rerender(fixture(second));
+  expect(first.listeners.size).toBe(0);
+  expect(second.listeners.size).toBe(1);
+  await rerender(fixture());
+  expect(second.listeners.size).toBe(0);
+});
+
+test('parts of your own get the plot’s coordinates, and render over the canvas', async () => {
+  let seen: ReturnType<typeof usePlotCoordinates> | undefined;
+  function Handles({ children }: { children?: ReactNode }) {
+    seen = usePlotCoordinates();
+    return <>{children}</>;
+  }
+  await render(
+    <Plot width={260} height={160} safeZone={10}>
+      <Plot.XAxis domain={[0, 10]} />
+      <Plot.YAxis domain={[0, 1]} />
+      <Handles>
+        <Plot.Marker x={5} y={0.5} label="Inner" onMove={() => {}} />
+      </Handles>
+    </Plot>,
+  );
+  expect(seen).toBeDefined();
+  // Mapped inside the safe zone.
+  expect(seen!.x.map(0)).toBe(seen!.inner.left);
+  expect(seen!.inner.left - seen!.rect.left).toBe(13);
+  expect(screen.getByRole('adjustable', { name: 'Inner' })).toBeDefined();
+});
+
+test('what TypeScript cannot rule out is refused at run time', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  const both = { points: [[0, 0]], values: [0] } as const;
+  await expect(
+    render(
+      <Plot width={100} height={100}>
+        <Plot.Line {...(both as unknown as { values: number[] })} />
+      </Plot>,
+    ),
+  ).rejects.toThrow('Plot.Line takes one of points, values or source.');
+  await expect(
+    render(
+      <Plot width={100} height={100}>
+        <Plot.Band
+          {...({ lower: [[0, 0]] } as unknown as {
+            lower: Point[];
+            upper: Point[];
+          })}
+        />
+      </Plot>,
+    ),
+  ).rejects.toThrow('Plot.Band takes lower and upper, or a source.');
+  await expect(
+    render(
+      <Plot width={100} height={100}>
+        <Plot.XAxis domain={[0, 1]} />
+        <Plot.XAxis domain={[0, 2]} />
+      </Plot>,
+    ),
+  ).rejects.toThrow('A Plot takes one Plot.XAxis.');
+  await expect(render(<Plot.Line values={[0, 1]} />)).rejects.toThrow(
+    'Plot.Line belongs inside a Plot.',
+  );
+});
+
+// Never run: compiled, so the type checker holds each series to its own props.
+export function contracts(source: {
+  line: import('../../index').PlotSource<PlotSamples>;
+  band: import('../../index').PlotSource<import('../../index').PlotBandSamples>;
+}) {
+  return (
+    <Plot width={100} height={100}>
+      <Plot.Line points={[[0, 1]]} strokeWidth={2} dash={[2, 2]} extend />
+      <Plot.Area values={new Float32Array(4)} baseline={-90} />
+      <Plot.Bars source={source.line} baseline={0} />
+      <Plot.Points points={[[0, 1]]} radius={2} />
+      <Plot.Band source={source.band} />
+      {/* @ts-expect-error points and values are one or the other */}
+      <Plot.Line points={[[0, 1]]} values={[1]} />
+      {/* @ts-expect-error data is required */}
+      <Plot.Line label="Empty" />
+      {/* @ts-expect-error a band needs both of its edges */}
+      <Plot.Band lower={[[0, 1]]} />
+      {/* @ts-expect-error a band's source has edges, not samples */}
+      <Plot.Band source={source.line} />
+      {/* @ts-expect-error a line's source has samples, not edges */}
+      <Plot.Line source={source.band} />
+      {/* @ts-expect-error bars have no stroke */}
+      <Plot.Bars values={[1]} strokeWidth={2} />
+      {/* @ts-expect-error a line has no dots */}
+      <Plot.Line values={[1]} radius={2} />
+      {/* @ts-expect-error a marker has both coordinates */}
+      <Plot.Marker x={1} />
+      {/* @ts-expect-error a move is given a point */}
+      <Plot.Marker x={1} y={1} onMove={(x: number) => x} />
+    </Plot>
+  );
+}
