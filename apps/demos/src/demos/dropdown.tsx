@@ -17,26 +17,22 @@ export default function Demo() {
             {
               id: 'save',
               label: 'Save',
-              shortcut: 'Mod+S',
               onSelect: run('Save'),
             },
             {
               id: 'save-as',
               label: 'Save As…',
-              shortcut: 'Mod+Shift+S',
               onSelect: run('Save As'),
             },
             { type: 'separator' },
             {
               id: 'copy',
               label: 'Copy Preset',
-              shortcut: 'Mod+C',
               onSelect: run('Copy'),
             },
             {
               id: 'paste',
               label: 'Paste Preset',
-              shortcut: 'Mod+V',
               disabled: true,
             },
             { type: 'separator' },
