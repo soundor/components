@@ -50,6 +50,7 @@ export function useXYPad(
   const x = useRangeModel(xProps);
   const y = useRangeModel(yProps);
   const disabled = x.disabled && y.disabled;
+  const inputDisabled = xProps.disabled === true && yProps.disabled === true;
   const gesture = useGesture(disabled, xProps.parameter, yProps.parameter);
   const [focusVisible, setFocusVisible] = useState(false);
   const drag = useRef<{
@@ -136,12 +137,15 @@ export function useXYPad(
       `${x.label ?? 'X'} ${x.format(xValue)}, ${y.label ?? 'Y'} ${y.format(yValue)}`);
 
   const handlers: ViewProps = {
-    focusable: !disabled,
+    focusable: true,
     accessibilityRole: 'adjustable',
     accessibilityLabel: options.label ?? x.label ?? 'XY pad',
     accessibilityHint:
       options.hint ?? 'Left and right adjust X. Up and down adjust Y.',
-    accessibilityState: { disabled },
+    accessibilityState: {
+      disabled: inputDisabled,
+      readOnly: disabled && !inputDisabled,
+    },
     accessibilityValue: {
       min: x.min,
       max: x.max,
@@ -315,5 +319,11 @@ export function useXYPad(
     },
   };
 
-  return { x, y, disabled, handlers, focusVisible: focusVisible && !disabled };
+  return {
+    x,
+    y,
+    disabled,
+    handlers,
+    focusVisible: focusVisible && !inputDisabled,
+  };
 }

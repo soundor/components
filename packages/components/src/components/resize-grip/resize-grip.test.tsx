@@ -14,28 +14,37 @@ test('the grip follows the original screen-space drag across resizes and restore
   await render(<ResizeGrip />);
   const grip = screen.getByRole('button', { name: 'Resize the editor' });
 
-  // Two pointers, and a cancelled one: userEvent has one mouse.
-  fireEvent.pointerDown(grip, { pointerId: 1, screenX: 300, screenY: 200 });
-  fireEvent.pointerMove(grip, { pointerId: 2, screenX: 340, screenY: 230 });
+  const user = userEvent.setup();
+  await user.pointer({
+    target: grip,
+    keys: '[MouseLeft>]',
+    screenX: 300,
+    screenY: 200,
+  });
+  await user.pointer({
+    target: grip,
+    pointerType: 'pen',
+    screenX: 340,
+    screenY: 230,
+  });
   expect(testEditor.requests()).toEqual([]);
 
-  fireEvent.pointerMove(grip, {
-    pointerId: 1,
+  await user.pointer({
     screenX: 340,
     screenY: 230,
     clientX: 0,
     clientY: 0,
   });
   testEditor.resize({ width: 840, height: 630 });
-  fireEvent.pointerMove(grip, {
-    pointerId: 1,
+  await user.pointer({
     screenX: 355,
     screenY: 240,
     clientX: 500,
     clientY: 600,
   });
-  fireEvent(grip, 'pointercancel', { pointerId: 1 });
-  fireEvent.pointerMove(grip, { pointerId: 1, screenX: 400, screenY: 300 });
+  // Cancellation is a runtime event that userEvent cannot send.
+  fireEvent.pointerCancel(grip, { pointerId: 0 });
+  await user.pointer({ screenX: 400, screenY: 300 });
 
   expect(testEditor.requests()).toEqual([
     { width: 840, height: 630 },

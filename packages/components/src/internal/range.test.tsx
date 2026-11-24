@@ -70,9 +70,8 @@ describe('range interactions', () => {
     await advanceTime(260);
     expect(gain.endGesture).toHaveBeenCalledTimes(1);
 
-    // No wheel in userEvent.
-    fireEvent(dial, 'wheel', { deltaY: -1 });
-    fireEvent(dial, 'wheel', { deltaY: -1 });
+    await user.wheel(dial, { deltaY: -1 });
+    await user.wheel(dial, { deltaY: -1 });
     expect(gain.beginGesture).toHaveBeenCalledTimes(2);
     await advanceTime(260);
     expect(gain.endGesture).toHaveBeenCalledTimes(2);
@@ -105,12 +104,12 @@ describe('range interactions', () => {
     });
     await user.pointer({ target: slider, keys: '[MouseLeft]', clientX: 101 });
     expect(slider.accessibility.value?.now).toBe(0.8);
-    // A screen reader's action, and a cancelled press: no userEvent for them.
-    fireEvent.accessibilityAction(slider, { actionName: 'reset' });
+    await user.accessibilityAction(slider, 'reset');
     expect(slider.accessibility.value?.now).toBe(0.2);
     await user.pointer({ target: fader, keys: '[MouseLeft>]', clientY: 90 });
     expect(fader.accessibility.value?.now).toBe(0.5);
     await user.pointer({ clientY: 61 });
+    // Cancellation is a runtime event that userEvent cannot send.
     fireEvent.pointerCancel(fader);
     expect(fader.accessibility.value?.now).toBeCloseTo(0.75);
     await user.keyboard('{Home}');
@@ -284,10 +283,14 @@ describe('Alt-click (Option-click on a Mac) resets', () => {
     const gain = parameter(0.25);
     gain.set(0.8);
     await render(<Knob parameter={gain} disabled />);
-    // userEvent skips a disabled control; this is the control's own guard.
-    fireEvent.pointerDown(screen.getByRole('adjustable', { name: 'Gain' }), {
-      altKey: true,
-    });
+    const dial = screen.getByRole('adjustable', { name: 'Gain' });
+    const user = userEvent.setup();
+    await user.keyboard('{Alt>}');
+    await user.click(dial);
+    await user.keyboard('{/Alt}');
+    await user.wheel(dial, { deltaY: -1 });
+    expect(dial.focused).toBe(false);
+    expect(gain.beginGesture).not.toHaveBeenCalled();
     expect(gain.get()).toBe(0.8);
   });
 });
@@ -418,14 +421,16 @@ describe('Delete or Backspace resets the focused control', () => {
     gain.set(0.8);
     const app = await render(<Knob parameter={gain} />);
     await user.tab();
+    const dial = screen.getByRole('adjustable', { name: 'Gain' });
+    expect(dial.focused).toBe(true);
     for (const modifier of ['Meta', 'Control', 'Alt'])
       await user.keyboard(`{${modifier}>}{Backspace}{/${modifier}}`);
     expect(gain.get()).toBe(0.8);
     await app.rerender(<Knob parameter={gain} disabled />);
-    // userEvent sends no key to a disabled control; this is its own guard.
-    fireEvent.keyDown(screen.getByRole('adjustable', { name: 'Gain' }), {
-      key: 'Delete',
-    });
+    expect(dial.focused).toBe(false);
+    await user.tab();
+    expect(dial.focused).toBe(false);
+    await user.keyboard('{Delete}');
     expect(gain.get()).toBe(0.8);
   });
 

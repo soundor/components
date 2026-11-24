@@ -13,6 +13,12 @@ export default function Demo() {
         format={formatters.percent}
       />
       <Knob
+        label="Disabled"
+        disabled
+        defaultValue={0.4}
+        format={formatters.percent}
+      />
+      <Knob
         label="Standalone"
         value={feedback}
         onChange={setFeedback}

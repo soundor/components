@@ -44,6 +44,19 @@ test('keys go to the knob a click focused', async ({ page }) => {
   await expect(knob).toHaveAttribute('aria-valuetext', '0%');
 });
 
+test('a disabled knob takes neither focus nor pointer or wheel edits', async ({
+  page,
+}) => {
+  const knob = page.getByRole('slider', { name: 'Disabled' });
+  await expect(knob).toBeDisabled();
+  await dragBy(page, await centreOf(knob), 0, -40);
+  await page.mouse.up();
+  await expect(knob).not.toBeFocused();
+  await knob.hover();
+  await page.mouse.wheel(0, -100);
+  await expect(knob).toHaveAttribute('aria-valuetext', '40%');
+});
+
 for (const [name, reset] of [
   ['a double-click', (knob) => knob.dblclick()],
   ['an Alt-click', (knob) => knob.click({ modifiers: ['Alt'] })],

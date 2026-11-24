@@ -54,7 +54,7 @@ npm (Yarn and bun are not supported):
 pnpm add @soundor/components
 ```
 
-It needs `@soundor/react` 0.19 and React 19.3. Build with the Soundor CLI, which
+It needs Soundor 0.20, `@soundor/react` 0.20, and React 19.3. Build with the Soundor CLI, which
 resolves the runtime imports and packages the bundled Geist fonts.
 
 ## Documentation
