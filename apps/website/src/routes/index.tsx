@@ -26,6 +26,7 @@ import { createHighlighterCore, type HighlighterCore } from 'shiki/core';
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
 
 import { Demo } from '../components/demo';
+import { SiteFooter } from '../components/site-footer';
 import { layoutOptions } from '../layout-options';
 
 export const Route = createFileRoute('/')({ component: Home });
@@ -134,10 +135,7 @@ function Home() {
               <ArrowRight aria-hidden className="size-3" />
             </a>
             <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
-              Controls for{' '}
-              <span className="bg-gradient-to-r from-fd-primary to-fd-foreground/60 bg-clip-text text-transparent">
-                audio plug-ins
-              </span>
+              Controls for audio plug-ins
             </h1>
             <p className="mt-5 max-w-xl text-lg text-balance text-fd-muted-foreground">
               Knobs, faders, meters and draggable plots that bind to your
@@ -300,6 +298,7 @@ function Home() {
           </section>
         </div>
       </main>
+      <SiteFooter />
     </HomeLayout>
   );
 }

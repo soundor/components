@@ -23,6 +23,11 @@ export const Route = createRootRoute({
         name: 'description',
         content: 'Controls and displays for Soundor audio plug-ins.',
       },
+      {
+        property: 'og:image',
+        content: 'https://components.soundor.dev/social-preview.png',
+      },
+      { name: 'twitter:card', content: 'summary_large_image' },
     ],
     links: [
       { rel: 'stylesheet', href: styles },

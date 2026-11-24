@@ -1,5 +1,5 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/soundor-components-logo-dark-bg.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/soundor-components-logo-on-dark.svg">
   <img alt="Soundor Components" src="assets/brand/soundor-components-logo.svg" height="64">
 </picture>
 
@@ -97,7 +97,15 @@ component tests. The repository has three parts:
 
 The first package release is `0.1.0`. After it is on npm, update the Orbit example and the docs playground in `soundor/soundor` to depend on the published package, then remove the old in-tree package and its release workflow.
 
-## License
+## License & Branding
 
-Soundor Components is [MIT licensed](LICENSE). The bundled Geist fonts are under
-the [SIL Open Font License](packages/components/assets/geist/OFL.txt).
+Soundor Components' software is [MIT licensed](LICENSE). The bundled Geist fonts
+are under the [SIL Open Font License](packages/components/assets/geist/OFL.txt).
+
+The Soundor name and the Soundor Components logos are the project's identity, not part of
+the software license: the logo files in [`assets/brand`](assets/brand) have their
+own [notice](assets/brand/LICENSE.md). You are free to build and sell plugins,
+open source or proprietary, with Soundor under the MIT License, and to say they
+are built with Soundor; please don't present them as official Soundor releases.
+See the [Brand Guidelines](https://soundor.dev/brand) and [BRANDING.md](BRANDING.md),
+and the [Privacy Policy](https://soundor.dev/privacy).

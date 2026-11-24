@@ -1,7 +1,7 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 
 // The repository's brand files, which the README shows too.
-import logoDark from '../../../assets/brand/soundor-components-logo-dark-bg.svg?url';
+import logoDark from '../../../assets/brand/soundor-components-logo-on-dark.svg?url';
 import logo from '../../../assets/brand/soundor-components-logo.svg?url';
 
 export const layoutOptions = {
@@ -12,12 +12,14 @@ export const layoutOptions = {
         <img
           src={logo}
           alt="Soundor Components"
+          width={173}
           height={36}
           className="h-9 w-auto dark:hidden"
         />
         <img
           src={logoDark}
           alt="Soundor Components"
+          width={173}
           height={36}
           className="hidden h-9 w-auto dark:block"
         />
