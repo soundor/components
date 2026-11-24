@@ -24,13 +24,12 @@ function actions(spy: (id: string) => void): MenuItem[] {
     {
       id: 'copy',
       label: 'Copy Value',
-      shortcut: 'Mod+C',
+      hint: 'Copies the current value to the clipboard',
       onSelect: () => spy('copy'),
     },
     {
       id: 'paste',
       label: 'Paste Value',
-      shortcut: 'Mod+V',
       disabled: true,
       onSelect: () => spy('paste'),
     },
@@ -65,7 +64,9 @@ describe('Dropdown', () => {
       'Paste Value',
       'Randomize',
     ]);
-    expect(items[1]!.accessibility.hint).toBe('Shortcut Control C');
+    expect(items[1]!.accessibility.hint).toBe(
+      'Copies the current value to the clipboard',
+    );
     expect(items[2]!.accessibility.state?.disabled).toBe(true);
 
     await user.keyboard('{ArrowDown}');

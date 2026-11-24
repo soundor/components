@@ -15,8 +15,8 @@ import { Button, Dropdown } from '@soundor/components';
   items={[
     { id: 'reset', label: 'Reset', onSelect: reset },
     { type: 'separator' },
-    { id: 'copy', label: 'Copy Value', shortcut: 'Mod+C', onSelect: copy },
-    { id: 'paste', label: 'Paste Value', shortcut: 'Mod+V', onSelect: paste },
+    { id: 'copy', label: 'Copy Value', onSelect: copy },
+    { id: 'paste', label: 'Paste Value', onSelect: paste },
   ]}
 />;
 ```
@@ -27,37 +27,10 @@ An item has an `id`, a `label` and an `onSelect`. It can also have:
 
 - `disabled`: shown dimmed and skipped by the keyboard.
 - `icon`: a small glyph before the label.
-- `shortcut`: shown after the label, written once and shown the way the platform writes it (see [Shortcuts](#shortcuts)). It is a label only: the menu doesn't bind it, as the editor owns its keys.
 - `checked`: a tick before the label, for an option that is on.
 - `hint`: read after the label by a screen reader.
 
 `{ type: 'separator' }` draws a line between groups. The same items work in a [ContextMenu](/docs/components/context-menu).
-
-## Shortcuts
-
-Write a shortcut once, in a universal syntax, and each platform shows it its own way. `Mod` is Command on macOS and iOS, and Control everywhere else:
-
-| Written       | macOS | Windows      | Linux        |
-| ------------- | ----- | ------------ | ------------ |
-| `Mod+C`       | ⌘C    | Ctrl+C       | Ctrl+C       |
-| `Mod+Shift+Z` | ⇧⌘Z   | Ctrl+Shift+Z | Ctrl+Shift+Z |
-| `Alt+ArrowUp` | ⌥↑    | Alt+Up       | Alt+Up       |
-| `Meta+K`      | ⌘K    | Win+K        | Super+K      |
-| `Mod+Delete`  | ⌘⌦    | Ctrl+Del     | Ctrl+Del     |
-
-Keys are joined by `+`, in any order: modifiers are put in the platform's own order. The modifiers are `Mod`, `Ctrl`, `Alt` (or `Option`), `Shift` and `Meta` (or `Cmd`, `Win`, `Super`). Named keys include `Enter`, `Escape`, `Tab`, `Space`, `Backspace`, `Delete`, the arrows, `Home`, `End`, `PageUp`, `PageDown` and `Plus`; any other key is shown as written, a letter in capitals. Text that isn't in the syntax, such as `⌘C`, is shown as it is.
-
-The platform is the one Soundor reports in `environment.platform` from `soundor:host`. On the web runtime that comes from the browser, so it is a best guess. A screen reader hears the shortcut in words, such as "Shortcut Shift Command Z".
-
-`formatShortcut` does the same conversion for your own views, such as a tooltip:
-
-```tsx
-import { formatShortcut } from '@soundor/components';
-
-formatShortcut('Mod+Shift+Z'); // '⇧⌘Z' on macOS, 'Ctrl+Shift+Z' elsewhere
-formatShortcut('Mod+Shift+Z', { platform: 'windows' }); // 'Ctrl+Shift+Z'
-formatShortcut('Mod+Shift+Z', { spoken: true }); // 'Shift Command Z' on macOS
-```
 
 `onSelect` runs after the menu has closed and given focus back. An action can therefore open a `Modal`, which then returns focus to the trigger, or remove the menu's owner from the editor.
 
@@ -91,7 +64,7 @@ const [open, setOpen] = useState(false);
 | `Enter`, `Space` or a click       | Run the item                                              |
 | `Esc`, `Tab` or a click outside   | Close, and give focus back to the trigger                 |
 
-The menu is a `menu` named by `accessibilityLabel`, or by the trigger's label. Its items are `menuitem`s, and a shortcut is read as a hint. In a menu opened from a `Modal`, `Esc` closes the menu and leaves the modal open.
+The menu is a `menu` named by `accessibilityLabel`, or by the trigger's label. Its items are `menuitem`s. In a menu opened from a `Modal`, `Esc` closes the menu and leaves the modal open.
 
 ## Props
 

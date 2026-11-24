@@ -13,6 +13,8 @@ Inside a [SegmentedControl](/docs/components/segmented-control) the group is a s
 
 ## Shortcuts
 
+For a binding you implement with Soundor keyboard events, `formatShortcut('Mod+Shift+Z')` from `@soundor/components` formats its label as `⇧⌘Z` on macOS and `Ctrl+Shift+Z` on Windows and Linux. Use `{ spoken: true }` for words instead of symbols. Check for conflicts with DAW shortcuts before choosing a binding.
+
 ### Knob, Slider, Fader and ValueField
 
 | Input                        | Does                                               |
@@ -97,7 +99,7 @@ Each handle is a tab stop. On the attack, sustain and release handles the arrow 
 | LevelMeter                      | `progressbar`              | Label and level; the clip indicator is a button that clears it                |
 | Plot                            | `image`                    | Its `accessibilityLabel`, or its title                                        |
 | Select                          | `combobox`, then a `menu`  | Label, chosen option, whether it is open; each option, the chosen one checked |
-| Dropdown, ContextMenu           | `menu` of `menuitem`       | The menu's label, each item, disabled and checked items, shortcuts as hints   |
+| Dropdown, ContextMenu           | `menu` of `menuitem`       | The menu's label, item labels and hints, disabled and checked items           |
 | EnvelopeEditor handle           | `adjustable`               | The stage's name and value, such as "Decay 300 ms, Sustain 65%"               |
 | Panel, ControlGroup             | `header`                   | The title                                                                     |
 

@@ -60,7 +60,6 @@ export function MenuPopup({
                 label: item.label,
                 disabled: item.disabled,
                 icon: item.icon,
-                shortcut: item.shortcut,
                 hint: item.hint,
                 checked: item.checked,
                 select: item.onSelect,

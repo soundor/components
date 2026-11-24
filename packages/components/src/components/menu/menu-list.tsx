@@ -16,7 +16,6 @@ import {
   matchLabel,
   stepEnabled,
 } from '../../internal/menu/navigation';
-import { formatShortcut } from '../../internal/shortcut';
 import {
   controlHeight,
   textStyle,
@@ -39,17 +38,16 @@ export interface MenuEntry {
   separator?: false;
   disabled?: boolean;
   icon?: ReactNode;
-  shortcut?: string;
   hint?: string;
   checked?: boolean;
-  /** In place of the label, icon and shortcut. */
+  /** In place of the label and icon. */
   render?: (state: MenuRowState) => ReactNode;
   select?: () => void;
 }
 
 export type MenuRow = MenuEntry | { key: string; separator: true };
 
-export type MenuPart = 'item' | 'label' | 'icon' | 'shortcut' | 'separator';
+export type MenuPart = 'item' | 'label' | 'icon' | 'separator';
 
 export interface MenuListProps {
   rows: readonly MenuRow[];
@@ -364,13 +362,6 @@ function Row({
     : active
       ? c.selectedForeground
       : c.text;
-  const shortcut =
-    entry.shortcut === undefined ? undefined : formatShortcut(entry.shortcut);
-  const hint =
-    entry.hint ??
-    (entry.shortcut === undefined
-      ? undefined
-      : `Shortcut ${formatShortcut(entry.shortcut, { spoken: true })}`);
   return (
     <View
       {...press.pressableProps}
@@ -378,7 +369,7 @@ function Row({
       onBlur={() => onFocusChange(false)}
       accessibilityRole="menuitem"
       accessibilityLabel={entry.label}
-      accessibilityHint={hint}
+      accessibilityHint={entry.hint}
       style={part('item', {
         flexDirection: 'row',
         alignItems: 'center',
@@ -428,25 +419,6 @@ function Row({
           >
             {entry.label}
           </Text>
-          {shortcut !== undefined && (
-            <Text
-              accessible={false}
-              style={part('shortcut', [
-                textStyle(
-                  theme,
-                  'value',
-                  disabled
-                    ? c.textDisabled
-                    : active
-                      ? c.textInverse
-                      : c.textMuted,
-                ),
-                { marginLeft: theme.spacing.spaceLg },
-              ])}
-            >
-              {shortcut}
-            </Text>
-          )}
         </>
       )}
     </View>
