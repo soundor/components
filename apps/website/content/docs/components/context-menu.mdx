@@ -1,49 +1,109 @@
 ---
 title: ContextMenu
-description: A menu for what it wraps, at the pointer or from the keyboard.
+description: A menu for a control, at the pointer or from the keyboard.
 ---
 
-Wrap a control in `ContextMenu` to give it a menu. The menu opens on the platform's secondary press (a right-click, or a Control-click on a Mac) or a long touch, at the pointer. From the keyboard, `Shift+F10` or the context menu key opens it beside the focused control, and a screen reader's "Show menu" action does the same. It uses the same items, and the same menu, as a [Dropdown](/docs/components/dropdown).
+`ContextMenu` gives a control a menu. The menu opens on the platform's secondary press (a right-click, or a Control-click on a Mac) or a long touch, at the pointer. From the keyboard, `Shift+F10` or the context menu key opens it beside the focused control, and a screen reader's "Show menu" action does the same. Its items are the same [`Menu.Item`s](/docs/components/dropdown-menu#items) as a DropdownMenu's.
 
 <Demo name="context-menu" height={300} />
 
-## With parameter controls
-
-`parameterMenuItems(parameter)` builds a parameter's usual items:
-
-- **Reset to default**: one host gesture and one undo step, as a double-click is. It is disabled when the parameter is already at its default.
-- **Enter value…**: only with `onEnterValue`. It calls your function to open a field of your own, as the demo's `Modal` does.
-- **Copy value** and **Paste value**: the parameter's own `format()` goes to the system clipboard, and pasted text is read back with its `parse()`. Text that isn't a value changes nothing.
-
 ```tsx
-import { ContextMenu, Knob, parameterMenuItems } from '@soundor/components';
+import { ContextMenu, Knob, Menu } from '@soundor/components';
 import { parameters } from 'soundor:parameters';
 
-<ContextMenu items={() => parameterMenuItems(parameters.gain)}>
-  <Knob parameter={parameters.gain} />
+<ContextMenu>
+  <ContextMenu.Trigger>
+    <Knob parameter={parameters.gain} />
+  </ContextMenu.Trigger>
+  <ContextMenu.Content>
+    <Menu.Item onPress={reset}>Reset</Menu.Item>
+    <Menu.Divider />
+    <Menu.Item onPress={copy}>Copy value</Menu.Item>
+    <Menu.Item onPress={paste} disabled={!canPaste}>
+      Paste value
+    </Menu.Item>
+  </ContextMenu.Content>
 </ContextMenu>;
 ```
 
-Give `items` a function, as here, and it runs each time the menu opens, so the items show the parameter's state at that moment. Spread the result into a list of your own to add items. A read-only parameter's items are disabled, except Copy.
+The content renders as the menu opens, so the items show the state at that moment: `disabled={!canPaste}` is read then. A menu whose content renders no item at all closes as it opens.
 
-A ContextMenu doesn't change the control it wraps. Knob, Slider, Fader, XYPad and Plot markers act on the primary button only, so a secondary press starts no drag and opens no gesture. A secondary press during a primary drag opens nothing. Keyboard focus, the control's own keys, double-click reset and parameter bindings work as before. The menu's actions start host gestures only when they change a value.
+## With parameter controls
 
-Parameter context menus aren't added to the controls automatically: wrap the ones that should have one.
+`ParameterMenuItems` renders a parameter's usual items:
 
-## Layout
-
-ContextMenu adds no view of its own: it attaches to its child, which lays out exactly as it would without it. The child is one element that takes a `ref` and `accessibilityActions`: any control of this library, or a `View`. Its own `ref`, actions and handler keep working.
-
-For a group of controls, wrap them in a `View` and give that to the ContextMenu. A secondary press, a long touch and the keys reach it from any control inside. A screen reader's action, though, is offered by the control it is on, and a plain `View` is not one: where each control should offer "Show menu", give each its own ContextMenu.
+- **Reset to default**: one host gesture and one undo step, as a double-click is. It is disabled when the parameter is already at its default.
+- **Enter value…**: only with `onEnterValue`. It calls your function to open a field of your own, as the demo's `Modal` does.
+- **Copy value** and **Paste value**: the parameter's own `format()` goes to the system clipboard, and pasted text is read back with its `parse()`. Text that isn't a value changes nothing. `clipboard={false}` leaves them out.
 
 ```tsx
-<ContextMenu items={() => [...parameterMenuItems(mix), ...more]}>
-  <View style={{ flexDirection: 'row', gap: 12 }}>
-    <Knob parameter={mix} />
-    <Knob parameter={tone} />
-  </View>
+import {
+  ContextMenu,
+  Knob,
+  Menu,
+  ParameterMenuItems,
+} from '@soundor/components';
+
+<ContextMenu>
+  <ContextMenu.Trigger>
+    <Knob parameter={parameters.gain} />
+  </ContextMenu.Trigger>
+  <ContextMenu.Content>
+    <ParameterMenuItems parameter={parameters.gain} />
+    <Menu.Divider />
+    <Menu.Item onPress={learn}>MIDI learn</Menu.Item>
+  </ContextMenu.Content>
+</ContextMenu>;
+```
+
+Put items of your own before or after them. A read-only parameter's items are disabled, except Copy. `labels` gives them in your language.
+
+Parameter context menus aren't added to the controls automatically: give the ones that should have one a ContextMenu. A component of yours keeps that short:
+
+```tsx
+function WithMenu({
+  parameter,
+  children,
+}: {
+  parameter: RangeParameter;
+  children: ReactElement<HostProps>;
+}) {
+  return (
+    <ContextMenu>
+      <ContextMenu.Trigger>{children}</ContextMenu.Trigger>
+      <ContextMenu.Content>
+        <ParameterMenuItems parameter={parameter} />
+      </ContextMenu.Content>
+    </ContextMenu>
+  );
+}
+```
+
+## The trigger keeps what it is
+
+A context menu is a second way into a control, so `ContextMenu.Trigger` leaves the first one alone. It adds no view: its child lays out exactly as it would without it. The child keeps its role, its name, its value and state, its own actions, its focus, and its primary pointer and keys. A Knob stays a slider (`adjustable`), with **Show menu** offered after its own increment, decrement, set value and reset.
+
+Knob, Slider, Fader, XYPad and Plot markers act on the primary button only, so a secondary press starts no drag and opens no gesture. A secondary press during a primary drag opens nothing. Double-click reset and parameter bindings work as before. The menu's actions start host gestures only when they change a value.
+
+The child is one element that takes a `ref` and `accessibilityActions`: any control of this library, or a `View`. Its own `ref`, actions and `onAccessibilityAction` keep working. A ContextMenu inside another's trigger takes the press, the keys and the action for its own control: the outer one opens only from the rest of its child.
+
+For a group of controls, give the trigger a `View` around them. A secondary press, a long touch and the keys reach it from any control inside. A screen reader's action, though, is offered by the control it is on, and a plain `View` is not one: where each control should offer "Show menu", give each its own ContextMenu.
+
+```tsx
+<ContextMenu>
+  <ContextMenu.Trigger>
+    <View style={{ flexDirection: 'row', gap: 12 }}>
+      <Knob parameter={mix} />
+      <Knob parameter={tone} />
+    </View>
+  </ContextMenu.Trigger>
+  <ContextMenu.Content>
+    <ParameterMenuItems parameter={mix} />
+  </ContextMenu.Content>
 </ContextMenu>
 ```
+
+`disabled` on the ContextMenu opens no menu and offers no "Show menu".
 
 ## Keyboard and accessibility
 
@@ -59,23 +119,38 @@ For a group of controls, wrap them in a `View` and give that to the ContextMenu.
 
 ## Engine support
 
+ContextMenu recognises these inputs itself, from the events Soundor has today. Soundor's engine is gaining a semantic context menu event that covers all of them ([soundor/soundor#399](https://github.com/soundor/soundor/pull/399)); once a release has it, ContextMenu will use it, and its API stays as it is.
+
 - **Secondary press:** Soundor's `contextmenu` event, on the secondary button going down in the VST3 and web runtimes, with its position in the view. The web runtime's own browser menu is kept away.
 - **Clipboard:** `soundor:ui`'s `clipboard`. Copy and Paste are only offered where the runtime has one. A clipboard the platform refuses, such as a browser that denies permission to read it, makes them do nothing rather than fail.
-- **Long touch:** pointer events of type `touch`. A touch held for `longPressDelay` (500 ms) without moving more than a few pixels opens the menu; one that moves first is the control's drag. `longPressDelay={0}` turns it off.
-- **"Show menu":** a custom accessibility action, added after the control's own (a Knob's increment, decrement, set value and reset). Screen readers list custom actions by their label: VoiceOver's Actions rotor, TalkBack's actions menu, Narrator's and NVDA's where the platform exposes them. macOS's own `AXShowMenu` isn't available to a Soundor control, so VoiceOver users find it under Actions, not with its usual key.
+- **Long touch:** pointer events of type `touch`. A touch held for 500 ms without moving more than a few pixels opens the menu; one that moves first, or is cancelled, is the control's drag. The delay is fixed until the engine's own long press replaces it.
+- **"Show menu":** a custom accessibility action, added after the control's own. Screen readers list custom actions by their label: VoiceOver's Actions rotor, TalkBack's actions menu, Narrator's and NVDA's where the platform exposes them. macOS's own `AXShowMenu` isn't available to a Soundor control yet, so VoiceOver users find it under Actions, not with its usual key.
 - **Context menu key:** reported where the platform reports it; `Shift+F10` works everywhere.
 - A menu is drawn inside the editor, as every Soundor overlay is, and is held within the editor's bounds. It can't extend past the plugin window as a system menu can.
 
+## Migrating from the `items` API
+
+`<ContextMenu items={…}>` and `parameterMenuItems()` became `ContextMenu.Trigger`, `ContextMenu.Content` and `ParameterMenuItems` in 0.4, and `longPressDelay` went. See [Migrating to 0.4](/docs/guides/migrating-to-0-4#contextmenu).
+
 ## Props
+
+### ContextMenu
 
 <auto-type-table
   path="packages/components/src/components/context-menu/context-menu.tsx"
   name="ContextMenuProps"
 />
 
-### parameterMenuItems options
+### ContextMenu.Content
 
 <auto-type-table
-  path="packages/components/src/components/context-menu/parameter-menu.ts"
-  name="ParameterMenuOptions"
+  path="packages/components/src/components/context-menu/context-menu.tsx"
+  name="ContextMenuContentProps"
+/>
+
+### ParameterMenuItems
+
+<auto-type-table
+  path="packages/components/src/components/context-menu/parameter-menu.tsx"
+  name="ParameterMenuItemsProps"
 />

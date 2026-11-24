@@ -1,6 +1,10 @@
 export { ContextMenu } from './context-menu';
-export type { ContextMenuProps } from './context-menu';
+export type {
+  ContextMenuContentProps,
+  ContextMenuProps,
+  ContextMenuTriggerProps,
+} from './context-menu';
 export {
-  parameterMenuItems,
-  type ParameterMenuOptions,
+  ParameterMenuItems,
+  type ParameterMenuItemsProps,
 } from './parameter-menu';

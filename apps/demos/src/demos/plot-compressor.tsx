@@ -1,4 +1,4 @@
-import { Plot, Slider, formatters, type PlotSeries } from '@soundor/components';
+import { Plot, Slider, formatters } from '@soundor/components';
 import { View } from '@soundor/react';
 import { useState } from 'react';
 
@@ -6,30 +6,15 @@ import { useState } from 'react';
 const transfer = (input: number, threshold: number, ratio: number) =>
   input <= threshold ? input : threshold + (input - threshold) / ratio;
 
-const inputs = [-60, 0];
+const levels = [-60, -40, -20, 0];
+const unity: [number, number][] = [
+  [-60, -60],
+  [0, 0],
+];
 
 export default function Demo() {
   const [threshold, setThreshold] = useState(-24);
   const [ratio, setRatio] = useState(4);
-  const series: PlotSeries[] = [
-    // 1:1, for reference.
-    {
-      type: 'line',
-      dash: [4, 4],
-      opacity: 0.5,
-      hideInReadout: true,
-      points: inputs.map((x) => [x, x]),
-    },
-    {
-      label: 'Output',
-      type: 'area',
-      baseline: -60,
-      points: [-60, threshold, 0].map((x) => [
-        x,
-        transfer(x, threshold, ratio),
-      ]),
-    },
-  ];
   return (
     <View style={{ gap: 12 }}>
       <Plot
@@ -37,29 +22,39 @@ export default function Demo() {
         height={220}
         title="Compressor"
         note={`${formatters.decibels(threshold)} · ${ratio.toFixed(1)}:1`}
-        x={{
-          domain: [-60, 0],
-          ticks: [-60, -40, -20, 0],
-          format: formatters.decibels,
-        }}
-        y={{
-          domain: [-60, 0],
-          ticks: [-60, -40, -20, 0],
-          format: formatters.decibels,
-        }}
-        series={series}
-        markers={[
-          {
-            x: threshold,
-            y: threshold,
-            label: 'T',
-            // Only the threshold moves: the handle stays on the curve.
-            onMove: ([x]) =>
-              setThreshold(Math.round(Math.min(-6, Math.max(-54, x)))),
-          },
-        ]}
         accessibilityLabel="Compressor transfer curve"
-      />
+      >
+        <Plot.XAxis
+          domain={[-60, 0]}
+          ticks={levels}
+          format={formatters.decibels}
+        />
+        <Plot.YAxis
+          domain={[-60, 0]}
+          ticks={levels}
+          format={formatters.decibels}
+        />
+        <Plot.Grid />
+        {/* 1:1, for reference. */}
+        <Plot.Line points={unity} dash={[4, 4]} opacity={0.5} hideInReadout />
+        <Plot.Area
+          label="Output"
+          baseline={-60}
+          points={[-60, threshold, 0].map((x) => [
+            x,
+            transfer(x, threshold, ratio),
+          ])}
+        />
+        <Plot.Marker
+          x={threshold}
+          y={threshold}
+          label="T"
+          // Only the threshold moves: the handle stays on the curve.
+          onMove={([x]) =>
+            setThreshold(Math.round(Math.min(-6, Math.max(-54, x))))
+          }
+        />
+      </Plot>
       <Slider
         label="Ratio"
         min={1}

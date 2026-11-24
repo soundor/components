@@ -7,7 +7,7 @@ import ButtonLoading from './button-loading';
 import ContextMenu from './context-menu';
 import ControlGroup from './control-group';
 import Divider from './divider';
-import Dropdown from './dropdown';
+import DropdownMenu from './dropdown-menu';
 import EnvelopeEditor from './envelope-editor';
 import EnvelopeEditorControlled from './envelope-editor-controlled';
 import Fader from './fader';
@@ -51,7 +51,7 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   'segmented-control': SegmentedControl,
   select: Select,
   'select-states': SelectStates,
-  dropdown: Dropdown,
+  'dropdown-menu': DropdownMenu,
   'context-menu': ContextMenu,
   knob: Knob,
   showcase: Showcase,

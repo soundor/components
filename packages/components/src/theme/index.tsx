@@ -42,8 +42,11 @@ export interface ComponentSlots {
     | 'description'
     | 'popup'
     | 'option';
-  /** Dropdown's and ContextMenu's menu: `root` is its surface. */
-  Menu: 'root' | 'item' | 'label' | 'icon' | 'separator';
+  /**
+   * DropdownMenu's and ContextMenu's menu: `root` is its surface, `heading`
+   * a `Menu.Label`.
+   */
+  Menu: 'root' | 'item' | 'label' | 'icon' | 'separator' | 'heading';
   Knob: 'root' | 'control' | 'label' | 'value';
   Slider: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';
   Fader: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';

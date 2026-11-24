@@ -1,4 +1,4 @@
-import { Plot, type PlotSeries } from '@soundor/components';
+import { Plot } from '@soundor/components';
 import { useEffect, useState } from 'react';
 
 const length = 4; // Seconds.
@@ -14,9 +14,6 @@ for (let i = 0; i < steps; i++) {
   lower.push([t, -swell * grain]);
   upper.push([t, swell * (0.8 + 0.2 * Math.cos(i * 4.1))]);
 }
-const series: PlotSeries[] = [
-  { label: 'Sample', type: 'band', points: lower, upper },
-];
 
 export default function Demo() {
   const [time, setTime] = useState(0.8);
@@ -35,24 +32,24 @@ export default function Demo() {
       height={170}
       title="Sample"
       note="Drag the playhead"
-      x={{
-        domain: [0, length],
-        ticks: [0, 1, 2, 3, 4],
-        format: (s) => `${s} s`,
-      }}
-      y={{ domain: [-1, 1], ticks: [] }}
-      series={series}
-      markers={[
-        {
-          x: time,
-          y: 0,
-          label: '▶',
-          onMoveStart: () => setScrubbing(true),
-          onMove: ([x]) => setTime(x),
-          onMoveEnd: () => setScrubbing(false),
-        },
-      ]}
       accessibilityLabel="Sample playhead"
-    />
+    >
+      <Plot.XAxis
+        domain={[0, length]}
+        ticks={[0, 1, 2, 3, 4]}
+        format={(s) => `${s} s`}
+      />
+      <Plot.YAxis domain={[-1, 1]} ticks={[]} />
+      <Plot.Grid />
+      <Plot.Band label="Sample" lower={lower} upper={upper} />
+      <Plot.Marker
+        x={time}
+        y={0}
+        label="▶"
+        onMoveStart={() => setScrubbing(true)}
+        onMove={([x]) => setTime(x)}
+        onMoveEnd={() => setScrubbing(false)}
+      />
+    </Plot>
   );
 }

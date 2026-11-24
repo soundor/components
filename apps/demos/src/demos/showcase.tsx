@@ -13,7 +13,6 @@ import {
   XYPad,
   formatters,
   parsers,
-  type PlotSeries,
 } from '@soundor/components';
 import { View } from '@soundor/react';
 import { useEffect, useRef, useState } from 'react';
@@ -111,30 +110,13 @@ export default function Demo() {
     return () => clearInterval(timer);
   }, []);
 
-  const series: PlotSeries[] = [
-    {
-      label: 'Response',
-      type: 'area',
-      baseline: 0,
-      extend: true,
-      opacity: bypass ? 0.3 : 1,
-      points: frequencies.map((hz) => [
-        hz,
-        bypass
-          ? 0
-          : bands.reduce((sum, band) => sum + bell(band, hz), 0) +
-            filterDb(type, hz, cutoff, resonance),
-      ]),
-    },
-    ...bands.map((band): PlotSeries => ({
-      type: 'line',
-      extend: true,
-      dash: [3, 3],
-      opacity: 0.4,
-      hideInReadout: true,
-      points: frequencies.map((hz) => [hz, bypass ? 0 : bell(band, hz)]),
-    })),
-  ];
+  const response = frequencies.map((hz): [number, number] => [
+    hz,
+    bypass
+      ? 0
+      : bands.reduce((sum, band) => sum + bell(band, hz), 0) +
+        filterDb(type, hz, cutoff, resonance),
+  ]);
 
   return (
     <Panel
@@ -192,29 +174,54 @@ export default function Demo() {
               height={200}
               title="Equalizer"
               note="Drag a band"
-              x={{
-                domain: [20, 20_000],
-                scale: 'log',
-                ticks: 'decades',
-                format: formatters.frequency,
-              }}
-              y={{
-                domain: [-12, 12],
-                ticks: [-12, -6, 0, 6, 12],
-                format: formatters.decibels,
-              }}
-              series={series}
-              markers={bands.map((band, i) => ({
-                x: band.hz,
-                y: band.db,
-                label: String(i + 1),
-                onMove: ([hz, db]: readonly [number, number]) =>
-                  setBands((all) =>
-                    all.map((b, j) => (j === i ? { ...b, hz, db } : b)),
-                  ),
-              }))}
               accessibilityLabel="Equalizer"
-            />
+            >
+              <Plot.XAxis
+                domain={[20, 20_000]}
+                scale="log"
+                ticks="decades"
+                format={formatters.frequency}
+              />
+              <Plot.YAxis
+                domain={[-12, 12]}
+                ticks={[-12, -6, 0, 6, 12]}
+                format={formatters.decibels}
+              />
+              <Plot.Grid />
+              <Plot.Area
+                label="Response"
+                baseline={0}
+                extend
+                opacity={bypass ? 0.3 : 1}
+                points={response}
+              />
+              {bands.map((band, i) => (
+                <Plot.Line
+                  key={`curve-${i}`}
+                  extend
+                  dash={[3, 3]}
+                  opacity={0.4}
+                  hideInReadout
+                  points={frequencies.map((hz) => [
+                    hz,
+                    bypass ? 0 : bell(band, hz),
+                  ])}
+                />
+              ))}
+              {bands.map((band, i) => (
+                <Plot.Marker
+                  key={`band-${i}`}
+                  x={band.hz}
+                  y={band.db}
+                  label={String(i + 1)}
+                  onMove={([hz, db]) =>
+                    setBands((all) =>
+                      all.map((b, j) => (j === i ? { ...b, hz, db } : b)),
+                    )
+                  }
+                />
+              ))}
+            </Plot>
             <ControlGroup title="Dynamics" direction="row" dividers>
               <Knob
                 label="Threshold"

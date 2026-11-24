@@ -1,4 +1,4 @@
-import { Plot, formatters, type PlotSeries } from '@soundor/components';
+import { Plot, formatters } from '@soundor/components';
 import { useEffect, useState } from 'react';
 
 // Third-octave band centres, 25 Hz to 16 kHz.
@@ -22,39 +22,32 @@ export default function Demo() {
     }, 60);
     return () => clearInterval(timer);
   }, []);
-  const series: PlotSeries[] = [
-    {
-      label: 'Level',
-      type: 'bars',
-      baseline: -60,
-      points: centres.map((f, i) => [f, levels[i]!]),
-    },
-    {
-      label: 'Peak',
-      type: 'points',
-      radius: 1.5,
-      hideInReadout: true,
-      points: centres.map((f, i) => [f, peaks[i]!]),
-    },
-  ];
   return (
-    <Plot
-      width={440}
-      height={200}
-      title="Third-octave analyser"
-      x={{
-        domain: [20, 20_000],
-        scale: 'log',
-        ticks: [100, 1000, 10_000],
-        format: formatters.frequency,
-      }}
-      y={{
-        domain: [-60, 0],
-        ticks: [-60, -40, -20, 0],
-        format: formatters.decibels,
-      }}
-      series={series}
-      readout
-    />
+    <Plot width={440} height={200} title="Third-octave analyser">
+      <Plot.XAxis
+        domain={[20, 20_000]}
+        scale="log"
+        ticks={[100, 1000, 10_000]}
+        format={formatters.frequency}
+      />
+      <Plot.YAxis
+        domain={[-60, 0]}
+        ticks={[-60, -40, -20, 0]}
+        format={formatters.decibels}
+      />
+      <Plot.Grid />
+      <Plot.Bars
+        label="Level"
+        baseline={-60}
+        points={centres.map((f, i) => [f, levels[i]!])}
+      />
+      <Plot.Points
+        label="Peak"
+        radius={1.5}
+        hideInReadout
+        points={centres.map((f, i) => [f, peaks[i]!])}
+      />
+      <Plot.Readout />
+    </Plot>
   );
 }

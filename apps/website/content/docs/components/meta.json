@@ -8,7 +8,7 @@
     "segmented-control",
     "select",
     "---Menus---",
-    "dropdown",
+    "dropdown-menu",
     "context-menu",
     "---Range controls---",
     "knob",

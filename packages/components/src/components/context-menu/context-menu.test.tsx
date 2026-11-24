@@ -1,6 +1,7 @@
 import { View } from '@soundor/react';
 import {
   act,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -8,17 +9,21 @@ import {
   within,
   type NodeTarget,
 } from '@soundor/testing-library/react';
-import { createRef } from 'react';
-import { clipboard, type UiNode } from 'soundor:ui';
+import { createRef, type ReactElement } from 'react';
+import { clipboard, type PointerEvent, type UiNode } from 'soundor:ui';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
   ContextMenu,
+  DropdownMenu,
+  Button,
   Fader,
   Knob,
+  Menu,
+  ParameterMenuItems,
   Slider,
-  parameterMenuItems,
-  type MenuItem,
+  type HostProps,
+  type ParameterMenuItemsProps,
 } from '../../index';
 import { parameter } from '../../test-utils';
 
@@ -26,6 +31,29 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
+
+/** A control with its parameter's menu, as an application writes it. */
+function WithMenu({
+  children,
+  label,
+  onOpenChange,
+  disabled,
+  ...items
+}: ParameterMenuItemsProps & {
+  children: ReactElement<HostProps>;
+  label?: string;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <ContextMenu onOpenChange={onOpenChange} disabled={disabled}>
+      <ContextMenu.Trigger>{children}</ContextMenu.Trigger>
+      <ContextMenu.Content accessibilityLabel={label}>
+        <ParameterMenuItems {...items} />
+      </ContextMenu.Content>
+    </ContextMenu>
+  );
+}
 
 /** A right-click at a point. */
 async function secondaryPress(target: NodeTarget, x = 30, y = 40) {
@@ -38,9 +66,9 @@ describe('ContextMenu', () => {
   test('a secondary press on a Knob opens its menu without starting a drag, and Reset is one undoable gesture', async () => {
     const gain = parameter(0.25);
     await render(
-      <ContextMenu items={() => parameterMenuItems(gain)}>
+      <WithMenu parameter={gain}>
         <Knob parameter={gain} />
-      </ContextMenu>,
+      </WithMenu>,
     );
     const user = userEvent.setup();
     const knob = screen.getByRole('adjustable', { name: 'Gain' });
@@ -82,13 +110,9 @@ describe('ContextMenu', () => {
     const mix = parameter(0.5);
     const onOpenChange = vi.fn<(open: boolean) => void>();
     await render(
-      <ContextMenu
-        items={() => parameterMenuItems(mix)}
-        accessibilityLabel="Mix actions"
-        onOpenChange={onOpenChange}
-      >
+      <WithMenu parameter={mix} label="Mix actions" onOpenChange={onOpenChange}>
         <Slider parameter={mix} label="Mix" />
-      </ContextMenu>,
+      </WithMenu>,
     );
     const user = userEvent.setup();
     const slider = screen.getByRole('adjustable', { name: 'Mix' });
@@ -115,9 +139,9 @@ describe('ContextMenu', () => {
   test('copy and paste go through the clipboard as the parameter formats and parses', async () => {
     const time = parameter(0.5);
     await render(
-      <ContextMenu items={() => parameterMenuItems(time)}>
+      <WithMenu parameter={time}>
         <Fader parameter={time} />
-      </ContextMenu>,
+      </WithMenu>,
     );
     const user = userEvent.setup();
     const fader = screen.getByRole('adjustable', { name: 'Gain' });
@@ -144,9 +168,9 @@ describe('ContextMenu', () => {
   test('a primary drag still edits, and a secondary press during it opens nothing', async () => {
     const gain = parameter(0.25);
     await render(
-      <ContextMenu items={() => parameterMenuItems(gain)}>
+      <WithMenu parameter={gain}>
         <Knob parameter={gain} />
-      </ContextMenu>,
+      </WithMenu>,
     );
     const user = userEvent.setup();
     const knob = screen.getByRole('adjustable', { name: 'Gain' });
@@ -162,29 +186,31 @@ describe('ContextMenu', () => {
     expect(gain.endGesture).toHaveBeenCalledTimes(1);
   });
 
-  test('read-only parameters keep Copy only; items made at opening; an empty list opens nothing; unmounting while open is safe', async () => {
+  test('read-only parameters keep Copy only; items made at opening; an empty menu closes as it opens; unmounting while open is safe', async () => {
     const meter = parameter(0.7);
     const readOnly = {
       ...meter,
       info: { ...meter.info, access: 'readOnly' as const },
     };
-    const make = vi.fn<() => MenuItem[]>(() => []);
     const onEnterValue = vi.fn<() => void>();
+    const onEmptyChange = vi.fn<(open: boolean) => void>();
     const app = await render(
       <>
-        <ContextMenu
-          items={() => parameterMenuItems(readOnly, { onEnterValue })}
-        >
+        <WithMenu parameter={readOnly} onEnterValue={onEnterValue}>
           <Knob parameter={readOnly} label="Level" />
-        </ContextMenu>
-        <ContextMenu items={make}>
-          <Knob label="Empty" />
+        </WithMenu>
+        <ContextMenu onOpenChange={onEmptyChange}>
+          <ContextMenu.Trigger>
+            <Knob label="Empty" />
+          </ContextMenu.Trigger>
+          <ContextMenu.Content>{false}</ContextMenu.Content>
         </ContextMenu>
       </>,
     );
-    await secondaryPress(screen.getByRole('adjustable', { name: 'Empty' }));
-    expect(make).toHaveBeenCalledTimes(1);
+    const empty = screen.getByRole('adjustable', { name: 'Empty' });
+    await secondaryPress(empty);
     expect(screen.queryByRole('menu')).toBeNull();
+    expect(onEmptyChange.mock.calls).toEqual([[true], [false]]);
 
     const level = screen.getByRole('adjustable', { name: 'Level' });
     expect(level.accessibility.state?.readOnly).toBe(true);
@@ -214,14 +240,14 @@ describe('ContextMenu', () => {
     const onAction = vi.fn();
     await render(
       <View ref={outer} style={{ flexDirection: 'row' }}>
-        <ContextMenu items={() => parameterMenuItems(gain)}>
+        <WithMenu parameter={gain}>
           <Knob
             parameter={gain}
             ref={knobRef}
             accessibilityActions={[{ name: 'learn', label: 'MIDI learn' }]}
             onAccessibilityAction={onAction}
           />
-        </ContextMenu>
+        </WithMenu>
       </View>,
     );
     const knob = screen.getByRole('adjustable', { name: 'Gain' });
@@ -256,14 +282,14 @@ describe('ContextMenu', () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
-  test("a long touch opens it at the touch; one that moves is the control's drag; a delay of 0 turns it off", async () => {
+  test("a long touch opens it at the touch; one that moves or is cancelled is the control's", async () => {
     vi.useFakeTimers();
     const gain = parameter(0.25);
     const at = { clientX: 20, clientY: 20 };
     const { rerender } = await render(
-      <ContextMenu items={() => parameterMenuItems(gain)}>
+      <WithMenu parameter={gain}>
         <Knob parameter={gain} />
-      </ContextMenu>,
+      </WithMenu>,
     );
     const user = userEvent.setup();
     const knob = screen.getByRole('adjustable', { name: 'Gain' });
@@ -289,7 +315,7 @@ describe('ContextMenu', () => {
     await user.pointer({ keys: '[/TouchA]', ...at, clientY: 40 });
     expect(gain.get()).toBeLessThan(0.25);
 
-    // A mouse held down opens nothing; nor does a touch with the delay at 0.
+    // A mouse held down opens nothing.
     await user.pointer({
       target: knob,
       keys: '[MouseLeft>]',
@@ -299,14 +325,138 @@ describe('ContextMenu', () => {
     await act(() => vi.advanceTimersByTimeAsync(600));
     expect(screen.queryByRole('menu')).toBeNull();
     await user.pointer({ keys: '[/MouseLeft]', clientX: 20, clientY: 20 });
+
+    // A cancelled touch is no long press.
+    let touch = -1;
+    knob.addEventListener('pointerdown', (event) => {
+      touch = (event as unknown as PointerEvent).pointerId;
+    });
+    await user.pointer({ target: knob, keys: '[TouchA>]', ...at });
+    await fireEvent.pointerCancel(knob, { pointerId: touch });
+    await act(() => vi.advanceTimersByTimeAsync(600));
+    expect(screen.queryByRole('menu')).toBeNull();
+
+    // Disabled, a long touch opens nothing, and there is no Show menu.
     await rerender(
-      <ContextMenu items={() => parameterMenuItems(gain)} longPressDelay={0}>
+      <WithMenu parameter={gain} disabled>
         <Knob parameter={gain} />
-      </ContextMenu>,
+      </WithMenu>,
     );
+    expect(
+      knob.accessibility.actions?.map((action) => action.name),
+    ).not.toContain('showMenu');
     await user.pointer({ target: knob, keys: '[TouchA>]', ...at });
     await act(() => vi.advanceTimersByTimeAsync(600));
     expect(screen.queryByRole('menu')).toBeNull();
     await user.pointer({ keys: '[/TouchA]', ...at });
+  });
+
+  test('unmounted during a long touch, it opens nothing later and leaves no listener behind', async () => {
+    vi.useFakeTimers();
+    const gain = parameter(0.25);
+    const onOpenChange = vi.fn<(open: boolean) => void>();
+    const app = await render(
+      <WithMenu parameter={gain} onOpenChange={onOpenChange}>
+        <Knob parameter={gain} />
+      </WithMenu>,
+    );
+    const knob = screen.getByRole('adjustable', { name: 'Gain' });
+    const removed = vi.spyOn(knob, 'removeEventListener');
+    await userEvent
+      .setup()
+      .pointer({ target: knob, keys: '[TouchA>]', clientX: 20, clientY: 20 });
+    await app.unmount();
+    await act(() => vi.advanceTimersByTimeAsync(600));
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(removed.mock.calls.map(([type]) => type)).toEqual(
+      expect.arrayContaining([
+        'accessibilityaction',
+        'contextmenu',
+        'keydown',
+        'pointercancel',
+        'pointerdown',
+        'pointermove',
+        'pointerup',
+      ]),
+    );
+  });
+
+  test('a control inside another ContextMenu opens only its own menu, by any way in', async () => {
+    const gain = parameter(0.25);
+    await render(
+      <ContextMenu>
+        <ContextMenu.Trigger>
+          <View>
+            <WithMenu parameter={gain} label="Gain menu">
+              <Knob parameter={gain} />
+            </WithMenu>
+          </View>
+        </ContextMenu.Trigger>
+        <ContextMenu.Content accessibilityLabel="Panel menu">
+          <Menu.Item onPress={() => {}}>Reset panel</Menu.Item>
+        </ContextMenu.Content>
+      </ContextMenu>,
+    );
+    const user = userEvent.setup();
+    const knob = screen.getByRole('adjustable', { name: 'Gain' });
+    await secondaryPress(knob);
+    expect(screen.getAllByRole('menu')).toHaveLength(1);
+    expect(screen.getByRole('menu', { name: 'Gain menu' })).toBeDefined();
+    await user.keyboard('{Escape}');
+    knob.focus();
+    await user.keyboard('{Shift>}{F10}{/Shift}');
+    expect(screen.getAllByRole('menu')).toHaveLength(1);
+    expect(screen.getByRole('menu', { name: 'Gain menu' })).toBeDefined();
+    await user.keyboard('{Escape}');
+    await user.accessibilityAction(knob, 'showMenu');
+    expect(screen.getAllByRole('menu')).toHaveLength(1);
+    expect(screen.getByRole('menu', { name: 'Gain menu' })).toBeDefined();
+  });
+
+  test('one component of items works in a ContextMenu and a DropdownMenu alike', async () => {
+    const gain = parameter(0.6);
+    const copy = vi.fn();
+    function ParameterActions() {
+      return (
+        <>
+          <ParameterMenuItems parameter={gain} clipboard={false} />
+          <Menu.Item onPress={copy}>Copy settings</Menu.Item>
+        </>
+      );
+    }
+    await render(
+      <>
+        <ContextMenu>
+          <ContextMenu.Trigger>
+            <Knob parameter={gain} />
+          </ContextMenu.Trigger>
+          <ContextMenu.Content>
+            <ParameterActions />
+          </ContextMenu.Content>
+        </ContextMenu>
+        <DropdownMenu>
+          <DropdownMenu.Trigger>
+            <Button>Gain</Button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content>
+            <ParameterActions />
+          </DropdownMenu.Content>
+        </DropdownMenu>
+      </>,
+    );
+    const user = userEvent.setup();
+    const names = () =>
+      screen.getAllByRole('menuitem').map((item) => item.accessibility.label);
+    await secondaryPress(screen.getByRole('adjustable', { name: 'Gain' }));
+    expect(names()).toEqual(['Reset to default', 'Copy settings']);
+    await user.keyboard('{End}{Enter}');
+    expect(copy).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: 'Gain' }));
+    expect(names()).toEqual(['Reset to default', 'Copy settings']);
+    await user.click(
+      screen.getByRole('menuitem', { name: 'Reset to default' }),
+    );
+    expect(gain.get()).toBe(0.6);
+    expect(gain.set).not.toHaveBeenCalled();
   });
 });

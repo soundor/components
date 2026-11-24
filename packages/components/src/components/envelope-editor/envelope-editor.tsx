@@ -6,7 +6,6 @@ import {
   viewport,
   type Coordinates,
 } from '../../chart/geometry';
-import type { PlotSeries } from '../../chart/series';
 import {
   envelopeStages,
   useEnvelopeEditor,
@@ -22,7 +21,7 @@ import {
   type StyleProps,
   type Theme,
 } from '../../theme';
-import { Plot } from '../plot';
+import { Plot, usePlotCoordinates } from '../plot';
 import { colorFor, fillBox } from '../shared/display';
 
 export interface EnvelopeEditorProps
@@ -51,6 +50,9 @@ export interface EnvelopeEditorProps
 const halo = 13;
 const dot = 8;
 const letters = { attack: 'A', decay: 'D', sustain: 'S', release: 'R' };
+const levels = [0, 0.5, 1];
+const unit = [0, 1] as const;
+const blank = () => '';
 
 function samePlace(a: Coordinates | null, b: Coordinates) {
   if (!a) return false;
@@ -66,13 +68,8 @@ function samePlace(a: Coordinates | null, b: Coordinates) {
  * Tells the editor where the plot maps its values, once it has laid out and
  * whenever that changes: on a resize, not on every frame.
  */
-function Place({
-  space,
-  report,
-}: {
-  space: Coordinates;
-  report: (space: Coordinates) => void;
-}) {
+function Place({ report }: { report: (space: Coordinates) => void }) {
+  const space = usePlotCoordinates();
   useLayoutEffect(() => report(space));
   return null;
 }
@@ -194,39 +191,23 @@ export function EnvelopeEditor({
   const editor = useEnvelopeEditor(options, space ?? estimate);
   const { geometry, handles } = editor;
   const sustain = handles[2]!;
-  const series = useMemo((): PlotSeries[] => {
+  // Silence before the note and after the release: level at zero out to
+  // the plot's edges, past the handles' safe zone, fainter than the curve.
+  const silence = useMemo(() => {
     const [first, last] = [geometry.points[0]!, geometry.points.at(-1)!];
     const span = geometry.domain[1] - geometry.domain[0];
-    // Silence before the note and after the release: level at zero out to
-    // the plot's edges, past the handles' safe zone, fainter than the curve.
-    const silence = (points: [number, number][]): PlotSeries => ({
-      type: 'line',
-      points,
-      color: tint,
-      strokeWidth: 1.5,
-      opacity: 0.35,
-      hideInReadout: true,
-    });
     return [
-      silence([
+      [
         [first[0] - span, first[1]],
         [first[0], first[1]],
-      ]),
-      silence([
+      ],
+      [
         [last[0], last[1]],
         [last[0] + span, last[1]],
-      ]),
-      {
-        type: fill ? 'area' : 'line',
-        points: geometry.points,
-        color: tint,
-        baseline: 0,
-        strokeWidth: 2,
-        hideInReadout: true,
-      },
-    ];
-  }, [geometry, fill, tint]);
-  const levels = [0, 0.5, 1];
+      ],
+    ] as const;
+  }, [geometry]);
+  const Curve = fill ? Plot.Area : Plot.Line;
   const active =
     handles.find((handle) => handle.pressed) ??
     handles.find((handle) => handle.focusVisible) ??
@@ -245,50 +226,66 @@ export function EnvelopeEditor({
         title={title}
         accessibilityLabel={accessibilityLabel ?? title ?? 'Envelope'}
         style={slot('plot')}
-        series={series}
         safeZone={halo + 1}
-        x={{
-          domain: geometry.domain,
+      >
+        <Plot.XAxis
+          domain={geometry.domain}
           // Each stage's end, for the eye: the plot's units are not seconds.
-          ticks: grid
-            ? [handles[0]!, handles[1]!, sustain].map(
-                (handle) => geometry.handles[handle.stage][0],
-              )
-            : [],
-          format: () => '',
-        }}
-        y={{
-          domain: [0, 1],
-          ticks: grid || axisLabels ? levels : [],
-          format: axisLabels ? editor.levelAt : () => '',
-        }}
-        overlay={(plotSpace) => (
-          <>
-            <Place space={plotSpace} report={report} />
-            <View
-              {...editor.layerHandlers}
-              style={{
-                ...fillBox,
-                cursor: editor.disabled
-                  ? 'default'
-                  : handles.some((handle) => handle.hovered || handle.pressed)
-                    ? 'move'
-                    : 'default',
-              }}
-            />
-            {handles.map((handle) => (
-              <Handle
-                key={handle.stage}
-                handle={handle}
-                color={tint}
-                disabled={editor.disabled}
-                theme={theme}
-                slot={slot}
-              />
-            ))}
-          </>
-        )}
-      />
+          ticks={
+            grid
+              ? [handles[0]!, handles[1]!, sustain].map(
+                  (handle) => geometry.handles[handle.stage][0],
+                )
+              : []
+          }
+          format={blank}
+        />
+        <Plot.YAxis
+          domain={unit}
+          ticks={grid || axisLabels ? levels : []}
+          format={axisLabels ? editor.levelAt : blank}
+        />
+        <Plot.Grid />
+        {silence.map((points, index) => (
+          <Plot.Line
+            key={index}
+            points={points}
+            color={tint}
+            strokeWidth={1.5}
+            opacity={0.35}
+            hideInReadout
+          />
+        ))}
+        <Curve
+          points={geometry.points}
+          color={tint}
+          baseline={0}
+          strokeWidth={2}
+          hideInReadout
+        />
+        <Place report={report} />
+        <View
+          {...editor.layerHandlers}
+          style={{
+            ...fillBox,
+            cursor: editor.disabled
+              ? 'default'
+              : handles.some((handle) => handle.hovered || handle.pressed)
+                ? 'move'
+                : 'default',
+          }}
+        />
+        {handles.map((handle) => (
+          <Handle
+            key={handle.stage}
+            handle={handle}
+            color={tint}
+            disabled={editor.disabled}
+            theme={theme}
+            slot={slot}
+          />
+        ))}
+      </Plot>
       {showValues && (
         <View
           accessible={false}

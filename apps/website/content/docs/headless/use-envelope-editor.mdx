@@ -3,7 +3,7 @@ title: useEnvelopeEditor
 description: Interaction for an ADSR editor of your own.
 ---
 
-`useEnvelopeEditor` is [EnvelopeEditor](/docs/components/envelope-editor)'s interaction without its look: the four stages as range controls, a focusable handle for each, and a layer that gives a press to the nearest handle. It takes the same options as the component, and the coordinate space it is drawn in: a Plot's, through its `overlay`, or one of your own from `createCoordinates`.
+`useEnvelopeEditor` is [EnvelopeEditor](/docs/components/envelope-editor)'s interaction without its look: the four stages as range controls, a focusable handle for each, and a layer that gives a press to the nearest handle. It takes the same options as the component, and the coordinate space it is drawn in: a Plot's, from `usePlotCoordinates()` in a component inside it, or one of your own from `createCoordinates`.
 
 ```tsx
 import { useEnvelopeEditor } from '@soundor/components/headless';

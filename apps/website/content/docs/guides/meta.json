@@ -4,6 +4,7 @@
     "live-plot-data",
     "resizable-editors",
     "keyboard-and-accessibility",
-    "custom-controls"
+    "custom-controls",
+    "migrating-to-0-4"
   ]
 }

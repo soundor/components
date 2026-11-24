@@ -1,11 +1,12 @@
+import type { ReactNode } from 'react';
+
 import type { PopupAlign, PopupSide } from '../../internal/popup/placement';
 import { Popup, type PopupAnchor } from '../../internal/popup/popup';
 import { useComponent, type ControlSize, type StyleProps } from '../../theme';
 import { MenuList, surfaceStyle, type MenuListProps } from './menu-list';
-import type { MenuItem } from './types';
 
 export interface MenuPopupProps extends StyleProps<'Menu'> {
-  items: readonly MenuItem[];
+  children?: ReactNode;
   anchor: PopupAnchor;
   side: PopupSide;
   align: PopupAlign;
@@ -17,9 +18,13 @@ export interface MenuPopupProps extends StyleProps<'Menu'> {
   debugId?: string;
 }
 
-/** A menu of actions in a popup: what a Dropdown and a ContextMenu open. */
+/**
+ * A menu in a popup: what a DropdownMenu and a ContextMenu open. Its
+ * placement, dismissal and focus scope are the Popup's; its rows, keyboard
+ * and choosing, the MenuList's.
+ */
 export function MenuPopup({
-  items,
+  children,
   anchor,
   side,
   align,
@@ -32,9 +37,6 @@ export function MenuPopup({
   ...styles
 }: MenuPopupProps) {
   const { theme, slot } = useComponent('Menu', styles);
-  const checkable = items.some(
-    (item) => item.type !== 'separator' && item.checked !== undefined,
-  );
   return (
     <Popup
       anchor={anchor}
@@ -47,25 +49,13 @@ export function MenuPopup({
     >
       <MenuList
         label={label}
-        checkable={checkable}
         size={size}
         initialFocus={initialFocus}
         close={close}
         part={slot}
-        rows={items.map((item, index) =>
-          item.type === 'separator'
-            ? { key: item.id ?? `separator-${index}`, separator: true }
-            : {
-                key: item.id,
-                label: item.label,
-                disabled: item.disabled,
-                icon: item.icon,
-                hint: item.hint,
-                checked: item.checked,
-                select: item.onSelect,
-              },
-        )}
-      />
+      >
+        {children}
+      </MenuList>
     </Popup>
   );
 }

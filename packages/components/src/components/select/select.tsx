@@ -18,7 +18,12 @@ import {
   type ControlSize,
   type StyleProps,
 } from '../../theme';
-import { MenuList, surfaceStyle, type MenuRowState } from '../menu/menu-list';
+import {
+  MenuList,
+  MenuRow,
+  surfaceStyle,
+  type MenuRowState,
+} from '../menu/menu-list';
 import type { ActionProps } from '../shared/action';
 import { ChevronIcon } from '../shared/icons';
 
@@ -260,24 +265,26 @@ export function Select<T extends string>({
             label={name}
             checkable
             size={size}
-            initialFocus={Math.max(
-              0,
-              options.findIndex((option) => option.value === own.value),
-            )}
+            initialFocus="checked"
             close={() => popup.setOpen(false)}
             part={(part, base) =>
               part === 'item' ? slot('option', base) : base
             }
-            rows={options.map((option) => ({
-              key: option.value,
-              label: option.label,
-              hint: option.hint,
-              disabled: option.disabled,
-              checked: option.value === own.value,
-              render: renderOption && ((state) => renderOption(option, state)),
-              select: () => choose(option),
-            }))}
-          />
+          >
+            {options.map((option) => (
+              <MenuRow
+                key={option.value}
+                label={option.label}
+                hint={option.hint}
+                disabled={option.disabled}
+                checked={option.value === own.value}
+                render={
+                  renderOption && ((state) => renderOption(option, state))
+                }
+                select={() => choose(option)}
+              />
+            ))}
+          </MenuList>
         </Popup>
       )}
     </View>
