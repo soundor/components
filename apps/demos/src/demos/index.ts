@@ -10,6 +10,7 @@ import Divider from './divider';
 import DropdownMenu from './dropdown-menu';
 import EnvelopeEditor from './envelope-editor';
 import EnvelopeEditorControlled from './envelope-editor-controlled';
+import EqualizerReference from './equalizer-reference';
 import Fader from './fader';
 import Gallery from './gallery';
 import Knob from './knob';
@@ -79,6 +80,7 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   'control-group': ControlGroup,
   divider: Divider,
   'plot-eq': PlotEq,
+  'equalizer-reference': EqualizerReference,
   'plot-edit': PlotEdit,
   'plot-spectrum': PlotSpectrum,
   'plot-bars': PlotBars,

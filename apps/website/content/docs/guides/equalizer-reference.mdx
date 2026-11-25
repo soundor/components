@@ -1,0 +1,28 @@
+---
+title: Editing a response graph
+description: An interactive equalizer interface built from reusable primitives.
+---
+
+<Demo name="equalizer-reference" height={460} />
+
+The display uses **simulated data**. The input and output traces are deterministic,
+and the response curves are illustrative shapes. The meter is a fixed example.
+
+Double-click empty graph space to add a band, or use **Add band**. Drag its
+marker to edit frequency and gain; use the wheel on it to edit Q. Shift-click
+to toggle a band, Shift-drag empty space to select a rectangle, then drag a
+selected band to move the group. Use a focused marker's arrows to adjust it,
+Delete to remove it, or Shift+F10 to open its context menu. The band list and
+floating editor provide alternatives to pointer editing.
+
+The editor owns band data, selection IDs and the active editor separately.
+Spectrum publishers update outside React; `Plot.Area` subscribes to them on
+the right dBFS scale, while the response and markers use the left dB scale.
+The moving marker's ref anchors `Popover.Content`. The panel uses existing
+Select, Knob and ValueField controls. Group drags apply a shared pixel delta
+to the captured starting coordinates, preserving frequency ratios.
+
+For a plug-in, supply real spectrum frames and response data from your audio
+side. Bind the visible controls to your existing parameters, keep editor
+selection out of automation, and bracket edits with marker or group gesture
+phases so host automation and undo see one continuous edit.
