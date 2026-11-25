@@ -54,6 +54,7 @@ export interface PopupProps {
   restoreFocus?: boolean;
   dismissOnOutside?: boolean;
   dismissOnTab?: boolean;
+  passive?: boolean;
   /** Also disregard pointer presses on this trigger when positioning elsewhere. */
   triggerRef?: RefObject<UiNode | null>;
   /** Asked to close: Escape, Tab, or a press outside. The owner decides. */
@@ -101,6 +102,7 @@ export function Popup({
   restoreFocus = true,
   dismissOnOutside = true,
   dismissOnTab = true,
+  passive = false,
   triggerRef,
   onDismiss,
   accessibilityRole,
@@ -238,7 +240,7 @@ export function Popup({
   }, [modal, dismissOnOutside, anchor, onDismiss, triggerRef]);
 
   useLayoutEffect(() => {
-    if (modal) return undefined;
+    if (modal || passive) return undefined;
     const escapeFromAnchor = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       if (
@@ -286,7 +288,8 @@ export function Popup({
           debugId={debugId}
           accessibilityRole={accessibilityRole}
           accessibilityLabel={accessibilityLabel}
-          accessibilityActions={[{ name: 'escape' }]}
+          accessible={passive ? false : undefined}
+          accessibilityActions={passive ? undefined : [{ name: 'escape' }]}
           onAccessibilityAction={(event) => {
             if (event.actionName !== 'escape') return;
             event.preventDefault();
@@ -307,7 +310,7 @@ export function Popup({
               }),
               // Laid out, measured and placed before it is seen.
               opacity: shown ? 1 : 0,
-              pointerEvents: shown ? undefined : 'none',
+              pointerEvents: shown && !passive ? undefined : 'none',
             },
           ]}
         >

@@ -48,6 +48,7 @@ export interface ComponentSlots {
    */
   Menu: 'root' | 'item' | 'label' | 'icon' | 'separator' | 'heading';
   Popover: 'root';
+  Tooltip: 'root' | 'label';
   Knob: 'root' | 'control' | 'label' | 'value';
   Slider: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';
   Fader: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';

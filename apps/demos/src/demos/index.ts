@@ -35,6 +35,7 @@ import TextField from './text-field';
 import TextFieldStates from './text-field-states';
 import TextFieldValidation from './text-field-validation';
 import Toggle from './toggle';
+import Tooltip from './tooltip';
 import ValueField from './value-field';
 import ValueFieldBoth from './value-field-both';
 import ValueFieldOverflow from './value-field-overflow';
@@ -55,6 +56,7 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   'dropdown-menu': DropdownMenu,
   'context-menu': ContextMenu,
   popover: Popover,
+  tooltip: Tooltip,
   knob: Knob,
   showcase: Showcase,
   slider: Slider,

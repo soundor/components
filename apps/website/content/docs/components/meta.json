@@ -11,6 +11,7 @@
     "dropdown-menu",
     "context-menu",
     "popover",
+    "tooltip",
     "---Range controls---",
     "knob",
     "slider",
