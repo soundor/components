@@ -79,32 +79,42 @@ export function drawAxes(
   font: string,
   /** Which axes to draw, lines and labels: both by default. */
   shown: { x?: boolean; y?: boolean } = {},
+  side: 'top' | 'bottom' | 'left' | 'right' = 'bottom',
+  offset = 0,
 ) {
   const showX = shown.x ?? true;
   const showY = shown.y ?? true;
   if (!showX) x = [];
   if (!showY) y = [];
-  const bottom = Math.floor(rect.top + rect.height) + 0.5;
+  const top = rect.top;
+  const bottom = rect.top + rect.height;
   const left = Math.floor(rect.left) + 0.5;
   const right = rect.left + rect.width;
+  const xDirection = side === 'top' ? -1 : 1;
+  const yDirection = side === 'right' ? 1 : -1;
+  const horizontal =
+    Math.floor((side === 'top' ? top : bottom) + xDirection * offset) + 0.5;
+  const vertical =
+    Math.floor((side === 'right' ? right : rect.left) + yDirection * offset) +
+    0.5;
   ctx.save();
   ctx.strokeStyle = colors.axis;
   ctx.lineWidth = 1;
   ctx.beginPath();
   if (showY) {
-    ctx.moveTo(left, rect.top);
-    ctx.lineTo(left, bottom);
+    ctx.moveTo(vertical, top);
+    ctx.lineTo(vertical, bottom);
   }
   if (showX) {
-    ctx.moveTo(left, bottom);
-    ctx.lineTo(right, bottom);
+    ctx.moveTo(left, horizontal);
+    ctx.lineTo(right, horizontal);
   }
   for (const tick of x)
     if (contains(rect, tick.at, rect.top))
-      segment(ctx, tick.at, bottom, tick.at, bottom + 3);
+      segment(ctx, tick.at, horizontal, tick.at, horizontal + 3 * xDirection);
   for (const tick of y)
     if (contains(rect, rect.left, tick.at))
-      segment(ctx, left - 3, tick.at, left, tick.at);
+      segment(ctx, vertical, tick.at, vertical + 3 * yDirection, tick.at);
   ctx.stroke();
   ctx.font = font;
   ctx.textBaseline = 'middle';
@@ -120,7 +130,7 @@ export function drawAxes(
       ctx,
       tick.text,
       at,
-      bottom + 10,
+      horizontal + 10 * xDirection,
       'center',
       colors.label,
       colors.background,
@@ -131,9 +141,9 @@ export function drawAxes(
       axisLabel(
         ctx,
         tick.text,
-        left - 5,
+        vertical + 5 * yDirection,
         tick.at,
-        'right',
+        yDirection > 0 ? 'left' : 'right',
         colors.label,
         colors.background,
       );

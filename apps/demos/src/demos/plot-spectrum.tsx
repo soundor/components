@@ -49,7 +49,7 @@ export default function Demo() {
         const tone =
           18 *
           Math.exp(-(Math.log2(f / (220 + 140 * Math.sin(t))) ** 2) / 0.04);
-        const noise = (Math.random() - 0.5) * 7;
+        const noise = Math.sin(i * 17 + t * 13) * 3.5;
         const level = Math.max(-90, tilt + tone + noise);
         input.points[i]![1] = level;
         // The output is the input through a low-pass at 4 kHz.
@@ -64,7 +64,12 @@ export default function Demo() {
     return () => clearInterval(timer);
   }, []);
   return (
-    <Plot width={440} height={220} title="Spectrum">
+    <Plot
+      width={440}
+      height={220}
+      title="Response and spectrum"
+      note="Simulated data"
+    >
       <Plot.XAxis
         domain={[20, 20_000]}
         scale="log"
@@ -72,13 +77,35 @@ export default function Demo() {
         format={formatters.frequency}
       />
       <Plot.YAxis
+        id="spectrum"
+        position="right"
         domain={[-90, 0]}
         ticks={[-90, -60, -30, 0]}
+        format={(level) => `${level} dBFS`}
+      />
+      <Plot.YAxis
+        domain={[-12, 12]}
+        ticks={[-12, 0, 12]}
         format={formatters.decibels}
       />
       <Plot.Grid />
-      <Plot.Line label="Input" source={input} />
-      <Plot.Area label="Output" source={output} baseline={-90} />
+      <Plot.Line label="Input" source={input} yAxis="spectrum" />
+      <Plot.Area
+        label="Output"
+        source={output}
+        yAxis="spectrum"
+        baseline={-90}
+      />
+      <Plot.Line
+        label="Response"
+        points={[
+          [20, 0],
+          [2000, 0],
+          [4000, -3],
+          [10000, -7],
+          [20000, -12],
+        ]}
+      />
       <Plot.Legend />
       <Plot.Readout />
     </Plot>

@@ -8,6 +8,7 @@ import { PlotRoot } from './plot';
 export const Plot = Object.assign(PlotRoot, parts);
 
 export type { PlotAxis, PlotProps } from './plot';
+export type { PlotAxisReference } from './controller';
 export {
   usePlotCoordinates,
   type PlotAreaProps,

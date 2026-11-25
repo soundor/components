@@ -53,6 +53,7 @@ export {
   type PlotAreaProps,
   type PlotAxis,
   type PlotAxisProps,
+  type PlotAxisReference,
   type PlotBandProps,
   type PlotBarsProps,
   type PlotGuideProps,

@@ -30,6 +30,7 @@ import {
   usePlotSpace,
   type GuideLayer,
   type PlotController,
+  type PlotAxisReference,
   type SeriesLayer,
 } from './controller';
 import { seriesColor } from './plot';
@@ -37,6 +38,8 @@ import { seriesColor } from './plot';
 // Axes and grid ----------------------------------------------------------
 
 export interface PlotAxisProps {
+  id?: string;
+  hidden?: boolean;
   /** The values at the ends of the axis. Without an axis, the data's extent. */
   domain: readonly [number, number];
   scale?: Axis['scale'];
@@ -48,9 +51,22 @@ export interface PlotAxisProps {
   format?: (value: number) => string;
 }
 
-function useAxis(name: 'x' | 'y', part: string, props: PlotAxisProps) {
+function useAxis(
+  name: 'x' | 'y',
+  part: string,
+  props: PlotAxisProps,
+  side: 'top' | 'bottom' | 'left' | 'right',
+) {
   const controller = usePlotController(part);
-  const { domain, scale, ticks, minorTicks, format } = props;
+  const {
+    id,
+    hidden = false,
+    domain,
+    scale,
+    ticks,
+    minorTicks,
+    format,
+  } = props;
   const [lo, hi] = domain;
   // By value: ticks written inline are a new array each render, and the
   // same axis.
@@ -58,41 +74,52 @@ function useAxis(name: 'x' | 'y', part: string, props: PlotAxisProps) {
   const minorKey =
     typeof minorTicks === 'object' ? minorTicks.join() : minorTicks;
   const axis = useMemo(
-    (): Axis => ({ domain: [lo, hi], scale, ticks, minorTicks, format }),
+    () => ({
+      domain: [lo, hi] as const,
+      scale,
+      ticks,
+      minorTicks,
+      format,
+      hidden,
+      side,
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lo, hi, scale, tickKey, minorKey, format],
+    [lo, hi, scale, tickKey, minorKey, format, hidden, side],
   );
   useLayoutEffect(
-    () => controller.setAxis(name, axis),
-    [controller, name, axis],
+    () => controller.setAxis(name, id, axis),
+    [controller, name, id, axis],
   );
   return null;
 }
 
 /**
  * The horizontal axis: its domain, scale and labels. Drawn along the bottom,
- * with room kept for its labels. One per Plot.
+ * with room kept for its labels. Give additional axes distinct IDs.
  */
-function XAxis(props: PlotAxisProps) {
-  return useAxis('x', 'Plot.XAxis', props);
+function XAxis(props: PlotAxisProps & { position?: 'top' | 'bottom' }) {
+  return useAxis('x', 'Plot.XAxis', props, props.position ?? 'bottom');
 }
 
-/** The vertical axis: drawn along the left, with room for its labels. One per Plot. */
-function YAxis(props: PlotAxisProps) {
-  return useAxis('y', 'Plot.YAxis', props);
+/** A vertical axis: drawn along the left by default, with room for its labels. */
+function YAxis(props: PlotAxisProps & { position?: 'left' | 'right' }) {
+  return useAxis('y', 'Plot.YAxis', props, props.position ?? 'left');
 }
 
 /** Lines at the axes' ticks, under every series. */
-function Grid() {
+function Grid({ xAxis, yAxis }: PlotAxisReference) {
   const controller = usePlotController('Plot.Grid');
-  useLayoutEffect(() => controller.enable('grid'), [controller]);
+  useLayoutEffect(
+    () => controller.addGrid({ xAxis, yAxis }),
+    [controller, xAxis, yAxis],
+  );
   return null;
 }
 
 // Series -----------------------------------------------------------------
 
 /** What every series takes. */
-interface SeriesStyle {
+interface SeriesStyle extends PlotAxisReference {
   /** Its name in the legend and the readout. */
   label?: string;
   /** A colour, or one of the theme's accents; the theme's voices in turn by default. */
@@ -263,6 +290,8 @@ function useSeries(
       },
       data: source ? () => liveData(source) : () => data ?? undefined,
       extent,
+      xAxis: props.xAxis,
+      yAxis: props.yAxis,
     });
   });
   useLayoutEffect(() => controller.addSeries(layer), [controller, layer]);
@@ -306,7 +335,7 @@ function Band(props: PlotBandProps) {
 
 // Markers and guides -----------------------------------------------------
 
-export interface PlotMarkerProps {
+export interface PlotMarkerProps extends PlotAxisReference {
   x: number;
   y: number;
   /**
@@ -329,7 +358,7 @@ export interface PlotMarkerProps {
   onMoveEnd?: () => void;
 }
 
-export interface PlotGuideProps {
+export interface PlotGuideProps extends PlotAxisReference {
   /** Where it is: a y for a horizontal line, an x for a vertical one. */
   value: number;
   /** Drawn beside it, at the plot's edge. */
@@ -342,6 +371,7 @@ function useGuide(
   part: string,
   marker: GuideLayer['marker'],
   safeZone: number,
+  axes: PlotAxisReference,
 ) {
   const controller = usePlotController(part);
   const [layer] = useState<GuideLayer>(() => ({
@@ -350,7 +380,7 @@ function useGuide(
     focused: false,
     safeZone: 0,
   }));
-  useLayoutEffect(() => controller.updateGuide(layer, marker, safeZone));
+  useLayoutEffect(() => controller.updateGuide(layer, marker, safeZone, axes));
   useLayoutEffect(() => controller.addGuide(layer), [controller, layer]);
   return { controller, layer, anchor: useAnchor(layer, controller) };
 }
@@ -365,6 +395,8 @@ function Marker({
   onMove,
   onMoveStart,
   onMoveEnd,
+  xAxis,
+  yAxis,
 }: PlotMarkerProps) {
   const draggable = onMove !== undefined;
   // A handle's radius and its halo, which is 5 pixels more.
@@ -373,6 +405,7 @@ function Marker({
     'Plot.Marker',
     { x, y, label, color, radius },
     zone,
+    { xAxis, yAxis },
   );
   const space = usePlotSpace('Plot.Marker');
   // Unlabelled handles are numbered in the order they are drawn.
@@ -387,9 +420,11 @@ function Marker({
         .guides.filter((guide) => guide.safeZone > 0)
         .indexOf(layer) + 1
     : 0;
-  const { coordinates } = space;
+  const resolved = space.resolve({ xAxis, yAxis });
+  const { coordinates } = resolved ?? space;
   const shown =
     draggable &&
+    resolved &&
     contains(
       coordinates.rect,
       coordinates.x.map(x),
@@ -406,8 +441,8 @@ function Marker({
           radius={radius ?? 8}
           label={label ?? `Point ${Math.max(1, number)}`}
           coordinates={coordinates}
-          xAxis={space.x}
-          yAxis={space.y}
+          xAxis={resolved.x}
+          yAxis={resolved.y}
           onMove={onMove}
           onMoveStart={onMoveStart}
           onMoveEnd={onMoveEnd}
@@ -497,15 +532,33 @@ function MarkerControl({
 }
 
 /** A level line across the plot: 0 dB, a threshold. */
-function HorizontalLine({ value, label, color, dash }: PlotGuideProps) {
-  return useGuide('Plot.HorizontalLine', { y: value, label, color, dash }, 0)
-    .anchor;
+function HorizontalLine({
+  value,
+  label,
+  color,
+  dash,
+  xAxis,
+  yAxis,
+}: PlotGuideProps) {
+  return useGuide('Plot.HorizontalLine', { y: value, label, color, dash }, 0, {
+    xAxis,
+    yAxis,
+  }).anchor;
 }
 
 /** An upright line across the plot: a release point, a playhead you do not drag. */
-function VerticalLine({ value, label, color, dash }: PlotGuideProps) {
-  return useGuide('Plot.VerticalLine', { x: value, label, color, dash }, 0)
-    .anchor;
+function VerticalLine({
+  value,
+  label,
+  color,
+  dash,
+  xAxis,
+  yAxis,
+}: PlotGuideProps) {
+  return useGuide('Plot.VerticalLine', { x: value, label, color, dash }, 0, {
+    xAxis,
+    yAxis,
+  }).anchor;
 }
 
 // Legend and readout -----------------------------------------------------
@@ -583,8 +636,15 @@ function Readout() {
  * your own over the plot, such as handles; `safeZone` on the Plot keeps them
  * whole at the ends of the axes.
  */
-export function usePlotCoordinates(): Coordinates {
-  return usePlotSpace('usePlotCoordinates').coordinates;
+export function usePlotCoordinates(): Coordinates;
+export function usePlotCoordinates(
+  axes: PlotAxisReference,
+): Coordinates | undefined;
+export function usePlotCoordinates(
+  axes?: PlotAxisReference,
+): Coordinates | undefined {
+  const space = usePlotSpace('usePlotCoordinates');
+  return axes ? space.resolve(axes)?.coordinates : space.coordinates;
 }
 
 export const parts = {

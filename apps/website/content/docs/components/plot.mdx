@@ -57,7 +57,33 @@ Without a `Plot.XAxis` or `Plot.YAxis`, that axis spans the extent of the series
 | `Plot.Legend`         | The labelled series' names and colours                                      |
 | `Plot.Readout`        | The value of each labelled series under the pointer, with a crosshair       |
 
-A plot takes one of each axis; a second throws. Every part belongs inside a Plot, and throws outside one.
+A plot accepts one unnamed axis and any number of uniquely named axes per dimension. Every part belongs inside a Plot, and throws outside one.
+
+### Independent scales
+
+An axis takes an optional `id`, `hidden`, and `position` (`top` or `bottom`
+for X, `left` or `right` for Y). A hidden axis keeps its scale without using
+space for labels. Series, markers, guide lines, and grids accept `xAxis` and
+`yAxis` references. Omit a reference for the unnamed axis, or, if none is
+declared, the first named axis by ID. A missing explicit reference hides that
+layer until its axis is available.
+
+```tsx
+<Plot width={440} height={220}>
+  <Plot.XAxis domain={[20, 20000]} scale="log" />
+  <Plot.YAxis domain={[-12, 12]} />
+  <Plot.YAxis id="spectrum" domain={[-90, 0]} position="right" />
+  <Plot.Grid />
+  <Plot.Area source={spectrum} yAxis="spectrum" />
+  <Plot.Line points={response} />
+</Plot>
+```
+
+`usePlotCoordinates({ yAxis: 'spectrum' })` returns the usual mapping and
+shared bounds, or `undefined` until that named axis is registered. The no-argument
+form keeps its existing behavior. Use positive domains and samples for log axes;
+non-finite mapped samples are not drawn. Give the chart an accessible label, and
+provide values in controls or text when the canvas data is essential.
 
 ### Series data
 
