@@ -12,6 +12,7 @@ import EnvelopeEditor from './envelope-editor';
 import EnvelopeEditorControlled from './envelope-editor-controlled';
 import EqualizerReference from './equalizer-reference';
 import Fader from './fader';
+import FrequencyKeyboard from './frequency-keyboard';
 import Gallery from './gallery';
 import Knob from './knob';
 import LevelMeter from './level-meter';
@@ -85,6 +86,7 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   'plot-edit': PlotEdit,
   'plot-spectrum': PlotSpectrum,
   spectrogram: Spectrogram,
+  'frequency-keyboard': FrequencyKeyboard,
   'plot-bars': PlotBars,
   'plot-compressor': PlotCompressor,
   'plot-envelope': PlotEnvelope,

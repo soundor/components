@@ -54,6 +54,11 @@ export { ValueField, type ValueFieldProps } from './components/value-field';
 export { TextField, type TextFieldProps } from './components/text-field';
 export { LevelMeter, type LevelMeterProps } from './components/level-meter';
 export {
+  FrequencyKeyboard,
+  type FrequencyKeyboardProps,
+  type PlotFrequencyKeyboardProps,
+} from './components/frequency-keyboard';
+export {
   Spectrogram,
   type SpectrogramProps,
   type SpectrumFrame,
