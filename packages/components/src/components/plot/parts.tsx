@@ -3,6 +3,7 @@ import {
   useCallback,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
@@ -48,6 +49,11 @@ import {
   type SeriesLayer,
 } from './controller';
 import { seriesColor } from './plot';
+import {
+  selectPlotItem,
+  type PlotGroupDrag,
+  type PlotSelection,
+} from './selection';
 
 // Axes and grid ----------------------------------------------------------
 
@@ -361,6 +367,7 @@ export interface PlotMarkerProps
   extends PlotAxisReference, HostProps, StyleProps<'PlotMarker'> {
   x: number;
   y: number;
+  id?: string;
   /**
    * Drawn in the handle, and what assistive technology calls it: "Point 1",
    * "Point 2"… by default.
@@ -412,6 +419,7 @@ function useGuide(
   marker: GuideLayer['marker'],
   safeZone: number,
   axes: PlotAxisReference,
+  id?: string,
 ) {
   const controller = usePlotController(part);
   const [layer] = useState<GuideLayer>(() => ({
@@ -420,7 +428,9 @@ function useGuide(
     focused: false,
     safeZone: 0,
   }));
-  useLayoutEffect(() => controller.updateGuide(layer, marker, safeZone, axes));
+  useLayoutEffect(() =>
+    controller.updateGuide(layer, marker, safeZone, axes, id),
+  );
   useLayoutEffect(() => controller.addGuide(layer), [controller, layer]);
   return { controller, layer, anchor: useAnchor(layer, controller) };
 }
@@ -438,8 +448,13 @@ function Marker({
   onMoveEnd,
   xAxis,
   yAxis,
+  id,
   ...props
 }: PlotMarkerProps) {
+  const space = usePlotSpace('Plot.Marker');
+  const selection = space.selection;
+  const selected =
+    props.selected ?? (id !== undefined && selection?.selectedIds.includes(id));
   const draggable = onMove !== undefined;
   const interactive = Boolean(
     draggable ||
@@ -449,7 +464,8 @@ function Marker({
     props.onDoubleClick ||
     props.onContextMenu ||
     props.onWheel ||
-    props.onRemove,
+    props.onRemove ||
+    (id !== undefined && selection),
   );
   // A handle's radius and its halo, which is 5 pixels more.
   const zone = interactive
@@ -464,13 +480,13 @@ function Marker({
       color,
       radius,
       custom: Boolean(props.render),
-      selected: props.selected,
+      selected,
       disabled: props.disabled,
     },
     zone,
     { xAxis, yAxis },
+    id,
   );
-  const space = usePlotSpace('Plot.Marker');
   // Unlabelled handles are numbered in the order they are drawn.
   useSyncExternalStore(
     controller.subscribe,
@@ -500,6 +516,9 @@ function Marker({
       {shown && (
         <MarkerControl
           {...props}
+          id={id}
+          selection={selection}
+          selected={selected}
           x={x}
           y={y}
           radius={radius ?? 8}
@@ -519,6 +538,7 @@ function Marker({
 }
 
 interface MarkerControlProps extends Omit<PlotMarkerProps, 'xAxis' | 'yAxis'> {
+  selection?: PlotSelection;
   radius: number;
   label: string;
   coordinates: Coordinates;
@@ -558,12 +578,31 @@ function MarkerControl({
   ref,
   accessibilityActions,
   onAccessibilityAction,
+  id,
+  selection,
   ...props
 }: MarkerControlProps) {
   const { theme, slot } = useComponent('PlotMarker', props);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const group = useRef<{
+    notify: NonNullable<PlotSelection['onGroupDrag']>;
+    event: PlotGroupDrag;
+    origin: Point;
+  } | null>(null);
+  const select =
+    id !== undefined && selection
+      ? (event: PointerEvent | KeyboardEvent | AccessibilityActionEvent) => {
+          selectPlotItem(
+            selection,
+            id,
+            'shiftKey' in event &&
+              (event.shiftKey || event.ctrlKey || event.metaKey),
+          );
+          onSelect?.(event);
+        }
+      : onSelect;
   const control = useXYPad(
     {
       disabled: disabled || !onMove || movement === 'y',
@@ -592,12 +631,32 @@ function MarkerControl({
       travel: [coordinates.inner.width, coordinates.inner.height],
       onPointChange: (currentX, currentY, cancelled) => {
         const point: Point = [currentX, currentY];
-        onMove?.(!cancelled && constrain ? constrain(point) : point);
+        const next = !cancelled && constrain ? constrain(point) : point;
+        const active = group.current;
+        if (!active) onMove?.(next);
+        else if (!cancelled) {
+          active.event = {
+            ...active.event,
+            phase: 'move',
+            delta: [
+              coordinates.x.map(next[0]) - active.origin[0],
+              coordinates.y.map(next[1]) - active.origin[1],
+            ],
+          };
+          active.notify(active.event);
+        }
       },
       onInteractionStart: onMoveStart,
       onInteractionEnd: (cancelled) => {
+        const active = group.current;
+        group.current = null;
         setDragging(false);
         try {
+          if (active)
+            active.notify({
+              ...active.event,
+              phase: cancelled ? 'cancel' : 'end',
+            });
           if (cancelled) onMoveCancel?.();
         } finally {
           onMoveEnd?.();
@@ -611,15 +670,15 @@ function MarkerControl({
   const actions = withActions(
     {
       accessibilityActions:
-        onSelect && !disabled
+        select && !disabled
           ? [
               ...(control.handlers.accessibilityActions ?? []),
               { name: 'activate' },
             ]
           : control.handlers.accessibilityActions,
       onAccessibilityAction: (event) => {
-        if (onSelect && !disabled && event.actionName === 'activate') {
-          onSelect(event);
+        if (select && !disabled && event.actionName === 'activate') {
+          select(event);
           event.preventDefault();
         } else control.handlers.onAccessibilityAction?.(event);
       },
@@ -635,9 +694,7 @@ function MarkerControl({
       {...actions}
       ref={ref}
       focusable={!disabled}
-      accessibilityRole={
-        onMove ? 'adjustable' : onSelect ? 'button' : undefined
-      }
+      accessibilityRole={onMove ? 'adjustable' : select ? 'button' : undefined}
       accessibilityState={{
         ...control.handlers.accessibilityState,
         disabled,
@@ -656,10 +713,34 @@ function MarkerControl({
       onPointerLeave={() => setHovered(false)}
       onPointerDown={(event) => {
         if (disabled) return;
-        if (event.button === 0) onSelect?.(event);
+        if (event.button === 0) select?.(event);
         if (!event.defaultPrevented && onMove) {
           control.handlers.onPointerDown?.(event);
-          if (event.button === 0 && !event.altKey) setDragging(true);
+          if (event.button === 0 && !event.altKey) {
+            setDragging(true);
+            const notify = selection?.onGroupDrag;
+            if (
+              !group.current &&
+              notify &&
+              id !== undefined &&
+              selection?.multiple &&
+              selection.selectedIds.length > 1 &&
+              selection.selectedIds.includes(id) &&
+              !event.shiftKey &&
+              !event.ctrlKey &&
+              !event.metaKey
+            ) {
+              const start: PlotGroupDrag = {
+                ids: [...selection.selectedIds],
+                markerId: id,
+                phase: 'start',
+                delta: [0, 0],
+                coordinates,
+              };
+              group.current = { notify, event: start, origin: [atX, atY] };
+              notify(start);
+            }
+          }
         }
       }}
       onDoubleClick={
@@ -672,8 +753,8 @@ function MarkerControl({
       onContextMenu={disabled ? undefined : onContextMenu}
       onKeyDown={(event) => {
         if (disabled || event.defaultPrevented) return;
-        if ((event.key === 'Enter' || event.key === ' ') && onSelect) {
-          onSelect(event);
+        if ((event.key === 'Enter' || event.key === ' ') && select) {
+          select(event);
           event.preventDefault();
         } else if (
           (event.key === 'Backspace' || event.key === 'Delete') &&

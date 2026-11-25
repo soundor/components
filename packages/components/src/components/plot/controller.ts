@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 import type { UiNode } from 'soundor:ui';
 
 import type { Axis, Coordinates } from '../../chart/geometry';
+import type { PlotSelection } from './selection';
 
 export interface PlotAxisReference {
   xAxis?: string;
@@ -32,6 +33,7 @@ export interface SeriesLayer extends PlotAxisReference {
 
 /** A marker or a guide line, drawn over every series. */
 export interface GuideLayer extends PlotAxisReference {
+  id?: string;
   node: UiNode | null;
   marker: PlotMarker;
   /** Has keyboard focus: drawn highlighted. */
@@ -249,7 +251,9 @@ export class PlotController {
     marker: GuideLayer['marker'],
     safeZone: number,
     axes: PlotAxisReference,
+    id?: string,
   ) {
+    layer.id = id;
     layer.marker = marker;
     layer.xAxis = axes.xAxis;
     layer.yAxis = axes.yAxis;
@@ -286,6 +290,7 @@ export interface PlotSpace {
   resolve: (
     axes?: PlotAxisReference,
   ) => { coordinates: Coordinates; x: Axis; y: Axis } | undefined;
+  selection?: PlotSelection;
 }
 
 export const SpaceContext = createContext<PlotSpace | null>(null);

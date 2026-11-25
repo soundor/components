@@ -60,6 +60,8 @@ export {
   type PlotBandProps,
   type PlotBarsProps,
   type PlotGuideProps,
+  type PlotGroupDrag,
+  type PlotSelection,
   type PlotLineProps,
   type PlotMarkerProps,
   type PlotMarkerState,

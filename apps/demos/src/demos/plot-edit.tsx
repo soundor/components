@@ -19,6 +19,8 @@ export default function Demo() {
   const [menu, setMenu] = useState<PopupRegion | null>(null);
   const [cursor, setCursor] = useState('');
   const [selected, setSelected] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
+  const original = useRef(points);
   const [aux, setAux] = useState(1);
   const anchor = useRef<UiNode | null>(null);
   return (
@@ -27,6 +29,32 @@ export default function Demo() {
         width={360}
         height={180}
         accessibilityLabel="Point editor"
+        selection={{
+          selectedIds,
+          onSelectionChange: setSelectedIds,
+          multiple: true,
+          rectangle: true,
+          onGroupDrag: ({ phase, delta, ids, coordinates }) => {
+            if (phase === 'start') original.current = points;
+            if (phase === 'cancel') setPoints(original.current);
+            if (phase === 'move')
+              setPoints(
+                original.current.map(([x, y], index) => {
+                  if (!ids.includes(String(index))) return [x, y];
+                  const nx = coordinates.x.invert(
+                    coordinates.x.map(x) + delta[0],
+                  );
+                  const ny = coordinates.y.invert(
+                    coordinates.y.map(y) + delta[1],
+                  );
+                  return [
+                    Math.min(1, Math.max(0, nx)),
+                    index === 0 ? y : Math.min(1, Math.max(0, ny)),
+                  ];
+                }),
+              );
+          },
+        }}
         onBackgroundDoubleClick={({ data }) =>
           setPoints((prev) => [...prev, data])
         }
@@ -45,9 +73,9 @@ export default function Demo() {
         {points.map(([x, y], index) => (
           <Plot.Marker
             key={index}
+            id={String(index)}
             label={`Point ${index + 1}`}
             ref={index === selected ? anchor : undefined}
-            selected={index === selected}
             movement={index === 0 ? 'x' : 'both'}
             hitRadius={14}
             onSelect={() => setSelected(index)}
@@ -81,8 +109,9 @@ export default function Demo() {
           </Button>
         </Popover.Content>
       </Popover>
-      <Text accessible={false} style={{ color: theme.color.textSecondary }}>
-        {cursor || 'Double-click the graph to add a point'}
+      <Text style={{ color: theme.color.textSecondary }}>
+        {selectedIds.length} selected.{' '}
+        {cursor || 'Double-click to add; Shift-drag to select.'}
       </Text>
       <Button onPress={() => setPoints((prev) => [...prev, [0.25, 0.75]])}>
         Add point
@@ -96,6 +125,7 @@ export default function Demo() {
             onPress={() => {
               setPoints([]);
               setSelected(null);
+              setSelectedIds([]);
             }}
           >
             Clear points

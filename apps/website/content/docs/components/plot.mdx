@@ -133,6 +133,24 @@ event. Compose a `ContextMenu.Trigger` for built-in accessibility actions, or
 pass the marker's `ref` to a Popover. The example's first point moves only
 horizontally, and the auxiliary value responds to the wheel.
 
+### Selection and grouped movement
+
+Pass `selection={{ selectedIds, onSelectionChange, multiple: true, rectangle: true }}`
+to `Plot` and a stable `id` to each selectable marker. Shift, Control or Command
+toggles a marker in multiple mode; Enter or Space also works on a focused marker.
+Background clicks clear selection unless `clearOnBackgroundPress={false}`.
+Shift-drag the background with `rectangle` enabled to replace the selection
+with the markers inside the rectangle.
+
+With `onGroupDrag`, dragging a selected marker reports the captured IDs and
+`start`, `move`, `end`, and `cancel` phases instead of its individual `onMove`.
+Capture application-owned starting values on `start`, then use each marker's
+scale to map its original value to pixels, add `delta`, and invert. On a log
+axis a common pixel displacement preserves frequency ratios. Constrain the
+shared displacement before converting to data if relative spacing must be
+preserved against the edges. Restore the original values on `cancel` and
+close any host gestures on `end` or `cancel`.
+
 ### Series data
 
 A series takes sorted `[x, y]` `points`, evenly spaced `values` (typed arrays work) or a live `source`: one of the three. A band takes `lower` and `upper`, or a `source` of both. TypeScript holds each series to the props it has: a `Plot.Bars` has no `strokeWidth`, a `Plot.Line` no `radius`, and `points` with `values` is refused. What gets past it (props spread from untyped data) is refused when it renders.

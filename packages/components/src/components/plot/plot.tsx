@@ -48,7 +48,11 @@ import {
   voices,
   type DisplayCaption,
 } from '../shared/display';
-import { PlotBackground, type PlotBackgroundProps } from './background';
+import {
+  PlotBackground,
+  type PlotBackgroundProps,
+  type PlotBackgroundDragEvent,
+} from './background';
 import {
   ControllerContext,
   PlotController,
@@ -57,6 +61,7 @@ import {
   type PlotAxisReference,
   type AxisSide,
 } from './controller';
+import type { PlotSelection } from './selection';
 
 export type PlotAxis = Axis;
 
@@ -79,6 +84,7 @@ export interface PlotProps
    * their own; the larger is used.
    */
   safeZone?: number;
+  selection?: PlotSelection;
   accessibilityLabel?: string;
   debugId?: string;
 }
@@ -140,6 +146,7 @@ export function PlotRoot({
   onBackgroundPointerLeave,
   onBackgroundContextMenu,
   onBackgroundDrag,
+  selection,
   ...styles
 }: PlotProps) {
   const { theme, slot, fontsReady } = useComponent('Plot', styles);
@@ -315,10 +322,12 @@ export function PlotRoot({
   const { coordinates, resolve } = geometry;
   const captioned = Boolean(title || note);
   const space = useMemo(
-    () => ({ coordinates, x, y, captioned, resolve }),
-    [coordinates, x, y, captioned, resolve],
+    () => ({ coordinates, x, y, captioned, resolve, selection }),
+    [coordinates, x, y, captioned, resolve, selection],
   );
   const pointer = useRef<Point | null>(null);
+  const marquee = useRef<{ origin: Point; point: Point } | null>(null);
+  const suppressPress = useRef(false);
   const invalidate = useDrawing(box, (ctx) => {
     const { rect } = coordinates;
     if (!rect.width || !rect.height) return;
@@ -361,6 +370,18 @@ export function PlotRoot({
       }
       if (readout && inside) {
         drawSelection(ctx, rect, hovered[0], hovered[1], c.displayText);
+      }
+      const drag = marquee.current;
+      if (drag) {
+        ctx.save();
+        ctx.strokeStyle = c.focus;
+        ctx.strokeRect(
+          drag.origin[0],
+          drag.origin[1],
+          drag.point[0] - drag.origin[0],
+          drag.point[1] - drag.origin[1],
+        );
+        ctx.restore();
       }
     });
     // Not clipped, so a handle at the end of an axis is whole.
@@ -418,6 +439,46 @@ export function PlotRoot({
       controller.frame = () => {};
     };
   }, [controller, invalidate]);
+  const backgroundDrag = (drag: PlotBackgroundDragEvent) => {
+    if (drag.phase === 'start') {
+      suppressPress.current = false;
+      if (selection?.multiple && selection.rectangle && drag.event.shiftKey) {
+        marquee.current = { origin: drag.origin, point: drag.point };
+      }
+    }
+    const area = marquee.current;
+    if (!area) {
+      onBackgroundDrag?.(drag);
+      return;
+    }
+    if (drag.phase === 'move') area.point = drag.point;
+    if (drag.phase === 'cancel' || drag.phase === 'end') {
+      marquee.current = null;
+      suppressPress.current = drag.phase === 'end';
+      if (drag.phase === 'end' && selection) {
+        const left = Math.min(area.origin[0], drag.point[0]);
+        const top = Math.min(area.origin[1], drag.point[1]);
+        const box = {
+          left,
+          top,
+          width: Math.abs(drag.point[0] - area.origin[0]),
+          height: Math.abs(drag.point[1] - area.origin[1]),
+        };
+        const ids = new Set<string>();
+        for (const guide of controller.guides) {
+          if (guide.id === undefined || guide.marker.disabled) continue;
+          const axes = resolve(guide)?.coordinates;
+          if (!axes) continue;
+          const x = axes.x.map(guide.marker.x ?? NaN);
+          const y = axes.y.map(guide.marker.y ?? NaN);
+          if (contains(coordinates.rect, x, y) && contains(box, x, y))
+            ids.add(guide.id);
+        }
+        selection.onSelectionChange([...ids]);
+      }
+    }
+    invalidate();
+  };
   const canHover = readout || draggable > 0;
   return (
     <View
@@ -463,16 +524,30 @@ export function PlotRoot({
         onBackgroundPointerEnter ||
         onBackgroundPointerLeave ||
         onBackgroundContextMenu ||
-        onBackgroundDrag) && (
+        onBackgroundDrag ||
+        selection) && (
         <PlotBackground
           space={space}
-          onBackgroundPress={onBackgroundPress}
+          onBackgroundPress={(event) => {
+            const suppressed = suppressPress.current;
+            suppressPress.current = false;
+            if (suppressed) return;
+            if (
+              selection &&
+              selection.clearOnBackgroundPress !== false &&
+              selection.selectedIds.length
+            )
+              selection.onSelectionChange([]);
+            onBackgroundPress?.(event);
+          }}
           onBackgroundDoubleClick={onBackgroundDoubleClick}
           onBackgroundPointerMove={onBackgroundPointerMove}
           onBackgroundPointerEnter={onBackgroundPointerEnter}
           onBackgroundPointerLeave={onBackgroundPointerLeave}
           onBackgroundContextMenu={onBackgroundContextMenu}
-          onBackgroundDrag={onBackgroundDrag}
+          onBackgroundDrag={
+            selection || onBackgroundDrag ? backgroundDrag : undefined
+          }
         />
       )}
       <ControllerContext.Provider value={controller}>
