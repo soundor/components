@@ -1,16 +1,31 @@
 import { Select } from '@soundor/components';
-import { View } from '@soundor/react';
+import { textStyle, useTheme } from '@soundor/components/theme';
+import { Text, View } from '@soundor/react';
 import { useState } from 'react';
 import { parameters } from 'soundor:parameters';
 
 type Oversampling = '1' | '2' | '4' | '8' | '16';
 
 export default function Demo() {
+  const theme = useTheme();
   const [oversampling, setOversampling] = useState<Oversampling>('2');
   return (
     <View style={{ flexDirection: 'row', gap: 16, alignItems: 'flex-start' }}>
       {/* Bound: the options, the label and the value are the parameter's. */}
-      <Select parameter={parameters.filterType} />
+      <Select
+        parameter={parameters.filterType}
+        iconOnly
+        width={104}
+        getOptionIcon={(option) => (
+          <Text accessible={false} style={textStyle(theme, 'body')}>
+            {option.label.toLowerCase().includes('low')
+              ? '⌝'
+              : option.label.toLowerCase().includes('high')
+                ? '⌞'
+                : '⌒'}
+          </Text>
+        )}
+      />
       <Select
         label="Oversampling"
         description="Higher costs more CPU"

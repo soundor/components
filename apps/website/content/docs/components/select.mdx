@@ -3,6 +3,14 @@ title: Select
 description: One value from a list of options, in a compact field.
 ---
 
+For visual choices, set `icon` on an option or pass `getOptionIcon(option)`
+to add an icon to a parameter's generated choices. Options retain their
+labels for keyboard navigation and assistive technology. `iconOnly` hides
+the chosen text when an icon exists; give the trigger a meaningful `label`
+or `accessibilityLabel`. `renderOption` replaces the visual row content,
+while `renderValue(option)` replaces the chosen value in the trigger.
+Render decorative, non-interactive content in these callbacks.
+
 Use `Select` for a choice with more options than a [SegmentedControl](/docs/components/segmented-control) has room for: a filter type, a waveform, an oversampling factor, a routing mode. The field shows the chosen option and opens its list below it, or above when there is more room there.
 
 <Demo name="select" height={260} />

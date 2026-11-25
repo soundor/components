@@ -1,3 +1,4 @@
+import { Text } from '@soundor/react';
 import {
   act,
   render,
@@ -42,6 +43,23 @@ async function pressOutside(menu: TestNode) {
 }
 
 describe('Select', () => {
+  test('icon-only changes presentation but keeps the chosen option accessible', async () => {
+    await render(
+      <Select
+        label="Filter"
+        iconOnly
+        options={filters}
+        getOptionIcon={(option) => <Text>{`Shape: ${option.value}`}</Text>}
+      />,
+    );
+    const user = userEvent.setup();
+    const control = screen.getByRole('combobox', { name: 'Filter' });
+    expect(control.accessibility.value?.text).toBe('Low Pass');
+    await user.click(control);
+    await user.click(screen.getByRole('menuitem', { name: 'High Pass' }));
+    expect(control.accessibility.value?.text).toBe('High Pass');
+    expect(control.focused).toBe(true);
+  });
   test('opens with a click, chooses with the keyboard skipping disabled options, and gives focus back', async () => {
     const onChange = vi.fn<(value: Filter) => void>();
     await render(
