@@ -1,7 +1,7 @@
 import { View } from '@soundor/react';
 import {
   act,
-  fireEvent,
+  advanceTime,
   render,
   screen,
   userEvent,
@@ -10,7 +10,7 @@ import {
   type NodeTarget,
 } from '@soundor/testing-library/react';
 import { createRef, type ReactElement } from 'react';
-import { clipboard, type PointerEvent, type UiNode } from 'soundor:ui';
+import { clipboard, type UiNode } from 'soundor:ui';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -262,7 +262,7 @@ describe('ContextMenu', () => {
       'setValue',
       'reset',
       'learn',
-      'showMenu',
+      'showContextMenu',
     ]);
     // Its own still work, and the caller's reaches the caller.
     const user = userEvent.setup();
@@ -274,16 +274,14 @@ describe('ContextMenu', () => {
 
     // Show menu opens it beside the control, on its first item.
     knob.focus();
-    await user.accessibilityAction(knob, 'showMenu');
+    await user.accessibilityAction(knob, 'showContextMenu');
     const menu = screen.getByRole('menu');
     expect(
       within(menu).getByRole('menuitem', { name: 'Reset to default' }).focused,
     ).toBe(true);
-    expect(onAction).toHaveBeenCalledTimes(1);
   });
 
-  test("a long touch opens it at the touch; one that moves or is cancelled is the control's", async () => {
-    vi.useFakeTimers();
+  test("a long touch opens it at the touch, on the engine's long press; one that moves is the control's", async () => {
     const gain = parameter(0.25);
     const at = { clientX: 20, clientY: 20 };
     const { rerender } = await render(
@@ -295,9 +293,9 @@ describe('ContextMenu', () => {
     const knob = screen.getByRole('adjustable', { name: 'Gain' });
 
     await user.pointer({ target: knob, keys: '[TouchA>]', ...at });
-    await act(() => vi.advanceTimersByTimeAsync(499));
+    await advanceTime(499);
     expect(screen.queryByRole('menu')).toBeNull();
-    await act(() => vi.advanceTimersByTimeAsync(1));
+    await advanceTime(1);
     expect(screen.getByRole('menu')).toBeDefined();
     await user.pointer({ keys: '[/TouchA]', ...at });
     // Opening it was no edit: the press's gesture ended as focus left.
@@ -305,36 +303,15 @@ describe('ContextMenu', () => {
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('menu')).toBeNull();
 
-    // Moved past the slop: a drag, no menu.
+    // Moved: a drag, no menu.
     await user.pointer([
       { target: knob, keys: '[TouchA>]', ...at },
       { pointerName: 'TouchA', ...at, clientY: 40 },
     ]);
-    await act(() => vi.advanceTimersByTimeAsync(600));
+    await advanceTime(600);
     expect(screen.queryByRole('menu')).toBeNull();
     await user.pointer({ keys: '[/TouchA]', ...at, clientY: 40 });
     expect(gain.get()).toBeLessThan(0.25);
-
-    // A mouse held down opens nothing.
-    await user.pointer({
-      target: knob,
-      keys: '[MouseLeft>]',
-      clientX: 20,
-      clientY: 20,
-    });
-    await act(() => vi.advanceTimersByTimeAsync(600));
-    expect(screen.queryByRole('menu')).toBeNull();
-    await user.pointer({ keys: '[/MouseLeft]', clientX: 20, clientY: 20 });
-
-    // A cancelled touch is no long press.
-    let touch = -1;
-    knob.addEventListener('pointerdown', (event) => {
-      touch = (event as unknown as PointerEvent).pointerId;
-    });
-    await user.pointer({ target: knob, keys: '[TouchA>]', ...at });
-    await fireEvent.pointerCancel(knob, { pointerId: touch });
-    await act(() => vi.advanceTimersByTimeAsync(600));
-    expect(screen.queryByRole('menu')).toBeNull();
 
     // Disabled, a long touch opens nothing, and there is no Show menu.
     await rerender(
@@ -344,15 +321,14 @@ describe('ContextMenu', () => {
     );
     expect(
       knob.accessibility.actions?.map((action) => action.name),
-    ).not.toContain('showMenu');
+    ).not.toContain('showContextMenu');
     await user.pointer({ target: knob, keys: '[TouchA>]', ...at });
-    await act(() => vi.advanceTimersByTimeAsync(600));
+    await advanceTime(600);
     expect(screen.queryByRole('menu')).toBeNull();
     await user.pointer({ keys: '[/TouchA]', ...at });
   });
 
   test('unmounted during a long touch, it opens nothing later and leaves no listener behind', async () => {
-    vi.useFakeTimers();
     const gain = parameter(0.25);
     const onOpenChange = vi.fn<(open: boolean) => void>();
     const app = await render(
@@ -366,19 +342,9 @@ describe('ContextMenu', () => {
       .setup()
       .pointer({ target: knob, keys: '[TouchA>]', clientX: 20, clientY: 20 });
     await app.unmount();
-    await act(() => vi.advanceTimersByTimeAsync(600));
+    await advanceTime(600);
     expect(onOpenChange).not.toHaveBeenCalled();
-    expect(removed.mock.calls.map(([type]) => type)).toEqual(
-      expect.arrayContaining([
-        'accessibilityaction',
-        'contextmenu',
-        'keydown',
-        'pointercancel',
-        'pointerdown',
-        'pointermove',
-        'pointerup',
-      ]),
-    );
+    expect(removed.mock.calls.map(([type]) => type)).toContain('contextmenu');
   });
 
   test('a control inside another ContextMenu opens only its own menu, by any way in', async () => {
@@ -408,7 +374,7 @@ describe('ContextMenu', () => {
     expect(screen.getAllByRole('menu')).toHaveLength(1);
     expect(screen.getByRole('menu', { name: 'Gain menu' })).toBeDefined();
     await user.keyboard('{Escape}');
-    await user.accessibilityAction(knob, 'showMenu');
+    await user.accessibilityAction(knob, 'showContextMenu');
     expect(screen.getAllByRole('menu')).toHaveLength(1);
     expect(screen.getByRole('menu', { name: 'Gain menu' })).toBeDefined();
   });

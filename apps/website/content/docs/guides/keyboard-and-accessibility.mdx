@@ -107,7 +107,7 @@ Adjustable controls also offer the actions a screen reader lists: **increment**,
 
 ### Actions of your own
 
-Every control takes `accessibilityActions` and `onAccessibilityAction`. Your actions are offered after the control's own, which stay first and stay the control's: an action named like one of its own is left out, and asking for one of its own never reaches your handler. A [ContextMenu](/docs/components/context-menu) uses this to offer **Show menu**, after the control's own: its trigger keeps the control's role, name and value.
+Every control takes `accessibilityActions` and `onAccessibilityAction`. Your actions are offered after the control's own, which stay first and stay the control's: an action named like one of its own is left out, and asking for one of its own never reaches your handler. A [ContextMenu](/docs/components/context-menu) uses this to offer the platform's "show menu" action (`showContextMenu`), after the control's own: its trigger keeps the control's role, name and value.
 
 ```tsx
 <Knob

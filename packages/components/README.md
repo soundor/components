@@ -7,7 +7,7 @@ UIs, the same in VST3 and the web runtime.
 pnpm add @soundor/components
 ```
 
-It needs Soundor 0.20, `@soundor/react` 0.20, and React 19.3.
+It needs Soundor 0.21, `@soundor/react` 0.21, and React 19.3.
 
 ```tsx
 import { ControlGroup, Knob, Slider } from '@soundor/components';

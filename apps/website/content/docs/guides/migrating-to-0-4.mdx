@@ -93,8 +93,8 @@ After:
 
 - **Items made at opening.** `items` as a function ran each time the menu opened. The content now renders as it opens, so the items read the state at that moment without one.
 - **An empty menu.** A menu whose content renders no item still opens nothing, but `onOpenChange` now hears `true` and then `false`.
-- **`longPressDelay` is gone.** A long touch opens the menu after 500 ms, as it did by default. The delay was the component's own; Soundor's engine is taking over the context menu gesture ([soundor/soundor#399](https://github.com/soundor/soundor/pull/399)), and the platform's long press will set it then. `longPressDelay={0}`, which turned it off, has no replacement: a control whose own touch gesture conflicts should stay out of a ContextMenu until then.
-- The trigger keeps its child's role, name, value, actions and focus, as before, and "Show menu" is still offered after the child's own actions.
+- **`longPressDelay` is gone.** A long touch opens the menu on the platform's long press, which Soundor's engine recognises ([soundor/soundor#399](https://github.com/soundor/soundor/pull/399)); the delay is no longer the component's to set. `longPressDelay={0}`, which turned it off, has no replacement: a control whose own touch gesture conflicts should stay out of a ContextMenu.
+- The trigger keeps its child's role, name, value, actions and focus, as before, and the engine's `showContextMenu` action is offered after the child's own actions. It replaces the custom `showMenu` ("Show menu") action.
 
 ## Plot
 
