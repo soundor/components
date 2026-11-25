@@ -47,6 +47,7 @@ export interface ComponentSlots {
    * a `Menu.Label`.
    */
   Menu: 'root' | 'item' | 'label' | 'icon' | 'separator' | 'heading';
+  Popover: 'root';
   Knob: 'root' | 'control' | 'label' | 'value';
   Slider: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';
   Fader: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';

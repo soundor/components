@@ -24,6 +24,7 @@ import PlotEnvelope from './plot-envelope';
 import PlotEq from './plot-eq';
 import PlotSpectrum from './plot-spectrum';
 import PlotWaveform from './plot-waveform';
+import Popover from './popover';
 import SegmentedControl from './segmented-control';
 import Select from './select';
 import SelectStates from './select-states';
@@ -53,6 +54,7 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   'select-states': SelectStates,
   'dropdown-menu': DropdownMenu,
   'context-menu': ContextMenu,
+  popover: Popover,
   knob: Knob,
   showcase: Showcase,
   slider: Slider,

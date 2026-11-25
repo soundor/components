@@ -10,6 +10,7 @@
     "---Menus---",
     "dropdown-menu",
     "context-menu",
+    "popover",
     "---Range controls---",
     "knob",
     "slider",

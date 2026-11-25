@@ -1,0 +1,54 @@
+---
+title: Popover
+description: A floating editor for interactive controls.
+---
+
+Use `Popover` for a small editor beside a control or graph handle. It accepts
+ordinary controls, including a nested Select or ContextMenu.
+
+<Demo name="popover" height={340} />
+
+```tsx
+<Popover>
+  <Popover.Trigger>
+    <Button>Settings</Button>
+  </Popover.Trigger>
+  <Popover.Content side="bottom" accessibilityLabel="Settings">
+    <Knob parameter={parameters.gain} />
+    <ValueField parameter={parameters.gain} />
+  </Popover.Content>
+</Popover>
+```
+
+`Popover` accepts `defaultOpen` or a controlled `open` and `onOpenChange`.
+`Popover.Trigger` enhances one Button, Pressable or compatible control in
+place and reports its expanded state. `Popover.Content` requires an accessible
+label and uses dialog semantics. Configure `side`, `align` and `offset` to
+choose its preferred placement; it flips and clamps at the editor's edges.
+Use `style`, `styles.root` or `theme.components.Popover.root` to style it.
+
+For a triggerless editor set `anchor` to a node ref, a point or rectangle in
+logical view coordinates, or a stable `{ getRegion }` reader. Supplying a new
+point follows React state; a reader or ref can follow movement outside React.
+
+```tsx
+<Popover open={editing} onOpenChange={setEditing}>
+  <Popover.Content
+    anchor={markerRef}
+    accessibilityLabel="Point editor"
+    autoFocus={false}
+    dismissOnOutside={false}
+  >
+    <ValueField {...valueProps} />
+    <Button onPress={() => setEditing(false)}>Done</Button>
+  </Popover.Content>
+</Popover>
+```
+
+By default, focus moves to the first control; on close it returns to where it
+was unless it has moved elsewhere. Set `autoFocus` or `restoreFocus` to false
+to opt out. Escape closes from inside the panel or while focused on its trigger
+or node anchor. Tab stays available. A non-modal surface leaves the background
+interactive; its outside dismissal lets the press through. Set `modal` to
+trap focus and block background pointer input. Use non-modal mode with
+`dismissOnOutside={false}` and an explicit close control for persistent editors.

@@ -34,6 +34,12 @@ export {
 } from './components/menu';
 export type { HostProps } from './internal/host';
 export type { PopupAnchor, PopupRegion } from './internal/popup/anchor';
+export {
+  Popover,
+  type PopoverProps,
+  type PopoverContentProps,
+  type PopoverTriggerProps,
+} from './components/popover';
 export { Knob, type KnobProps } from './components/knob';
 export { Slider, type SliderProps } from './components/slider';
 export { Fader, type FaderProps } from './components/fader';

@@ -14,7 +14,13 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import type { KeyboardEvent, UiNode } from 'soundor:ui';
+import {
+  overlayRoot,
+  root,
+  type KeyboardEvent,
+  type PointerEvent,
+  type UiNode,
+} from 'soundor:ui';
 
 import { anchorBox, boxOf, watchAnchor, type PopupAnchor } from './anchor';
 import {
@@ -43,6 +49,13 @@ export interface PopupProps {
   flip?: boolean;
   /** At least as wide as the anchor: a Select's list under its field. */
   matchAnchorWidth?: boolean;
+  modal?: boolean;
+  autoFocus?: boolean;
+  restoreFocus?: boolean;
+  dismissOnOutside?: boolean;
+  dismissOnTab?: boolean;
+  /** Also disregard pointer presses on this trigger when positioning elsewhere. */
+  triggerRef?: RefObject<UiNode | null>;
   /** Asked to close: Escape, Tab, or a press outside. The owner decides. */
   onDismiss: (reason: DismissReason) => void;
   accessibilityRole?: AccessibilityRole;
@@ -83,6 +96,12 @@ export function Popup({
   padding = 4,
   flip = true,
   matchAnchorWidth = false,
+  modal = true,
+  autoFocus = true,
+  restoreFocus = true,
+  dismissOnOutside = true,
+  dismissOnTab = true,
+  triggerRef,
   onDismiss,
   accessibilityRole,
   accessibilityLabel,
@@ -187,29 +206,78 @@ export function Popup({
       // Handled here, so a Modal the popup was opened from stays open.
       event.preventDefault();
       onDismiss('escape');
-    } else if (event.key === 'Tab') {
+    } else if (dismissOnTab && event.key === 'Tab') {
       event.preventDefault();
       onDismiss('tab');
     }
   };
 
+  useLayoutEffect(() => {
+    if (modal || !dismissOnOutside) return undefined;
+    const outside = (event: PointerEvent) => {
+      const node = surface.current;
+      const entry = node?.parent;
+      if (!node || !entry || node.contains(event.target)) return;
+      if (triggerRef?.current?.contains(event.target)) return;
+      if ('current' in anchor && anchor.current?.contains(event.target)) return;
+      // An overlay opened above us owns its input (including its backdrop).
+      const entries = overlayRoot.children;
+      for (let i = entries.length - 1; i >= 0; i--) {
+        const other = entries[i]!;
+        if (other === entry) break;
+        if (other.contains(event.target)) return;
+      }
+      onDismiss('outside');
+    };
+    root.addEventListener('pointerdown', outside, true);
+    overlayRoot.addEventListener('pointerdown', outside, true);
+    return () => {
+      root.removeEventListener('pointerdown', outside, true);
+      overlayRoot.removeEventListener('pointerdown', outside, true);
+    };
+  }, [modal, dismissOnOutside, anchor, onDismiss, triggerRef]);
+
+  useLayoutEffect(() => {
+    if (modal) return undefined;
+    const escapeFromAnchor = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (
+        triggerRef?.current?.contains(event.target) ||
+        ('current' in anchor && anchor.current?.contains(event.target))
+      )
+        keyDown(event);
+    };
+    root.addEventListener('keydown', escapeFromAnchor);
+    overlayRoot.addEventListener('keydown', escapeFromAnchor);
+    return () => {
+      root.removeEventListener('keydown', escapeFromAnchor);
+      overlayRoot.removeEventListener('keydown', escapeFromAnchor);
+    };
+  });
+
   const shown = placement !== null || unmeasured;
   return (
     <Portal>
-      <FocusScope trapped autoFocus restoreFocus>
-        <View
-          accessible={false}
-          style={fill}
-          onPointerDown={(event) => {
-            // Focus stays in the popup, so closing gives it back.
-            event.preventDefault();
-            onDismiss('outside');
-          }}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            onDismiss('outside');
-          }}
-        />
+      <FocusScope
+        trapped={modal}
+        autoFocus={autoFocus}
+        restoreFocus={restoreFocus}
+      >
+        {modal && (
+          <View
+            accessible={false}
+            style={fill}
+            onPointerDown={(event) => {
+              // Focus stays in the popup, so closing gives it back.
+              event.preventDefault();
+              if (dismissOnOutside) onDismiss('outside');
+            }}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              if (dismissOnOutside) onDismiss('outside');
+            }}
+          />
+        )}
         <View
           ref={(node) => {
             surface.current = node;
