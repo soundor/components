@@ -1,0 +1,35 @@
+---
+title: SelectableList
+description: A row or column of selectable items.
+---
+
+Use `SelectableList` for visible choices such as bands, presets, channels or modulation sources.
+
+<Demo name="selectable-list" height={180} />
+
+```tsx
+<SelectableList
+  accessibilityLabel="Bands"
+  orientation="horizontal"
+  items={bands.map((band) => ({ id: band.id, label: band.name }))}
+  selectedIds={selectedIds}
+  onSelectionChange={setSelectedIds}
+/>
+```
+
+The caller owns `selectedIds`. Use stable IDs, give each item a label, and set
+`disabled` for unavailable entries. `multiple` makes activation toggle items
+independently. The default orientation is vertical. Each enabled item is
+focusable; arrows along the layout, Home and End move focus without changing
+selection. Enter, Space, a press or assistive activation selects the option.
+
+`renderItem(item, state)` replaces the visual content of an item. Keep it
+non-interactive; the list supplies the option's role, label and selected state.
+Style the `root`, `item` and `label` slots with `theme.components.SelectableList`,
+`style`, or `styles`.
+
+Import `useSelection` from `@soundor/components/headless` for a custom layout.
+It accepts the same selection, items and orientation options. Forward
+`attach(id, node)` to each focusable item, `onKeyDown(id, event)` to its key
+handler, and `select(item)` to its activation handler. Supply the roles,
+labels and focus styles appropriate for the custom presentation.

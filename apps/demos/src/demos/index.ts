@@ -29,6 +29,7 @@ import Popover from './popover';
 import SegmentedControl from './segmented-control';
 import Select from './select';
 import SelectStates from './select-states';
+import SelectableList from './selectable-list';
 import Showcase from './showcase';
 import Slider from './slider';
 import SynthVoice from './synth-voice';
@@ -53,6 +54,7 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   toggle: Toggle,
   'segmented-control': SegmentedControl,
   select: Select,
+  'selectable-list': SelectableList,
   'select-states': SelectStates,
   'dropdown-menu': DropdownMenu,
   'context-menu': ContextMenu,

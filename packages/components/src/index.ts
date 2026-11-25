@@ -13,6 +13,12 @@ export {
   type SelectProps,
 } from './components/select';
 export {
+  SelectableList,
+  type SelectableListProps,
+  type SelectableListItemState,
+} from './components/selectable-list';
+export type { SelectionItem } from './internal/selection';
+export {
   DropdownMenu,
   type DropdownMenuContentProps,
   type DropdownMenuProps,
