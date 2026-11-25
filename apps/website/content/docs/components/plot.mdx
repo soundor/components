@@ -85,6 +85,34 @@ form keeps its existing behavior. Use positive domains and samples for log axes;
 non-finite mapped samples are not drawn. Give the chart an accessible label, and
 provide values in controls or text when the canvas data is essential.
 
+### Editing the plot background
+
+<Demo name="plot-edit" height={320} />
+
+`onBackgroundPress`, `onBackgroundDoubleClick`, `onBackgroundContextMenu`,
+`onBackgroundPointerMove`, `onBackgroundPointerEnter`, and `onBackgroundPointerLeave`
+are for the empty plotting area. The hit layer sits below markers and custom
+interactive children, and excludes the axis margins. Decorative custom views
+can opt out of hit testing with `pointerEvents: 'none'`. Provide a keyboard
+alternative for actions such as adding a point.
+
+```tsx
+<Plot
+  width={360}
+  height={180}
+  onBackgroundDoubleClick={({ data }) => addPoint(data)}
+>
+  <Plot.XAxis domain={[0, 1]} />
+  <Plot.YAxis domain={[0, 1]} />
+</Plot>
+```
+
+Each event supplies the Soundor pointer `event`, the plot-local logical pixel
+`point`, default-scale `data`, and `coordinates` with bounds and conversions.
+`coordinatesFor({ yAxis: 'other' })` resolves named axes. `onBackgroundDrag`
+reports `start`, `move`, `end`, and `cancel` phases with a fixed `origin` and
+handles cancellation on unmount. The consumer owns graph edits.
+
 ### Series data
 
 A series takes sorted `[x, y]` `points`, evenly spaced `values` (typed arrays work) or a live `source`: one of the three. A band takes `lower` and `upper`, or a `source` of both. TypeScript holds each series to the props it has: a `Plot.Bars` has no `strokeWidth`, a `Plot.Line` no `radius`, and `points` with `values` is refused. What gets past it (props spread from untyped data) is refused when it renders.

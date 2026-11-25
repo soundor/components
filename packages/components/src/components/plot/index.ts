@@ -9,6 +9,11 @@ export const Plot = Object.assign(PlotRoot, parts);
 
 export type { PlotAxis, PlotProps } from './plot';
 export type { PlotAxisReference } from './controller';
+export type {
+  PlotBackgroundProps,
+  PlotBackgroundEvent,
+  PlotBackgroundDragEvent,
+} from './background';
 export {
   usePlotCoordinates,
   type PlotAreaProps,

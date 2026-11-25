@@ -20,6 +20,7 @@ import Plot from './plot';
 import PlotAutomation from './plot-automation';
 import PlotBars from './plot-bars';
 import PlotCompressor from './plot-compressor';
+import PlotEdit from './plot-edit';
 import PlotEnvelope from './plot-envelope';
 import PlotEq from './plot-eq';
 import PlotSpectrum from './plot-spectrum';
@@ -76,6 +77,7 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   'control-group': ControlGroup,
   divider: Divider,
   'plot-eq': PlotEq,
+  'plot-edit': PlotEdit,
   'plot-spectrum': PlotSpectrum,
   'plot-bars': PlotBars,
   'plot-compressor': PlotCompressor,

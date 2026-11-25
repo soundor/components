@@ -48,6 +48,7 @@ import {
   voices,
   type DisplayCaption,
 } from '../shared/display';
+import { PlotBackground, type PlotBackgroundProps } from './background';
 import {
   ControllerContext,
   PlotController,
@@ -59,7 +60,8 @@ import {
 
 export type PlotAxis = Axis;
 
-export interface PlotProps extends DisplayCaption, StyleProps<'Plot'> {
+export interface PlotProps
+  extends DisplayCaption, StyleProps<'Plot'>, PlotBackgroundProps {
   width: number;
   height: number;
   /**
@@ -131,6 +133,13 @@ export function PlotRoot({
   indicator,
   accessibilityLabel,
   debugId,
+  onBackgroundPress,
+  onBackgroundDoubleClick,
+  onBackgroundPointerMove,
+  onBackgroundPointerEnter,
+  onBackgroundPointerLeave,
+  onBackgroundContextMenu,
+  onBackgroundDrag,
   ...styles
 }: PlotProps) {
   const { theme, slot, fontsReady } = useComponent('Plot', styles);
@@ -442,6 +451,24 @@ export function PlotRoot({
         accessibilityLabel={accessibilityLabel ?? title ?? 'Plot'}
         style={slot('canvas', { ...fillBox, pointerEvents: 'none' })}
       />
+      {(onBackgroundPress ||
+        onBackgroundDoubleClick ||
+        onBackgroundPointerMove ||
+        onBackgroundPointerEnter ||
+        onBackgroundPointerLeave ||
+        onBackgroundContextMenu ||
+        onBackgroundDrag) && (
+        <PlotBackground
+          space={space}
+          onBackgroundPress={onBackgroundPress}
+          onBackgroundDoubleClick={onBackgroundDoubleClick}
+          onBackgroundPointerMove={onBackgroundPointerMove}
+          onBackgroundPointerEnter={onBackgroundPointerEnter}
+          onBackgroundPointerLeave={onBackgroundPointerLeave}
+          onBackgroundContextMenu={onBackgroundContextMenu}
+          onBackgroundDrag={onBackgroundDrag}
+        />
+      )}
       <ControllerContext.Provider value={controller}>
         <SpaceContext.Provider value={space}>{children}</SpaceContext.Provider>
       </ControllerContext.Provider>
