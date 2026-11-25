@@ -7,6 +7,11 @@ Use `DropdownMenu` for commands: a preset's Save and Copy, a panel's options, a 
 
 <Demo name="dropdown-menu" height={330} />
 
+The example's View menu prefers the right side, aligned to the trigger's end.
+Near an edge, shared popup placement can flip it to the opposite side or clamp
+it to the safe area. Placement uses Soundor logical view coordinates and
+follows a moving trigger even when its size stays the same.
+
 ```tsx
 import { Button, DropdownMenu, Menu } from '@soundor/components';
 
@@ -80,7 +85,7 @@ The menu opens on the trigger's primary press: a click, `Enter`, `Space` or a sc
 
 ## Placement
 
-`DropdownMenu.Content` takes `side` (below by default), `align` (the trigger's start, centre or end) and `offset`, for where the menu goes when there is room. It flips to the other side when there isn't, follows the trigger if it moves while open, and always stays inside the editor. `anchor` places it beside something else: a node of yours (a ref), or a point in the view.
+`DropdownMenu.Content` takes `side` (below by default), `align` (the trigger's start, centre or end) and `offset`, for where the menu goes when there is room. It flips to the other side when there isn't, follows the trigger if it moves while open, and stays inside the editor. `anchor` places it beside something else: a node ref, a point `{ x, y }`, or a rectangle `{ x, y, width, height }` in logical view coordinates. Pass a new point or rectangle when it moves, or a stable `{ getRegion: () => region }` to follow an anchor whose position changes outside React. The reader runs while the menu is open and may return `null` if the anchor is temporarily unavailable.
 
 ## Opening it yourself
 
