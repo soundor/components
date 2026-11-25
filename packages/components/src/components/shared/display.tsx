@@ -90,6 +90,7 @@ export function useCanvasBox(width: number, height: number) {
 export function useDrawing(
   box: ReturnType<typeof useCanvasBox>,
   draw: (ctx: CanvasRenderingContext2D) => void,
+  clear = true,
 ) {
   const paint = useRef<(() => void) | null>(null);
   const frame = useRef<number | null>(null);
@@ -105,7 +106,7 @@ export function useDrawing(
       const ctx = box.node.current?.getContext('2d');
       if (!ctx || !box.canvas.width || !box.canvas.height) return;
       ctx.setTransform(box.canvas.scaleX, 0, 0, box.canvas.scaleY, 0, 0);
-      ctx.clearRect(0, 0, box.width, box.height);
+      if (clear) ctx.clearRect(0, 0, box.width, box.height);
       draw(ctx);
     };
     if (frame.current !== null) {

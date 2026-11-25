@@ -33,6 +33,7 @@ import SelectStates from './select-states';
 import SelectableList from './selectable-list';
 import Showcase from './showcase';
 import Slider from './slider';
+import Spectrogram from './spectrogram';
 import SynthVoice from './synth-voice';
 import TextField from './text-field';
 import TextFieldStates from './text-field-states';
@@ -83,6 +84,7 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   'equalizer-reference': EqualizerReference,
   'plot-edit': PlotEdit,
   'plot-spectrum': PlotSpectrum,
+  spectrogram: Spectrogram,
   'plot-bars': PlotBars,
   'plot-compressor': PlotCompressor,
   'plot-envelope': PlotEnvelope,

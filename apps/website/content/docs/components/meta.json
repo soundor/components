@@ -22,6 +22,7 @@
     "---Displays---",
     "level-meter",
     "plot",
+    "spectrogram",
     "xy-pad",
     "envelope-editor",
     "---Layout---",

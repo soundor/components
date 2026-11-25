@@ -1,0 +1,34 @@
+---
+title: Spectrogram
+description: A bounded live history of precomputed spectrum frames.
+---
+
+<Demo name="spectrogram" height={260} />
+
+The demo uses simulated spectrum frames. `Spectrogram` consumes a
+`PlotSource<SpectrumFrame>`. Each frame contains amplitudes in `values` and
+the `[firstHz, lastHz]` `frequencyRange` of the evenly spaced bins. The source
+can reuse its array: the component copies the displayed samples on publish.
+
+```tsx
+<Spectrogram width={400} height={180} source={spectrum} resetKey={resetCount} />
+```
+
+Use `frequencyRange` (20–20,000 Hz by default), `frequencyScale` (`log` or
+`linear`), `amplitudeRange` (−90 to 0 by default), `bins` (2–512 displayed
+samples), and `historyLength` (1–1024 time slots). Use a positive frequency
+range for logarithmic mode. Set `orientation` to `horizontal` or `vertical`
+for time left-to-right or top-to-bottom. The sweep wraps, overwriting the
+oldest slot; the line indicates the next slot. Change `resetKey` to discard
+history and restart with the current source snapshot.
+
+Its default colors come from the theme; `colorMap(fraction)` supplies a custom
+palette, and `root` and `canvas` are style slots. Give the image an
+`accessibilityLabel`. Supply a separate accessible readout if the data is
+essential to the task.
+
+The standalone canvas repaints the new slots rather than shifting or
+rebuilding all history for each frame. A resize or style change repaints
+the retained history. The default history stores 72 KiB of amplitude data.
+Run `pnpm --filter @soundor/components exec vitest run src/components/spectrogram/history.test.ts`
+to measure bin remapping separately from canvas painting.
