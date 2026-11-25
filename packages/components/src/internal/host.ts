@@ -8,7 +8,7 @@ import type {
 /**
  * What a control passes through to its focusable node: a ref to it, and
  * accessibility actions of yours after its own. A ContextMenu uses both, to
- * attach to the control and offer "Show menu" to a screen reader; a DropdownMenu
+ * attach to the control and offer the "show menu" action to a screen reader; a DropdownMenu
  * uses the ref to place its menu.
  */
 export interface HostProps {
