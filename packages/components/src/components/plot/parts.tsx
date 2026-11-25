@@ -5,8 +5,15 @@ import {
   useMemo,
   useState,
   useSyncExternalStore,
+  type ReactNode,
 } from 'react';
-import type { UiNode } from 'soundor:ui';
+import type {
+  AccessibilityActionEvent,
+  KeyboardEvent,
+  PointerEvent,
+  UiNode,
+  WheelEvent,
+} from 'soundor:ui';
 
 import {
   contains,
@@ -24,7 +31,14 @@ import {
   type PlotSource,
 } from '../../chart/series';
 import { useXYPad } from '../../headless';
-import { textStyle, useTheme } from '../../theme';
+import { withActions, type HostProps } from '../../internal/host';
+import {
+  ring,
+  textStyle,
+  useComponent,
+  useTheme,
+  type StyleProps,
+} from '../../theme';
 import {
   usePlotController,
   usePlotSpace,
@@ -335,7 +349,16 @@ function Band(props: PlotBandProps) {
 
 // Markers and guides -----------------------------------------------------
 
-export interface PlotMarkerProps extends PlotAxisReference {
+export interface PlotMarkerState {
+  hovered: boolean;
+  focused: boolean;
+  dragging: boolean;
+  selected: boolean;
+  disabled: boolean;
+}
+
+export interface PlotMarkerProps
+  extends PlotAxisReference, HostProps, StyleProps<'PlotMarker'> {
   x: number;
   y: number;
   /**
@@ -346,6 +369,23 @@ export interface PlotMarkerProps extends PlotAxisReference {
   color?: string;
   /** The handle's, in pixels: 8 with a label, 4 without. */
   radius?: number;
+  hitRadius?: number;
+  disabled?: boolean;
+  selected?: boolean;
+  movement?: 'x' | 'y' | 'both';
+  constrain?: (point: Point) => Point;
+  render?: (state: PlotMarkerState) => ReactNode;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  describeValue?: (x: number, y: number) => string;
+  onSelect?: (
+    event: PointerEvent | KeyboardEvent | AccessibilityActionEvent,
+  ) => void;
+  onDoubleClick?: (event: PointerEvent) => void;
+  onContextMenu?: (event: PointerEvent) => void;
+  onWheel?: (event: WheelEvent) => void;
+  onRemove?: () => void;
+  onMoveCancel?: () => void;
   /**
    * Makes it draggable and keyboard adjustable: a tab stop of its own. It
    * is given the point the user moved it to; set `x` and `y` from it, or
@@ -392,18 +432,41 @@ function Marker({
   label,
   color,
   radius,
+  hitRadius,
   onMove,
   onMoveStart,
   onMoveEnd,
   xAxis,
   yAxis,
+  ...props
 }: PlotMarkerProps) {
   const draggable = onMove !== undefined;
+  const interactive = Boolean(
+    draggable ||
+    props.render ||
+    props.ref ||
+    props.onSelect ||
+    props.onDoubleClick ||
+    props.onContextMenu ||
+    props.onWheel ||
+    props.onRemove,
+  );
   // A handle's radius and its halo, which is 5 pixels more.
-  const zone = draggable ? (radius ?? (label ? 8 : 4)) + 5 : 0;
+  const zone = interactive
+    ? Math.max(hitRadius ?? 0, (radius ?? (label ? 8 : 4)) + 5)
+    : 0;
   const { controller, layer, anchor } = useGuide(
     'Plot.Marker',
-    { x, y, label, color, radius },
+    {
+      x,
+      y,
+      label,
+      color,
+      radius,
+      custom: Boolean(props.render),
+      selected: props.selected,
+      disabled: props.disabled,
+    },
     zone,
     { xAxis, yAxis },
   );
@@ -423,7 +486,7 @@ function Marker({
   const resolved = space.resolve({ xAxis, yAxis });
   const { coordinates } = resolved ?? space;
   const shown =
-    draggable &&
+    interactive &&
     resolved &&
     contains(
       coordinates.rect,
@@ -436,9 +499,11 @@ function Marker({
       {anchor}
       {shown && (
         <MarkerControl
+          {...props}
           x={x}
           y={y}
           radius={radius ?? 8}
+          hitRadius={hitRadius}
           label={label ?? `Point ${Math.max(1, number)}`}
           coordinates={coordinates}
           xAxis={resolved.x}
@@ -453,17 +518,12 @@ function Marker({
   );
 }
 
-interface MarkerControlProps {
-  x: number;
-  y: number;
+interface MarkerControlProps extends Omit<PlotMarkerProps, 'xAxis' | 'yAxis'> {
   radius: number;
   label: string;
   coordinates: Coordinates;
   xAxis: Axis;
   yAxis: Axis;
-  onMove: (point: Point) => void;
-  onMoveStart?: () => void;
-  onMoveEnd?: () => void;
   onFocus: (focused: boolean) => void;
 }
 
@@ -472,6 +532,7 @@ function MarkerControl({
   x,
   y,
   radius: own,
+  hitRadius,
   label,
   coordinates,
   xAxis,
@@ -480,9 +541,32 @@ function MarkerControl({
   onMoveStart,
   onMoveEnd,
   onFocus,
+  onMoveCancel,
+  movement = 'both',
+  constrain,
+  disabled = false,
+  selected = false,
+  render,
+  accessibilityLabel,
+  accessibilityHint,
+  describeValue,
+  onSelect,
+  onRemove,
+  onDoubleClick,
+  onContextMenu,
+  onWheel,
+  ref,
+  accessibilityActions,
+  onAccessibilityAction,
+  ...props
 }: MarkerControlProps) {
+  const { theme, slot } = useComponent('PlotMarker', props);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const control = useXYPad(
     {
+      disabled: disabled || !onMove || movement === 'y',
       value: x,
       defaultValue: x,
       min: xAxis.domain[0],
@@ -491,6 +575,7 @@ function MarkerControl({
       format: xAxis.format,
     },
     {
+      disabled: disabled || !onMove || movement === 'x',
       value: y,
       defaultValue: y,
       min: yAxis.domain[0],
@@ -499,35 +584,129 @@ function MarkerControl({
       format: yAxis.format,
     },
     {
-      label,
+      label: accessibilityLabel ?? label,
+      hint: accessibilityHint,
+      describeValue,
       dragMode: 'relative',
+      restoreOnPointerCancel: true,
       travel: [coordinates.inner.width, coordinates.inner.height],
-      onPointChange: (currentX, currentY) => onMove([currentX, currentY]),
+      onPointChange: (currentX, currentY, cancelled) => {
+        const point: Point = [currentX, currentY];
+        onMove?.(!cancelled && constrain ? constrain(point) : point);
+      },
       onInteractionStart: onMoveStart,
-      onInteractionEnd: onMoveEnd,
+      onInteractionEnd: (cancelled) => {
+        setDragging(false);
+        try {
+          if (cancelled) onMoveCancel?.();
+        } finally {
+          onMoveEnd?.();
+        }
+      },
     },
   );
   const atX = coordinates.x.map(x);
   const atY = coordinates.y.map(y);
-  const radius = Math.max(12, own + 5);
+  const radius = hitRadius ?? Math.max(12, own + 5);
+  const actions = withActions(
+    {
+      accessibilityActions:
+        onSelect && !disabled
+          ? [
+              ...(control.handlers.accessibilityActions ?? []),
+              { name: 'activate' },
+            ]
+          : control.handlers.accessibilityActions,
+      onAccessibilityAction: (event) => {
+        if (onSelect && !disabled && event.actionName === 'activate') {
+          onSelect(event);
+          event.preventDefault();
+        } else control.handlers.onAccessibilityAction?.(event);
+      },
+    },
+    {
+      accessibilityActions,
+      onAccessibilityAction,
+    },
+  );
   return (
     <View
       {...control.handlers}
-      onFocusVisibleChange={(event) => onFocus(event.focusVisible)}
+      {...actions}
+      ref={ref}
+      focusable={!disabled}
+      accessibilityRole={
+        onMove ? 'adjustable' : onSelect ? 'button' : undefined
+      }
+      accessibilityState={{
+        ...control.handlers.accessibilityState,
+        disabled,
+        selected,
+      }}
+      onFocusVisibleChange={(event) => {
+        setFocused(event.focusVisible);
+        onFocus(event.focusVisible);
+      }}
       onBlur={(event) => {
         control.handlers.onBlur?.(event);
+        setFocused(false);
         onFocus(false);
       }}
-      style={{
-        position: 'absolute',
-        left: atX - radius,
-        top: atY - radius,
-        width: radius * 2,
-        height: radius * 2,
-        borderRadius: radius,
-        cursor: 'crosshair',
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onPointerDown={(event) => {
+        if (disabled) return;
+        if (event.button === 0) onSelect?.(event);
+        if (!event.defaultPrevented && onMove) {
+          control.handlers.onPointerDown?.(event);
+          if (event.button === 0 && !event.altKey) setDragging(true);
+        }
       }}
-    />
+      onDoubleClick={
+        disabled
+          ? undefined
+          : (onDoubleClick ??
+            (onMove ? control.handlers.onDoubleClick : undefined))
+      }
+      onWheel={disabled ? undefined : onWheel}
+      onContextMenu={disabled ? undefined : onContextMenu}
+      onKeyDown={(event) => {
+        if (disabled || event.defaultPrevented) return;
+        if ((event.key === 'Enter' || event.key === ' ') && onSelect) {
+          onSelect(event);
+          event.preventDefault();
+        } else if (
+          (event.key === 'Backspace' || event.key === 'Delete') &&
+          onRemove
+        ) {
+          onRemove();
+          event.preventDefault();
+        } else if (onMove) control.handlers.onKeyDown?.(event);
+      }}
+      style={[
+        slot('root', {
+          borderRadius: radius,
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: disabled ? 'default' : 'crosshair',
+          opacity: disabled ? theme.opacity.opacityDisabled : 1,
+          ...ring(theme, focused && Boolean(render)),
+        }),
+        {
+          position: 'absolute',
+          left: atX - radius,
+          top: atY - radius,
+          width: radius * 2,
+          height: radius * 2,
+        },
+      ]}
+    >
+      {render && (
+        <View accessible={false} style={{ pointerEvents: 'none' }}>
+          {render({ hovered, focused, dragging, selected, disabled })}
+        </View>
+      )}
+    </View>
   );
 }
 

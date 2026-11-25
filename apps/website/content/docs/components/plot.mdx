@@ -113,6 +113,26 @@ Each event supplies the Soundor pointer `event`, the plot-local logical pixel
 reports `start`, `move`, `end`, and `cancel` phases with a fixed `origin` and
 handles cancellation on unmount. The consumer owns graph edits.
 
+### Interactive markers
+
+`Plot.Marker` can lock movement with `movement="x"` or `movement="y"`.
+Use `constrain` to snap or bound emitted data-space values. A cancelled
+gesture reports the starting point without calling `constrain`, then calls
+`onMoveCancel` and `onMoveEnd`. Close host edit gestures in `onMoveEnd`.
+
+`hitRadius` is independent of the canvas marker's `radius`. Set `selected`,
+`disabled`, or provide `render(state)` to draw a non-interactive custom face.
+The state contains `hovered`, `focused`, `dragging`, `selected` and `disabled`.
+Styles use the `PlotMarker.root` theme slot. Set `accessibilityLabel` and
+`describeValue` to identify the point and its values without changing its face.
+
+`onSelect` handles a primary press, Enter, Space or the accessibility activate
+action. `onRemove` requests removal on Delete or Backspace; the caller owns
+the collection. `onWheel`, `onDoubleClick` and `onContextMenu` receive the Soundor
+event. Compose a `ContextMenu.Trigger` for built-in accessibility actions, or
+pass the marker's `ref` to a Popover. The example's first point moves only
+horizontally, and the auxiliary value responds to the wheel.
+
 ### Series data
 
 A series takes sorted `[x, y]` `points`, evenly spaced `values` (typed arrays work) or a live `source`: one of the three. A band takes `lower` and `upper`, or a `source` of both. TypeScript holds each series to the props it has: a `Plot.Bars` has no `strokeWidth`, a `Plot.Line` no `radius`, and `points` with `values` is refused. What gets past it (props spread from untyped data) is refused when it renders.

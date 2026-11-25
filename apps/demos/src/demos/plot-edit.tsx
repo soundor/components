@@ -3,11 +3,13 @@ import {
   DropdownMenu,
   Menu,
   Plot,
+  Popover,
   type PopupRegion,
 } from '@soundor/components';
 import { useTheme } from '@soundor/components/theme';
 import { Text, View } from '@soundor/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import type { UiNode } from 'soundor:ui';
 
 export default function Demo() {
   const theme = useTheme();
@@ -16,6 +18,9 @@ export default function Demo() {
   ]);
   const [menu, setMenu] = useState<PopupRegion | null>(null);
   const [cursor, setCursor] = useState('');
+  const [selected, setSelected] = useState<number | null>(null);
+  const [aux, setAux] = useState(1);
+  const anchor = useRef<UiNode | null>(null);
   return (
     <View style={{ gap: theme.spacing.spaceSm }}>
       <Plot
@@ -41,6 +46,17 @@ export default function Demo() {
           <Plot.Marker
             key={index}
             label={`Point ${index + 1}`}
+            ref={index === selected ? anchor : undefined}
+            selected={index === selected}
+            movement={index === 0 ? 'x' : 'both'}
+            hitRadius={14}
+            onSelect={() => setSelected(index)}
+            onWheel={(event) => {
+              event.preventDefault();
+              setAux((value) =>
+                Math.max(0, value - Math.sign(event.deltaY) * 0.1),
+              );
+            }}
             x={x}
             y={y}
             onMove={(point) =>
@@ -49,6 +65,22 @@ export default function Demo() {
           />
         ))}
       </Plot>
+      <Popover open={selected !== null} onOpenChange={() => setSelected(null)}>
+        <Popover.Content
+          anchor={anchor}
+          side="top"
+          accessibilityLabel="Point controls"
+          autoFocus={false}
+          dismissOnOutside={false}
+        >
+          <Text style={{ color: theme.color.text }}>
+            Auxiliary value: {aux.toFixed(1)}
+          </Text>
+          <Button onPress={() => setSelected(null)}>
+            Close point controls
+          </Button>
+        </Popover.Content>
+      </Popover>
       <Text accessible={false} style={{ color: theme.color.textSecondary }}>
         {cursor || 'Double-click the graph to add a point'}
       </Text>
@@ -60,7 +92,14 @@ export default function Demo() {
           anchor={menu ?? undefined}
           accessibilityLabel="Graph actions"
         >
-          <Menu.Item onPress={() => setPoints([])}>Clear points</Menu.Item>
+          <Menu.Item
+            onPress={() => {
+              setPoints([]);
+              setSelected(null);
+            }}
+          >
+            Clear points
+          </Menu.Item>
         </DropdownMenu.Content>
       </DropdownMenu>
     </View>

@@ -56,6 +56,7 @@ export interface ComponentSlots {
   TextField: 'root' | 'control' | 'label' | 'input' | 'message';
   LevelMeter: 'root' | 'channel' | 'track' | 'indicator' | 'label';
   Plot: 'root' | 'canvas' | 'title' | 'note';
+  PlotMarker: 'root';
   XYPad: 'root' | 'canvas' | 'title' | 'note' | 'value';
   EnvelopeEditor: 'root' | 'plot' | 'handle' | 'values' | 'label' | 'value';
   Panel: 'root' | 'header' | 'title' | 'content';

@@ -62,6 +62,7 @@ export {
   type PlotGuideProps,
   type PlotLineProps,
   type PlotMarkerProps,
+  type PlotMarkerState,
   type PlotPointsProps,
   type PlotProps,
   type PlotSeriesSamples,

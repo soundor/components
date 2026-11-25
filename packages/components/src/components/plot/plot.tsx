@@ -366,8 +366,12 @@ export function PlotRoot({
     // Not clipped, so a handle at the end of an axis is whole.
     for (let i = 0; i < guides.length; i++) {
       const guide = guides[i]!;
+      if (guide.marker.custom) continue;
       const axes = resolve(guide);
       if (!axes) continue;
+      ctx.save();
+      if (guide.marker.disabled)
+        ctx.globalAlpha = theme.opacity.opacityDisabled;
       drawMarker(
         ctx,
         axes.coordinates,
@@ -375,8 +379,10 @@ export function PlotRoot({
         colorFor(theme, guide.marker.color ?? c.displayMuted),
         c.display,
         numericFont(theme, fontsReady, 10, true),
-        selected === i || guide.focused,
+        guide.marker.selected ||
+          (!guide.marker.disabled && (selected === i || guide.focused)),
       );
+      ctx.restore();
     }
     for (const axis of geometry.axes)
       drawAxes(

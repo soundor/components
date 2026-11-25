@@ -138,6 +138,44 @@ test('Plot provides accessible draggable markers', async () => {
   expect(onMove).toHaveBeenLastCalledWith([0.51, 0.51]);
 });
 
+test('marker locks an axis, composes discrete actions, and keeps removal application-owned', async () => {
+  const user = userEvent.setup();
+  const onMove = vi.fn();
+  const onSelect = vi.fn();
+  const onRemove = vi.fn();
+  const onWheel = vi.fn();
+  await render(
+    <Plot width={260} height={160}>
+      <Plot.XAxis domain={[0, 1]} />
+      <Plot.YAxis domain={[0, 1]} />
+      <Plot.Marker
+        x={0.5}
+        y={0.5}
+        movement="x"
+        selected
+        accessibilityLabel="Trim point"
+        onMove={onMove}
+        onSelect={onSelect}
+        onRemove={onRemove}
+        onWheel={onWheel}
+      />
+    </Plot>,
+  );
+  const marker = screen.getByRole('adjustable', { name: 'Trim point' });
+  await user.tab();
+  expect(marker.accessibility.state?.selected).toBe(true);
+  await user.keyboard('{ArrowUp}');
+  expect(onMove).not.toHaveBeenCalled();
+  await user.keyboard('{ArrowRight}');
+  expect(onMove).toHaveBeenLastCalledWith([0.51, 0.5]);
+  await user.keyboard('{Enter}{Delete}');
+  expect(onSelect).toHaveBeenCalledTimes(1);
+  expect(onRemove).toHaveBeenCalledTimes(1);
+  await user.wheel(marker, { deltaY: -10 });
+  expect(onWheel).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('adjustable', { name: 'Trim point' })).toBe(marker);
+});
+
 test('Plot keeps a marker at the end of an axis in reach, whatever its size', async () => {
   for (const [width, height] of [
     [261.3, 159.7],

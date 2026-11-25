@@ -37,9 +37,11 @@ export interface XYInteraction {
    */
   grabRadius?: number;
   describeValue?: (x: number, y: number) => string;
-  onPointChange?: (x: number, y: number) => void;
+  onPointChange?: (x: number, y: number, cancelled?: boolean) => void;
   onInteractionStart?: () => void;
-  onInteractionEnd?: () => void;
+  onInteractionEnd?: (cancelled?: boolean) => void;
+  /** Restore the starting values when the platform cancels a pointer. */
+  restoreOnPointerCancel?: boolean;
 }
 
 export function useXYPad(
@@ -106,9 +108,9 @@ export function useXYPad(
     return (cancel: boolean) => {
       try {
         finish(cancel);
-        if (cancel) options.onPointChange?.(initialX, initialY);
+        if (cancel) options.onPointChange?.(initialX, initialY, true);
       } finally {
-        options.onInteractionEnd?.();
+        options.onInteractionEnd?.(cancel);
       }
     };
   };
@@ -276,7 +278,8 @@ export function useXYPad(
       if (drag.current?.id === event.pointerId) gesture.end();
     },
     onPointerCancel(event) {
-      if (drag.current?.id === event.pointerId) gesture.end();
+      if (drag.current?.id === event.pointerId)
+        gesture.end(options.restoreOnPointerCancel);
     },
     onKeyDown(event) {
       const { key } = event;
