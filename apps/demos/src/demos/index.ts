@@ -17,6 +17,7 @@ import Gallery from './gallery';
 import Knob from './knob';
 import LevelMeter from './level-meter';
 import LevelMeterStereo from './level-meter-stereo';
+import MixedValues from './mixed-values';
 import Panel from './panel';
 import Plot from './plot';
 import PlotAutomation from './plot-automation';
@@ -52,6 +53,7 @@ import XyPadFilter from './xy-pad-filter';
 
 export const demos: Readonly<Record<string, ComponentType>> = {
   gallery: Gallery,
+  'mixed-values': MixedValues,
   button: Button,
   'button-loading': ButtonLoading,
   'button-disabled': ButtonDisabled,

@@ -9,6 +9,40 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+test.each(['click', 'ArrowRight', 'End'])(
+  'mixed segments are all unchecked and resolve with %s',
+  async (action) => {
+    const onChange = vi.fn<(value: string) => void>();
+    const user = userEvent.setup();
+    await render(
+      <SegmentedControl
+        label="Mode"
+        mixed
+        value="b"
+        onChange={onChange}
+        options={[
+          { value: 'a', label: 'A' },
+          { value: 'b', label: 'B' },
+        ]}
+      />,
+    );
+    expect(
+      screen.getByRole('radiogroup', { name: 'Mode' }).accessibility.hint,
+    ).toBe('Mixed');
+    const [first, second] = screen.getAllByRole('radio');
+    expect(first?.accessibility.state?.checked).toBe(false);
+    expect(second?.accessibility.state?.checked).toBe(false);
+    expect(first?.focusable).toBe(true);
+    if (action === 'click') await user.click(second!);
+    else {
+      await user.tab();
+      await user.keyboard(`{${action}}`);
+    }
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('b');
+    expect(second?.accessibility.state?.checked).toBe(false);
+  },
+);
+
 test('action controls expose live states and segmented keyboard focus skips disabled options', async () => {
   const onPress = vi.fn<() => void>();
   await render(

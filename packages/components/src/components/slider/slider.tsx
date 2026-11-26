@@ -1,6 +1,6 @@
 import { Text, View } from '@soundor/react';
 
-import { useSlider, type RangeProps } from '../../headless';
+import { useSlider, type MixedRangeProps } from '../../headless';
 import { withActions, type HostProps } from '../../internal/host';
 import {
   accents,
@@ -13,7 +13,7 @@ import {
 } from '../../theme';
 
 export interface SliderProps
-  extends RangeProps, HostProps, StyleProps<'Slider'> {
+  extends MixedRangeProps, HostProps, StyleProps<'Slider'> {
   size?: ControlSize;
   color?: ControlColor;
   width?: number;
@@ -77,9 +77,12 @@ export function Slider({
         </Text>
         <Text
           accessible={false}
-          style={slot('value', textStyle(theme, 'value'))}
+          style={slot(
+            'value',
+            textStyle(theme, 'value', r.mixed ? c.textMuted : undefined),
+          )}
         >
-          {r.format(r.value)}
+          {r.valueText}
         </Text>
       </View>
       <View
@@ -114,7 +117,7 @@ export function Slider({
             pointerEvents: 'none',
           }}
         >
-          {hi > lo && (
+          {!r.mixed && hi > lo && (
             <View
               style={{
                 position: 'absolute',
@@ -129,28 +132,37 @@ export function Slider({
             />
           )}
           <View
-            style={slot('thumb', {
-              position: 'absolute',
-              left: percent(r.normalized),
-              marginLeft: -thumb! / 2,
-              width: thumb,
-              height,
-              borderRadius: theme.radius.radiusXs,
-              backgroundColor: c.control,
-              borderWidth: theme.size.borderHairline,
-              borderColor: r.hovered ? c.trackFill : c.controlRim,
-              alignItems: 'center',
-              justifyContent: 'center',
-            })}
+            style={slot('thumb', [
+              {
+                position: 'absolute',
+                left: percent(r.mixed ? 0.5 : r.normalized),
+                marginLeft: -thumb! / 2,
+                width: thumb,
+                height,
+                borderRadius: theme.radius.radiusXs,
+                backgroundColor: c.control,
+                borderWidth: theme.size.borderHairline,
+                borderColor: r.hovered ? c.trackFill : c.controlRim,
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+              r.mixed &&
+                slot('mixed', {
+                  backgroundColor: c.surfaceInset,
+                  borderColor: c.border,
+                }),
+            ])}
           >
-            <View
-              style={{
-                width: 2,
-                height: Math.round(height! * 0.45),
-                borderRadius: 1,
-                backgroundColor: accent.mark,
-              }}
-            />
+            {!r.mixed && (
+              <View
+                style={{
+                  width: 2,
+                  height: Math.round(height! * 0.45),
+                  borderRadius: 1,
+                  backgroundColor: accent.mark,
+                }}
+              />
+            )}
           </View>
         </View>
       </View>

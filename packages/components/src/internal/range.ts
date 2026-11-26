@@ -5,6 +5,7 @@ import type { KeyboardEvent, PointerEvent } from 'soundor:ui';
 
 import { parsers, trueMinus } from './format';
 import { useGesture } from './gesture';
+import { defaultMixedLabel, type MixedLabelProps } from './mixed';
 import { clamp, createScale, snapValue, type ValueScale } from './scale';
 
 /** Structural subset of a generated Soundor parameter. */
@@ -58,6 +59,11 @@ export interface RangeProps {
   debugId?: string;
 }
 
+export interface MixedRangeProps extends RangeProps, MixedLabelProps {
+  /** First edit's starting value while mixed. Defaults to the control's reset value. */
+  mixedStart?: number;
+}
+
 const absent = { get: () => undefined, subscribe: () => () => {} };
 
 export function useControlValue<T>(
@@ -76,12 +82,15 @@ export function useControlValue<T>(
   };
 }
 
-export function useRangeModel(props: RangeProps) {
+export function useRangeModel(props: MixedRangeProps) {
   const { parameter } = props;
   const min = parameter?.info.min ?? props.min ?? 0;
   const max = parameter?.info.max ?? props.max ?? 1;
   const step = parameter?.info.step ?? props.step;
   const reset = parameter?.info.default ?? props.defaultValue ?? min;
+  const mixed = props.mixed ?? false;
+  const mixedStart = clamp(props.mixedStart ?? reset, min, max);
+  const mixedLabel = props.mixedLabel ?? defaultMixedLabel;
   const readOnly = parameter?.info.access === 'readOnly';
   const disabled = props.disabled === true || readOnly;
   const label = props.label ?? parameter?.info.label;
@@ -106,8 +115,15 @@ export function useRangeModel(props: RangeProps) {
   const parse =
     props.parse ??
     (parameter ? (text: string) => parameter.parse(text) : parsers.number);
-  const edit = useRef<{ value: number } | null>(null);
-  const get = () => parameter?.get() ?? edit.current?.value ?? own.value;
+  const edit = useRef<{
+    value: number;
+    mixed: boolean;
+    changed: boolean;
+  } | null>(null);
+  const get = () =>
+    edit.current?.mixed
+      ? edit.current.value
+      : (parameter?.get() ?? edit.current?.value ?? own.value);
   const set = (value: number, quantize = true) => {
     if (disabled || !Number.isFinite(value)) return;
     const quantized = (quantize ? props.snap?.(value) : undefined) ?? value;
@@ -118,17 +134,24 @@ export function useRangeModel(props: RangeProps) {
       max,
       !quantize || parameter ? undefined : step,
     );
-    if (next === get()) return;
+    const active = edit.current;
+    // Even the same number resolves a mixed value on the first write.
+    if (next === get() && !(active?.mixed && !active.changed)) return;
     parameter?.set(next);
     const actual = parameter?.get() ?? next;
-    if (edit.current) edit.current.value = actual;
+    if (active) {
+      active.value = actual;
+      active.changed = true;
+    }
     own.setOwn(actual);
     props.onChange?.(actual);
   };
   const begin = () => {
-    const start = get();
+    const original = get();
+    const start = mixed ? mixedStart : original;
     parameter?.beginGesture({ history: props.history ?? true });
-    edit.current = { value: start };
+    const active = { value: start, mixed, changed: false };
+    edit.current = active;
     try {
       props.onChangeStart?.();
     } catch (error) {
@@ -139,8 +162,8 @@ export function useRangeModel(props: RangeProps) {
     return (cancel: boolean) => {
       let value = start;
       try {
-        if (cancel) set(start, false);
-        value = get();
+        if (cancel && (!mixed || active.changed)) set(original, false);
+        value = mixed && !active.changed ? original : get();
       } finally {
         edit.current = null;
         parameter?.endGesture();
@@ -157,6 +180,9 @@ export function useRangeModel(props: RangeProps) {
   return {
     value: own.value,
     normalized: normalize(own.value),
+    mixed,
+    mixedStart,
+    mixedLabel,
     origin: normalize(props.origin ?? min),
     min,
     max,
@@ -213,10 +239,11 @@ export interface RangeInteraction {
 }
 
 export function useRangeControl(
-  props: RangeProps,
+  props: MixedRangeProps,
   options: RangeInteraction = {},
 ) {
   const range = useRangeModel(props);
+  const valueText = range.mixed ? range.mixedLabel : range.format(range.value);
   const gesture = useGesture(range.disabled, props.parameter);
   const [hovered, setHovered] = useState(false);
   const [focusVisible, setFocusVisible] = useState(false);
@@ -272,8 +299,8 @@ export function useRangeControl(
     accessibilityValue: {
       min: range.min,
       max: range.max,
-      now: range.value,
-      text: range.format(range.value),
+      ...(range.mixed ? {} : { now: range.value }),
+      text: valueText,
     },
     accessibilityActions: range.disabled
       ? []
@@ -334,11 +361,16 @@ export function useRangeControl(
       const under = (point - box.start) / box.travel;
       const grab = options.grabRadius;
       onThumb.current =
+        range.mixed ||
         !absolute ||
         grab === undefined ||
         Math.abs(under - range.normalize(range.get())) * box.travel <= grab;
-      // On the thumb, or with Shift: grabbed where it is, keeping the offset.
-      const keep = event.shiftKey || (grab !== undefined && onThumb.current);
+      // Mixed has no value to jump to; keep the offset from the edit start.
+      // Otherwise, grab the thumb where it is when pressed on it or with Shift.
+      const keep =
+        range.mixed ||
+        event.shiftKey ||
+        (grab !== undefined && onThumb.current);
       const position =
         absolute && !keep ? clamp(under) : range.normalize(range.get());
       drag.current = {
@@ -431,6 +463,7 @@ export function useRangeControl(
 
   return {
     ...range,
+    valueText,
     handlers,
     hovered: hovered && !range.disabled,
     focusVisible: focusVisible && !props.disabled,

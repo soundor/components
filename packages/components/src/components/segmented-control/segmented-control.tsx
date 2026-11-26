@@ -8,6 +8,7 @@ import {
   type HostProps,
   type OwnActions,
 } from '../../internal/host';
+import { defaultMixedLabel, type MixedProps } from '../../internal/mixed';
 import { useControlValue } from '../../internal/range';
 import {
   controlHeight,
@@ -31,7 +32,7 @@ export interface SegmentOption<T extends string> {
 export type SegmentedControlParameter<T extends string> = ChoiceParameter<T>;
 
 interface SegmentedControlBaseProps
-  extends ActionProps, HostProps, StyleProps<'SegmentedControl'> {
+  extends ActionProps, HostProps, StyleProps<'SegmentedControl'>, MixedProps {
   label?: string;
   size?: ControlSize;
   fill?: boolean;
@@ -161,6 +162,7 @@ export function SegmentedControl<T extends string>({
   options = parameter?.info.options ?? [],
   value,
   defaultValue,
+  mixed = false,
   label = parameter?.info.label,
   onChange,
   size = 'md',
@@ -179,7 +181,8 @@ export function SegmentedControl<T extends string>({
     value,
     defaultValue ?? available[0]?.value,
   );
-  const tabStop = available.find((o) => o.value === own.value) ?? available[0];
+  const selected = mixed ? undefined : own.value;
+  const tabStop = available.find((o) => o.value === selected) ?? available[0];
   const nodes = useRef(new Map<T, UiNode>());
   const focusNext = useRef<T | undefined>(undefined);
   useLayoutEffect(() => {
@@ -191,7 +194,7 @@ export function SegmentedControl<T extends string>({
     if (
       option.disabled ||
       disabled ||
-      option.value === (parameter?.get() ?? own.value)
+      (!mixed && option.value === (parameter?.get() ?? own.value))
     )
       return;
     focusNext.current = option.value;
@@ -207,7 +210,13 @@ export function SegmentedControl<T extends string>({
       ref={ref}
       accessibilityRole="radiogroup"
       accessibilityLabel={props.accessibilityLabel ?? label}
-      accessibilityHint={props.accessibilityHint}
+      accessibilityHint={
+        mixed
+          ? [defaultMixedLabel, props.accessibilityHint]
+              .filter(Boolean)
+              .join('. ')
+          : props.accessibilityHint
+      }
       debugId={props.debugId}
       accessibilityState={{ disabled }}
       style={slot('root', {
@@ -245,7 +254,7 @@ export function SegmentedControl<T extends string>({
         <Segment
           key={option.value}
           option={option}
-          selected={own.value === option.value}
+          selected={selected === option.value}
           tabbable={tabStop === option}
           disabled={Boolean(disabled || option.disabled)}
           remember={(node) => {

@@ -114,6 +114,7 @@ export type {
   ADSREnvelope,
   ComponentParameter,
   EnvelopeStage,
+  MixedRangeProps,
   RangeParameter,
   RangeProps,
   ValueScale,

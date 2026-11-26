@@ -21,6 +21,48 @@ afterEach(() => {
 import { parameter } from '../test-utils';
 
 describe('range interactions', () => {
+  test.each([ValueField, Knob, Slider, Fader])(
+    '$name announces mixed and starts a keyboard edit from its default',
+    async (Control) => {
+      const onChange = vi.fn<(value: number) => void>();
+      const onChangeStart = vi.fn<() => void>();
+      const user = userEvent.setup();
+      const { rerender } = await render(
+        <Control
+          label="Amount"
+          mixed
+          value={80}
+          defaultValue={25}
+          max={100}
+          onChange={onChange}
+          onChangeStart={onChangeStart}
+        />,
+      );
+      const control = screen.getByRole('adjustable', { name: 'Amount' });
+      expect(control.accessibility.value).toMatchObject({ text: 'Mixed' });
+      expect(control.accessibility.value?.now).toBeUndefined();
+      await user.tab();
+      await user.keyboard('{ArrowUp}{ArrowUp}{Home}{End}');
+      expect(onChange.mock.calls).toEqual([[26], [27], [0], [100]]);
+      expect(onChangeStart).toHaveBeenCalledTimes(1);
+      expect(control.accessibility.value?.text).toBe('Mixed');
+      await rerender(<Control label="Amount" value={100} max={100} />);
+      expect(control.accessibility.value).toMatchObject({
+        now: 100,
+        text: '100.00',
+      });
+    },
+  );
+
+  test('a mixed range can resolve to the same backing value at an endpoint', async () => {
+    const onChange = vi.fn<(value: number) => void>();
+    const user = userEvent.setup();
+    await render(<Knob label="Amount" mixed value={0} onChange={onChange} />);
+    await user.tab();
+    await user.keyboard('{Home}');
+    expect(onChange).toHaveBeenCalledExactlyOnceWith(0);
+  });
+
   test('drag uses native parameter mapping, Shift enables fine travel, Escape restores its exact initial value', async () => {
     const gain = parameter(0.25);
     const change = vi.fn<(value: number) => void>();
