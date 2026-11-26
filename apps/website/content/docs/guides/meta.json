@@ -5,7 +5,6 @@
     "equalizer-reference",
     "resizable-editors",
     "keyboard-and-accessibility",
-    "custom-controls",
-    "migrating-to-0-4"
+    "custom-controls"
   ]
 }

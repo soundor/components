@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- f31a5e9: Make menus and Plot compositional. See the "Migrating to 0.4" guide for before-and-after examples.
+- f31a5e9: Make menus and Plot compositional.
 
   - `Dropdown` is replaced by `DropdownMenu`, with `DropdownMenu.Trigger` (which enhances its one child, such as a Button, without adding a view) and `DropdownMenu.Content`. Placement props move to the content.
   - `ContextMenu` takes a `ContextMenu.Trigger` and a `ContextMenu.Content` in place of `items` and its child. The trigger keeps the child's role, name, value, actions and focus. `longPressDelay` is removed: a long touch opens the menu on the platform's long press, as Soundor's engine recognises it. The accessibility action is now the engine's `showContextMenu`, offered as AXShowMenu, UI Automation's `ShowContextMenu` and AT-SPI's `popup` where the platform has them, in place of the custom `showMenu` ("Show menu").
