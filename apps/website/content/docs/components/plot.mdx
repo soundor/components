@@ -274,9 +274,23 @@ The `series`, `seriesSource`, `x`, `y`, `markers`, `legend`, `readout` and `over
   name="PlotAxisProps"
 />
 
-### Plot.Area
+### Plot.Grid and axis references
 
-`Plot.Line` and `Plot.Steps` take the same, without `baseline`.
+`Plot.Grid` takes only these props. Series, guides, markers and `usePlotCoordinates` also use these axis IDs. Omit an ID to use the default axis in that direction.
+
+<auto-type-table
+  path="packages/components/src/components/plot/controller.ts"
+  name="PlotAxisReference"
+/>
+
+### Plot.Line and Plot.Steps
+
+<auto-type-table
+  path="packages/components/src/components/plot/parts.tsx"
+  name="PlotLineProps"
+/>
+
+### Plot.Area
 
 <auto-type-table
   path="packages/components/src/components/plot/parts.tsx"
@@ -311,11 +325,64 @@ The `series`, `seriesSource`, `x`, `y`, `markers`, `legend`, `readout` and `over
   name="PlotMarkerProps"
 />
 
+### PlotMarkerState
+
+The state passed to the marker's `render` callback:
+
+<auto-type-table
+  path="packages/components/src/components/plot/parts.tsx"
+  name="PlotMarkerState"
+/>
+
 ### Plot.HorizontalLine and Plot.VerticalLine
 
 <auto-type-table
   path="packages/components/src/components/plot/parts.tsx"
   name="PlotGuideProps"
+/>
+
+### Plot.Legend and Plot.Readout
+
+These parts take no props. `Plot.Legend` uses the registered series and `Plot.Readout` uses the active marker.
+
+### Plot.FrequencyKeyboard
+
+See the [props for Plot.FrequencyKeyboard](/docs/components/frequency-keyboard#plotfrequencykeyboard).
+
+### PlotBackgroundProps
+
+Pass these callbacks directly to `Plot` to handle interaction within the plotting area.
+
+<auto-type-table
+  path="packages/components/src/components/plot/background.tsx"
+  name="PlotBackgroundProps"
+/>
+
+### PlotBackgroundEvent and PlotBackgroundDragEvent
+
+The drag payload adds `phase` and `origin` to the ordinary background payload. `origin` is the starting point in logical pixels relative to the plot.
+
+<auto-type-table
+  path="packages/components/src/components/plot/background.tsx"
+  name="PlotBackgroundDragEvent"
+/>
+
+### PlotSelection
+
+The options passed to `Plot` via its `selection` prop:
+
+<auto-type-table
+  path="packages/components/src/components/plot/selection.ts"
+  name="PlotSelection"
+/>
+
+### PlotGroupDrag
+
+The payload passed to `selection.onGroupDrag`:
+
+<auto-type-table
+  path="packages/components/src/components/plot/selection.ts"
+  name="PlotGroupDrag"
 />
 
 ### PlotSource

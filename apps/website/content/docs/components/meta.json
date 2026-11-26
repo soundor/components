@@ -2,6 +2,7 @@
   "title": "Components",
   "defaultOpen": true,
   "pages": [
+    "index",
     "---Actions---",
     "button",
     "toggle",

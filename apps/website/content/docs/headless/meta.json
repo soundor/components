@@ -1,6 +1,7 @@
 {
   "title": "Headless",
   "pages": [
+    "index",
     "---Range---",
     "use-knob",
     "use-slider",
@@ -8,6 +9,7 @@
     "use-value-field",
     "---Other---",
     "use-xy-pad",
+    "use-selection",
     "use-envelope-editor",
     "use-resize-grip"
   ]

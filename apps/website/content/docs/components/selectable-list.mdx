@@ -28,8 +28,29 @@ non-interactive; the list supplies the option's role, label and selected state.
 Style the `root`, `item` and `label` slots with `theme.components.SelectableList`,
 `style`, or `styles`.
 
-Import `useSelection` from `@soundor/components/headless` for a custom layout.
-It accepts the same selection, items and orientation options. Forward
-`attach(id, node)` to each focusable item, `onKeyDown(id, event)` to its key
-handler, and `select(item)` to its activation handler. Supply the roles,
-labels and focus styles appropriate for the custom presentation.
+## Headless selection
+
+Use [useSelection](/docs/headless/use-selection) directly when you need a custom layout. It accepts the same selection, items and orientation options.
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/selectable-list/index.tsx"
+  name="SelectableListProps"
+/>
+
+### SelectionItem
+
+<auto-type-table
+  path="packages/components/src/internal/selection.ts"
+  name="SelectionItem"
+/>
+
+### SelectableListItemState
+
+The state passed to `renderItem`:
+
+<auto-type-table
+  path="packages/components/src/components/selectable-list/index.tsx"
+  name="SelectableListItemState"
+/>

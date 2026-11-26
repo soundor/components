@@ -76,14 +76,34 @@ Closing always gives focus back to the field. The field is a `combobox` with its
 
 ## Props
 
+### Parameter-bound Select
+
 <auto-type-table
   path="packages/components/src/components/select/select.tsx"
-  name="SelectProps"
+  name="SelectParameterProps"
+/>
+
+### Standalone Select
+
+Pass `options` with either `value` and `onChange` for a controlled field, or `defaultValue` to set an uncontrolled field's initial choice.
+
+<auto-type-table
+  path="packages/components/src/components/select/select.tsx"
+  name="SelectValueProps"
 />
 
 ### SelectOption
 
 <auto-type-table
-  path="packages/components/src/internal/choice.ts"
-  name="ChoiceOption"
+  path="packages/components/src/components/select/select.tsx"
+  name="SelectOption"
+/>
+
+### SelectOptionState
+
+The state passed to `renderOption`:
+
+<auto-type-table
+  path="packages/components/src/components/select/select.tsx"
+  name="SelectOptionState"
 />

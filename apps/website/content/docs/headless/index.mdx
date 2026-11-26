@@ -1,0 +1,15 @@
+---
+title: Headless hooks
+description: Reuse Soundor control interactions with your own visuals.
+---
+
+Import these hooks from `@soundor/components/headless`. They provide interaction logic you can wire into your own Soundor views. For pre-styled controls, see the [component reference](/docs/components).
+
+| Use case                            | Hooks                                                                                                                                                             |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Numeric parameters                  | [useKnob](/docs/headless/use-knob), [useSlider](/docs/headless/use-slider), [useFader](/docs/headless/use-fader), [useValueField](/docs/headless/use-value-field) |
+| Two-dimensional or envelope editing | [useXYPad](/docs/headless/use-xy-pad), [useEnvelopeEditor](/docs/headless/use-envelope-editor)                                                                    |
+| Collection selection                | [useSelection](/docs/headless/use-selection)                                                                                                                      |
+| Editor sizing                       | [useResizeGrip](/docs/headless/use-resize-grip)                                                                                                                   |
+
+The [custom controls guide](/docs/guides/custom-controls) shows how to connect hook handlers to your own control.

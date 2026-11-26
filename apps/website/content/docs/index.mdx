@@ -11,6 +11,8 @@ pnpm add @soundor/components
 
 Components work in Soundor's VST3 and web runtimes. Use Soundor 0.21, `@soundor/react` 0.21, and React 19.3 or compatible patch releases. Build with the Soundor CLI to resolve runtime imports and package the bundled fonts.
 
+Browse the [component reference](/docs/components) for ready-to-use controls and displays, or the [headless reference](/docs/headless) to build your own visuals on top of the same interaction hooks.
+
 <Demo name="gallery" height={360} />
 
 ## Bind a control to a parameter
@@ -51,17 +53,17 @@ See the controls in use in [Orbit](https://soundor.dev/docs/examples/orbit), a S
 
 ## What's in the package
 
-| Import                         | Contains                                                                                |
-| ------------------------------ | --------------------------------------------------------------------------------------- |
-| `@soundor/components`          | The [components](/docs/components/button), `formatters`, `parsers`, and `registerFonts` |
-| `@soundor/components/theme`    | `ThemeProvider`, `createTheme`, `useTheme`, `textStyle`, and `registerFonts`            |
-| `@soundor/components/headless` | The interaction [hooks](/docs/headless/use-knob)                                        |
-| `@soundor/components/chart`    | Scales, geometry, drawing, `formatters`                                                 |
+| Import                         | Contains                                                                         |
+| ------------------------------ | -------------------------------------------------------------------------------- |
+| `@soundor/components`          | The [components](/docs/components), `formatters`, `parsers`, and `registerFonts` |
+| `@soundor/components/theme`    | `ThemeProvider`, `createTheme`, `useTheme`, `textStyle`, and `registerFonts`     |
+| `@soundor/components/headless` | The interaction [hooks](/docs/headless)                                          |
+| `@soundor/components/chart`    | Scales, geometry, drawing, `formatters`                                          |
 
 Styled components pair an interaction with a look and need no provider. The headless hooks are the interaction alone: they handle gestures, keyboard input, focus and accessibility, and leave the drawing to you.
 
 ## Next steps
 
 - [Theming](/docs/utils/theming): tokens, slots, and fonts.
-- [Button](/docs/components/button) and the rest of the components, each with its props.
-- [useKnob](/docs/headless/use-knob) and the other hooks, to draw controls yourself.
+- [Components](/docs/components): props, usage and interactive examples.
+- [Headless hooks](/docs/headless): bring your own visuals.

@@ -143,3 +143,21 @@ The menu is a `menu`, its items are `menuitem`s, and a `Menu.Label` is a `header
   path="packages/components/src/components/menu/menu.tsx"
   name="MenuItemProps"
 />
+
+### Popup anchors
+
+The `anchor` prop on `DropdownMenu.Content`, `Popover.Content` and `Tooltip` accepts a `PopupAnchor`:
+
+```ts
+type PopupRegion = Readonly<
+  | { x: number; y: number }
+  | { x: number; y: number; width: number; height: number }
+>;
+
+type PopupAnchor =
+  | RefObject<UiNode | null>
+  | PopupRegion
+  | { readonly getRegion: () => PopupRegion | null };
+```
+
+Points and rectangles use logical view coordinates. Use a node ref or a stable `getRegion` reader to follow an anchor that moves outside React renders. Return `null` when the region is unavailable.

@@ -32,3 +32,19 @@ rebuilding all history for each frame. A resize or style change repaints
 the retained history. The default history stores 72 KiB of amplitude data.
 Run `pnpm --filter @soundor/components exec vitest run src/components/spectrogram/history.test.ts`
 to measure bin remapping separately from canvas painting.
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/spectrogram/index.tsx"
+  name="SpectrogramProps"
+/>
+
+### SpectrumFrame
+
+The `source` supplies one of these frames per publish. See [PlotSource](/docs/components/plot#plotsource) for the source interface.
+
+<auto-type-table
+  path="packages/components/src/components/spectrogram/history.ts"
+  name="SpectrumFrame"
+/>

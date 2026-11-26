@@ -78,6 +78,21 @@ and the plugin first; the VST3 runtime is Steinberg's SDK, prebuilt, not JUCE.
 - Add a changeset for any change to the published package.
 - Install snippets in the docs use pnpm and npm only.
 
+## API documentation
+
+- When adding or changing a public component, compound part, or headless hook,
+  update its reference page in `apps/website/content/docs/` in the same change.
+  Add new pages to the section's `meta.json`.
+- Add a **Props** section for each component and each part that takes props, or
+  an **Options** section for a hook that takes options. Use
+  `<auto-type-table path="..." name="..." />` with the repo-relative source
+  path and TypeScript type name. The tag is required: the site generates the
+  rows from the type but does not discover which tables a page needs.
+- Document defaults, mutually exclusive modes, and callback payloads where
+  the generated table alone is unclear. Check the rendered page to confirm
+  the expected props or options appear; a passing build alone does not catch
+  an omitted table.
+
 ## Public component API design
 
 The library is opinionated and high level: complete, accessible audio
