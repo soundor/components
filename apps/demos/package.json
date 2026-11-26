@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@soundor/components": "workspace:*",
+    "@soundor/icons": "catalog:",
     "@soundor/react": "catalog:",
     "@soundor/vst3-runtime": "catalog:",
     "@soundor/web-runtime": "catalog:",

@@ -3,9 +3,9 @@ title: Select
 description: One value from a list of options, in a compact field.
 ---
 
-For visual choices, set `icon` on an option or pass `getOptionIcon(option)`
-to add an icon to a parameter's generated choices. Options retain their
-labels for keyboard navigation and assistive technology. `iconOnly` hides
+For visual choices, set the option's `icon` to a React node or a function that
+receives the option state and returns a node.
+Options retain their labels for keyboard navigation and assistive technology. `iconOnly` hides
 the chosen text when an icon exists; give the trigger a meaningful `label`
 or `accessibilityLabel`. `renderOption` replaces the visual row content,
 while `renderValue(option)` replaces the chosen value in the trigger.
@@ -26,7 +26,10 @@ import { parameters } from 'soundor:parameters';
 <Select parameter={parameters.filterType} />;
 ```
 
-`options`, `value`, `defaultValue` and `onChange` can't be passed with a parameter; use `parameter.subscribe` to observe changes.
+For a parameter-bound Select, `options` can attach icons by value, for example
+`options={[{ value: 'lowpass', icon: <FilterIcon /> }]}`. The parameter still
+supplies the choices, labels, and order. `value`, `defaultValue`, and `onChange`
+can't be passed with a parameter; use `parameter.subscribe` to observe changes.
 
 ## Controlled and uncontrolled
 
@@ -52,6 +55,35 @@ const [filter, setFilter] = useState<'lowpass' | 'highpass' | 'bandpass'>(
 With a `placeholder` and no value, the field shows the placeholder until something is chosen; without one, it starts on the first enabled option. `open`, `defaultOpen` and `onOpenChange` control the list itself.
 
 ## Disabled options, states and custom rows
+
+Pass `state.color` to `@soundor/icons` to use the same foreground as the label.
+That color adapts to hovered or keyboard-focused, selected, and disabled rows.
+The icon renderer also runs for the chosen value in the trigger and receives the
+appropriate color there. For a fixed-color icon, pass a React node as `option.icon`.
+
+```tsx
+import { Select } from '@soundor/components';
+import { WaveSine, WaveSquare } from '@soundor/icons/phosphor';
+
+<Select
+  label="Waveform"
+  hideCheckmark
+  options={[
+    {
+      value: 'sine',
+      label: 'Sine',
+      icon: ({ color }) => <WaveSine size={16} color={color} />,
+    },
+    {
+      value: 'square',
+      label: 'Square',
+      icon: ({ color }) => <WaveSquare size={16} color={color} />,
+    },
+  ]}
+/>;
+```
+
+Set `hideCheckmark` to hide the checkmark and its reserved space. The selected option is still highlighted and announced as checked.
 
 An option with `disabled` is shown dimmed and skipped by the keyboard, and its `hint` says why. A disabled field can't be focused; a `readOnly` one can, and shows its value without opening. `size` matches the other controls, and `renderOption` draws a row of your own, such as an icon beside the label. Keep custom rows one line high.
 
@@ -101,7 +133,7 @@ Pass `options` with either `value` and `onChange` for a controlled field, or `de
 
 ### SelectOptionState
 
-The state passed to `renderOption`:
+The state passed to `renderOption` and option icon renderers:
 
 <auto-type-table
   path="packages/components/src/components/select/select.tsx"
