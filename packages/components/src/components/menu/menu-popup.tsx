@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
+import type { UiNode } from 'soundor:ui';
 
 import type { PopupAlign, PopupSide } from '../../internal/popup/placement';
 import { Popup, type PopupAnchor } from '../../internal/popup/popup';
@@ -37,6 +38,7 @@ export function MenuPopup({
   ...styles
 }: MenuPopupProps) {
   const { theme, slot } = useComponent('Menu', styles);
+  const surface = useRef<UiNode | null>(null);
   return (
     <Popup
       anchor={anchor}
@@ -45,6 +47,7 @@ export function MenuPopup({
       offset={offset}
       onDismiss={close}
       debugId={debugId}
+      surfaceRef={surface}
       style={slot('root', surfaceStyle(theme))}
     >
       <MenuList
@@ -53,6 +56,7 @@ export function MenuPopup({
         initialFocus={initialFocus}
         close={close}
         part={slot}
+        surface={surface}
       >
         {children}
       </MenuList>

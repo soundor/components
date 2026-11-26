@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { MenuDivider, MenuHeading, MenuRow } from './menu-list';
+import { Sub, SubContent, SubTrigger } from './submenu';
 
 export interface MenuItemProps {
   /** Its label: what it says, what a screen reader reads, what typing finds. */
@@ -72,7 +73,18 @@ function Label({ children }: MenuLabelProps) {
  *     );
  *   }
  *
+ * A `Menu.Sub` is a row that opens another menu beside it: a
+ * `Menu.SubTrigger` and the `Menu.SubContent` it opens, which takes the
+ * same parts, other `Menu.Sub`s included.
+ *
  * `Menu` is only their namespace: a menu is a `DropdownMenu` or a
  * `ContextMenu`. Used outside one, they throw.
  */
-export const Menu = { Item, Divider, Label } as const;
+export const Menu = {
+  Item,
+  Divider,
+  Label,
+  Sub,
+  SubTrigger,
+  SubContent,
+} as const;

@@ -37,6 +37,7 @@ import SelectableList from './selectable-list';
 import Showcase from './showcase';
 import Slider from './slider';
 import Spectrogram from './spectrogram';
+import Submenu from './submenu';
 import SynthVoice from './synth-voice';
 import TextField from './text-field';
 import TextFieldStates from './text-field-states';
@@ -64,6 +65,7 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   'select-states': SelectStates,
   'dropdown-menu': DropdownMenu,
   'context-menu': ContextMenu,
+  submenu: Submenu,
   popover: Popover,
   'popover-arrows': PopoverArrows,
   tooltip: Tooltip,

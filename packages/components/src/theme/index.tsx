@@ -43,10 +43,20 @@ export interface ComponentSlots {
     | 'popup'
     | 'option';
   /**
-   * DropdownMenu's and ContextMenu's menu: `root` is its surface, `heading`
-   * a `Menu.Label`.
+   * DropdownMenu's and ContextMenu's menu, and its submenus: `root` is a
+   * surface, `heading` a `Menu.Label`, `chevron` a `Menu.SubTrigger`'s
+   * trailing chevron, and `itemOpen` a `Menu.SubTrigger` while its submenu
+   * is open, over `item`.
    */
-  Menu: 'root' | 'item' | 'label' | 'icon' | 'separator' | 'heading';
+  Menu:
+    | 'root'
+    | 'item'
+    | 'itemOpen'
+    | 'label'
+    | 'icon'
+    | 'chevron'
+    | 'separator'
+    | 'heading';
   Popover: 'root';
   Tooltip: 'root' | 'label';
   PopupArrow: 'root';
