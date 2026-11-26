@@ -138,6 +138,44 @@ test('Plot provides accessible draggable markers', async () => {
   expect(onMove).toHaveBeenLastCalledWith([0.51, 0.51]);
 });
 
+test('marker locks an axis, composes discrete actions, and keeps removal application-owned', async () => {
+  const user = userEvent.setup();
+  const onMove = vi.fn();
+  const onSelect = vi.fn();
+  const onRemove = vi.fn();
+  const onWheel = vi.fn();
+  await render(
+    <Plot width={260} height={160}>
+      <Plot.XAxis domain={[0, 1]} />
+      <Plot.YAxis domain={[0, 1]} />
+      <Plot.Marker
+        x={0.5}
+        y={0.5}
+        movement="x"
+        selected
+        accessibilityLabel="Trim point"
+        onMove={onMove}
+        onSelect={onSelect}
+        onRemove={onRemove}
+        onWheel={onWheel}
+      />
+    </Plot>,
+  );
+  const marker = screen.getByRole('adjustable', { name: 'Trim point' });
+  await user.tab();
+  expect(marker.accessibility.state?.selected).toBe(true);
+  await user.keyboard('{ArrowUp}');
+  expect(onMove).not.toHaveBeenCalled();
+  await user.keyboard('{ArrowRight}');
+  expect(onMove).toHaveBeenLastCalledWith([0.51, 0.5]);
+  await user.keyboard('{Enter}{Delete}');
+  expect(onSelect).toHaveBeenCalledTimes(1);
+  expect(onRemove).toHaveBeenCalledTimes(1);
+  await user.wheel(marker, { deltaY: -10 });
+  expect(onWheel).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('adjustable', { name: 'Trim point' })).toBe(marker);
+});
+
 test('Plot keeps a marker at the end of an axis in reach, whatever its size', async () => {
   for (const [width, height] of [
     [261.3, 159.7],
@@ -330,8 +368,11 @@ test('a resized high-DPI buffer redraws, and live sources draw once a frame with
   await render(
     <Profiler id="plot" onRender={renders}>
       <Plot width={260} height={160}>
-        <Plot.Area source={input} />
-        <Plot.Line source={output} />
+        <Plot.XAxis id="frequency" scale="log" domain={[20, 20000]} />
+        <Plot.YAxis id="response" domain={[-12, 12]} />
+        <Plot.YAxis id="spectrum" domain={[-90, 0]} position="right" />
+        <Plot.Area source={input} xAxis="frequency" yAxis="spectrum" />
+        <Plot.Line source={output} xAxis="frequency" yAxis="response" />
       </Plot>
     </Profiler>,
   );
@@ -372,6 +413,44 @@ test('a series unsubscribes from a source it no longer has, and as it unmounts',
   expect(second.listeners.size).toBe(1);
   await rerender(fixture());
   expect(second.listeners.size).toBe(0);
+});
+
+test('named axes share the plot bounds with independent scales, including a hidden axis', async () => {
+  const inspect = vi.fn();
+  function Probe() {
+    const response = usePlotCoordinates({
+      xAxis: 'frequency',
+      yAxis: 'response',
+    });
+    const spectrum = usePlotCoordinates({
+      xAxis: 'frequency',
+      yAxis: 'spectrum',
+    });
+    const missing = usePlotCoordinates({ yAxis: 'missing' });
+    inspect(response, spectrum, missing);
+    return null;
+  }
+  const fixture = (range: number) => (
+    <Plot width={360} height={180}>
+      <Plot.YAxis id="response" domain={[-range, range]} />
+      <Plot.YAxis id="spectrum" position="right" hidden domain={[-90, 0]} />
+      <Plot.XAxis id="frequency" domain={[20, 20000]} scale="log" />
+      <Probe />
+    </Plot>
+  );
+  const { rerender } = await render(fixture(12));
+  let [response, spectrum, missing] = inspect.mock.lastCall!;
+  expect(response.rect).toBe(spectrum.rect);
+  expect(missing).toBeUndefined();
+  expect(response.x.map(20 * Math.sqrt(1000))).toBeCloseTo(
+    response.rect.left + response.rect.width / 2,
+  );
+  expect(Number.isFinite(response.x.map(0))).toBe(false);
+  expect(response.y.map(0)).toBeCloseTo(spectrum.y.map(-45));
+  expect(spectrum.y.invert(response.y.map(12))).toBeCloseTo(0);
+  await rerender(fixture(24));
+  [response, spectrum] = inspect.mock.lastCall!;
+  expect(spectrum.y.invert(response.y.map(12))).toBeCloseTo(-22.5);
 });
 
 test('parts of your own get the plot’s coordinates, and render over the canvas', async () => {

@@ -49,15 +49,24 @@ import {
   type DisplayCaption,
 } from '../shared/display';
 import {
+  PlotBackground,
+  type PlotBackgroundProps,
+  type PlotBackgroundDragEvent,
+} from './background';
+import {
   ControllerContext,
   PlotController,
   SpaceContext,
   type SeriesLayer,
+  type PlotAxisReference,
+  type AxisSide,
 } from './controller';
+import type { PlotSelection } from './selection';
 
 export type PlotAxis = Axis;
 
-export interface PlotProps extends DisplayCaption, StyleProps<'Plot'> {
+export interface PlotProps
+  extends DisplayCaption, StyleProps<'Plot'>, PlotBackgroundProps {
   width: number;
   height: number;
   /**
@@ -75,6 +84,7 @@ export interface PlotProps extends DisplayCaption, StyleProps<'Plot'> {
    * their own; the larger is used.
    */
   safeZone?: number;
+  selection?: PlotSelection;
   accessibilityLabel?: string;
   debugId?: string;
 }
@@ -88,6 +98,7 @@ function fallbackDomain(
   let hi = -Infinity;
   for (const layer of series) {
     const range = layer.extent?.[name];
+    if (layer[name === 'x' ? 'xAxis' : 'yAxis'] !== undefined) continue;
     if (!range) continue;
     lo = Math.min(lo, range[0]);
     hi = Math.max(hi, range[1]);
@@ -128,6 +139,14 @@ export function PlotRoot({
   indicator,
   accessibilityLabel,
   debugId,
+  onBackgroundPress,
+  onBackgroundDoubleClick,
+  onBackgroundPointerMove,
+  onBackgroundPointerEnter,
+  onBackgroundPointerLeave,
+  onBackgroundContextMenu,
+  onBackgroundDrag,
+  selection,
   ...styles
 }: PlotProps) {
   const { theme, slot, fontsReady } = useComponent('Plot', styles);
@@ -144,7 +163,6 @@ export function PlotRoot({
   const declaredY = controller.axis('y');
   const legend = controller.has('legend');
   const readout = controller.has('readout');
-  const grid = controller.has('grid');
   const draggable = controller.safeZone();
   // `version` stands for what the controller holds: these change with it.
   const x = useMemo(
@@ -164,43 +182,130 @@ export function PlotRoot({
   // map inside the plot area, short of its edge by a handle's radius and a bit.
   const safeZone = Math.max(0, ownSafeZone, draggable);
   const geometry = useMemo(() => {
+    const entries = [
+      ...controller.namedAxes('x').map(([, axis]) => ({
+        name: 'x' as const,
+        axis,
+      })),
+      ...controller.namedAxes('y').map(([, axis]) => ({
+        name: 'y' as const,
+        axis,
+      })),
+    ];
+    const lanes: Record<AxisSide, number> = {
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+    };
+    const yRoom = Math.min(56, logicalWidth * 0.24);
+    const captionRoom = header
+      ? Math.max(legend && (title || note) ? 48 : 28, logicalHeight * 0.2)
+      : 0;
+    const visible = entries
+      .filter(({ axis }) => !axis.hidden)
+      .map((entry) => {
+        const offset = lanes[entry.axis.side];
+        lanes[entry.axis.side] += entry.name === 'x' ? 20 : yRoom;
+        return { ...entry, offset };
+      });
     const coordinates = createCoordinates(
       viewport(logicalWidth, logicalHeight, {
-        // Room for an axis's labels only where there is one.
-        left: declaredY ? Math.min(56, logicalWidth * 0.24) : 14,
-        right: 14,
-        top: header
-          ? Math.max(legend && (title || note) ? 48 : 28, logicalHeight * 0.2)
-          : 10,
-        bottom: declaredX ? 20 : 10,
+        left: lanes.left || 14,
+        right: lanes.right || 14,
+        top: captionRoom + lanes.top || 10,
+        bottom: lanes.bottom || 10,
       }),
       x,
       y,
       safeZone,
     );
-    const xt = axisTicks(
-      x,
-      Math.max(2, Math.floor(coordinates.rect.width / 75)),
-    );
-    const yt = axisTicks(
-      y,
-      Math.max(2, Math.floor(coordinates.rect.height / 36)),
-    );
+    const primary = { coordinates, x, y };
+    const maps = {
+      x: new Map<Axis, Coordinates['x']>(),
+      y: new Map<Axis, Coordinates['y']>(),
+    };
+    maps.x.set(x, coordinates.x);
+    maps.y.set(y, coordinates.y);
+    for (const { name, axis } of entries) {
+      if (!maps[name].has(axis))
+        maps[name].set(
+          axis,
+          createCoordinates(coordinates.rect, axis, axis, safeZone)[name],
+        );
+    }
+    const cache = new Map<Axis, Map<Axis, typeof primary>>();
+    const resolve = (refs?: PlotAxisReference): typeof primary | undefined => {
+      const horizontal = refs?.xAxis === undefined ? x : namedX.get(refs.xAxis);
+      const vertical = refs?.yAxis === undefined ? y : namedY.get(refs.yAxis);
+      if (!horizontal || !vertical) return undefined;
+      if (horizontal === x && vertical === y) return primary;
+      let pairs = cache.get(horizontal);
+      if (!pairs) cache.set(horizontal, (pairs = new Map()));
+      let pair = pairs.get(vertical);
+      if (!pair) {
+        pair = {
+          x: horizontal,
+          y: vertical,
+          coordinates: {
+            ...coordinates,
+            x: maps.x.get(horizontal)!,
+            y: maps.y.get(vertical)!,
+          },
+        };
+        pairs.set(vertical, pair);
+      }
+      return pair;
+    };
+    const namedX = new Map(controller.axes.x);
+    const namedY = new Map(controller.axes.y);
+    const ticks = (
+      axis: Axis,
+      name: 'x' | 'y',
+      map: Coordinates['x']['map'],
+    ) => {
+      const { major, minor } = axisTicks(
+        axis,
+        Math.max(
+          2,
+          Math.floor(
+            name === 'x'
+              ? coordinates.rect.width / 75
+              : coordinates.rect.height / 36,
+          ),
+        ),
+      );
+      return {
+        major: major.map(map),
+        minor: minor.map(map),
+        labels: major.map((value) => ({
+          at: map(value),
+          text: (axis.format ?? formatTickValue)(value),
+        })),
+      };
+    };
+    const grids = [...controller.grids].flatMap((refs) => {
+      const grid = resolve(refs);
+      if (!grid) return [];
+      return [
+        {
+          x: ticks(grid.x, 'x', grid.coordinates.x.map),
+          y: ticks(grid.y, 'y', grid.coordinates.y.map),
+        },
+      ];
+    });
     return {
       coordinates,
-      majorX: xt.major.map(coordinates.x.map),
-      majorY: yt.major.map(coordinates.y.map),
-      minorX: xt.minor.map(coordinates.x.map),
-      minorY: yt.minor.map(coordinates.y.map),
-      xLabels: xt.major.map((value) => ({
-        at: coordinates.x.map(value),
-        text: (x.format ?? formatTickValue)(value),
-      })),
-      yLabels: yt.major.map((value) => ({
-        at: coordinates.y.map(value),
-        text: (y.format ?? formatTickValue)(value),
+      resolve,
+      grids,
+      axes: visible.map(({ name, axis, offset }) => ({
+        name,
+        side: axis.side,
+        offset,
+        labels: ticks(axis, name, maps[name].get(axis)!.map).labels,
       })),
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- registered parts change with the version
   }, [
     logicalWidth,
     logicalHeight,
@@ -208,28 +313,33 @@ export function PlotRoot({
     legend,
     title,
     note,
-    declaredX,
-    declaredY,
+    controller,
+    version,
     x,
     y,
     safeZone,
   ]);
-  const { coordinates, xLabels, yLabels } = geometry;
+  const { coordinates, resolve } = geometry;
   const captioned = Boolean(title || note);
   const space = useMemo(
-    () => ({ coordinates, x, y, captioned }),
-    [coordinates, x, y, captioned],
+    () => ({ coordinates, x, y, captioned, resolve, selection }),
+    [coordinates, x, y, captioned, resolve, selection],
   );
   const pointer = useRef<Point | null>(null);
+  const marquee = useRef<{ origin: Point; point: Point } | null>(null);
+  const suppressPress = useRef(false);
   const invalidate = useDrawing(box, (ctx) => {
     const { rect } = coordinates;
     if (!rect.width || !rect.height) return;
     const { series, guides } = controller.order();
     const hovered = pointer.current;
-    const points = guides.map((guide): Point => [
-      coordinates.x.map(guide.marker.x ?? NaN),
-      coordinates.y.map(guide.marker.y ?? NaN),
-    ]);
+    const points = guides.map((guide): Point => {
+      const axes = resolve(guide)?.coordinates;
+      return [
+        axes?.x.map(guide.marker.x ?? NaN) ?? NaN,
+        axes?.y.map(guide.marker.y ?? NaN) ?? NaN,
+      ];
+    });
     const selected = hovered
       ? hitTest(points, hovered[0], hovered[1], 14, grow(rect, edgeSlop))
       : -1;
@@ -240,63 +350,80 @@ export function PlotRoot({
     );
     const inside = hovered && contains(rect, hovered[0], hovered[1]);
     clipToViewport(ctx, rect, () => {
-      if (grid) {
-        drawGrid(
-          ctx,
-          rect,
-          geometry.minorX,
-          geometry.minorY,
-          c.displayGrid,
-          0.45,
-        );
-        drawGrid(ctx, rect, geometry.majorX, geometry.majorY, c.displayGrid);
+      for (const grid of geometry.grids) {
+        drawGrid(ctx, rect, grid.x.minor, grid.y.minor, c.displayGrid, 0.45);
+        drawGrid(ctx, rect, grid.x.major, grid.y.major, c.displayGrid);
       }
       for (let i = 0; i < series.length; i++) {
         const data = samples[i];
-        if (!data) continue;
+        const axes = resolve(series[i]!);
+        if (!data || !axes) continue;
         drawSeries(
           ctx,
-          coordinates,
-          x.domain,
+          axes.coordinates,
+          axes.x.domain,
           series[i]!.config,
           data,
           colors[i]!,
-          y.domain[0],
+          axes.y.domain[0],
         );
       }
       if (readout && inside) {
         drawSelection(ctx, rect, hovered[0], hovered[1], c.displayText);
       }
+      const drag = marquee.current;
+      if (drag) {
+        ctx.save();
+        ctx.strokeStyle = c.focus;
+        ctx.strokeRect(
+          drag.origin[0],
+          drag.origin[1],
+          drag.point[0] - drag.origin[0],
+          drag.point[1] - drag.origin[1],
+        );
+        ctx.restore();
+      }
     });
     // Not clipped, so a handle at the end of an axis is whole.
     for (let i = 0; i < guides.length; i++) {
       const guide = guides[i]!;
+      if (guide.marker.custom) continue;
+      const axes = resolve(guide);
+      if (!axes) continue;
+      ctx.save();
+      if (guide.marker.disabled)
+        ctx.globalAlpha = theme.opacity.opacityDisabled;
       drawMarker(
         ctx,
-        coordinates,
+        axes.coordinates,
         guide.marker,
         colorFor(theme, guide.marker.color ?? c.displayMuted),
         c.display,
         numericFont(theme, fontsReady, 10, true),
-        selected === i || guide.focused,
+        guide.marker.selected ||
+          (!guide.marker.disabled && (selected === i || guide.focused)),
       );
+      ctx.restore();
     }
-    drawAxes(
-      ctx,
-      rect,
-      xLabels,
-      yLabels,
-      { axis: c.displayAxis, label: c.displayMuted, background: c.display },
-      font,
-      { x: !!declaredX, y: !!declaredY },
-    );
+    for (const axis of geometry.axes)
+      drawAxes(
+        ctx,
+        rect,
+        axis.name === 'x' ? axis.labels : [],
+        axis.name === 'y' ? axis.labels : [],
+        { axis: c.displayAxis, label: c.displayMuted, background: c.display },
+        font,
+        { x: axis.name === 'x', y: axis.name === 'y' },
+        axis.side,
+        axis.offset,
+      );
     if (readout && inside) {
       paintReadout(
         ctx,
         hovered,
         coordinates,
         x,
-        y,
+        resolve,
         series,
         samples,
         colors,
@@ -312,6 +439,46 @@ export function PlotRoot({
       controller.frame = () => {};
     };
   }, [controller, invalidate]);
+  const backgroundDrag = (drag: PlotBackgroundDragEvent) => {
+    if (drag.phase === 'start') {
+      suppressPress.current = false;
+      if (selection?.multiple && selection.rectangle && drag.event.shiftKey) {
+        marquee.current = { origin: drag.origin, point: drag.point };
+      }
+    }
+    const area = marquee.current;
+    if (!area) {
+      onBackgroundDrag?.(drag);
+      return;
+    }
+    if (drag.phase === 'move') area.point = drag.point;
+    if (drag.phase === 'cancel' || drag.phase === 'end') {
+      marquee.current = null;
+      suppressPress.current = drag.phase === 'end';
+      if (drag.phase === 'end' && selection) {
+        const left = Math.min(area.origin[0], drag.point[0]);
+        const top = Math.min(area.origin[1], drag.point[1]);
+        const box = {
+          left,
+          top,
+          width: Math.abs(drag.point[0] - area.origin[0]),
+          height: Math.abs(drag.point[1] - area.origin[1]),
+        };
+        const ids = new Set<string>();
+        for (const guide of controller.guides) {
+          if (guide.id === undefined || guide.marker.disabled) continue;
+          const axes = resolve(guide)?.coordinates;
+          if (!axes) continue;
+          const x = axes.x.map(guide.marker.x ?? NaN);
+          const y = axes.y.map(guide.marker.y ?? NaN);
+          if (contains(coordinates.rect, x, y) && contains(box, x, y))
+            ids.add(guide.id);
+        }
+        selection.onSelectionChange([...ids]);
+      }
+    }
+    invalidate();
+  };
   const canHover = readout || draggable > 0;
   return (
     <View
@@ -351,6 +518,38 @@ export function PlotRoot({
         accessibilityLabel={accessibilityLabel ?? title ?? 'Plot'}
         style={slot('canvas', { ...fillBox, pointerEvents: 'none' })}
       />
+      {(onBackgroundPress ||
+        onBackgroundDoubleClick ||
+        onBackgroundPointerMove ||
+        onBackgroundPointerEnter ||
+        onBackgroundPointerLeave ||
+        onBackgroundContextMenu ||
+        onBackgroundDrag ||
+        selection) && (
+        <PlotBackground
+          space={space}
+          onBackgroundPress={(event) => {
+            const suppressed = suppressPress.current;
+            suppressPress.current = false;
+            if (suppressed) return;
+            if (
+              selection &&
+              selection.clearOnBackgroundPress !== false &&
+              selection.selectedIds.length
+            )
+              selection.onSelectionChange([]);
+            onBackgroundPress?.(event);
+          }}
+          onBackgroundDoubleClick={onBackgroundDoubleClick}
+          onBackgroundPointerMove={onBackgroundPointerMove}
+          onBackgroundPointerEnter={onBackgroundPointerEnter}
+          onBackgroundPointerLeave={onBackgroundPointerLeave}
+          onBackgroundContextMenu={onBackgroundContextMenu}
+          onBackgroundDrag={
+            selection || onBackgroundDrag ? backgroundDrag : undefined
+          }
+        />
+      )}
       <ControllerContext.Provider value={controller}>
         <SpaceContext.Provider value={space}>{children}</SpaceContext.Provider>
       </ControllerContext.Provider>
@@ -371,7 +570,9 @@ function paintReadout(
   pointer: Point,
   coordinates: Coordinates,
   x: Axis,
-  y: Axis,
+  resolve: (
+    refs: PlotAxisReference,
+  ) => { coordinates: Coordinates; x: Axis; y: Axis } | undefined,
   series: readonly SeriesLayer[],
   samples: readonly (PlotSeriesData | undefined)[],
   colors: readonly string[],
@@ -381,7 +582,6 @@ function paintReadout(
 ) {
   const xValue = coordinates.x.invert(pointer[0]);
   const xLabel = (x.format ?? formatTickValue)(xValue);
-  const yFormat = y.format ?? formatTickValue;
   ctx.save();
   ctx.font = numericFont(theme, ready, 10);
   ctx.textBaseline = 'middle';
@@ -390,12 +590,18 @@ function paintReadout(
   for (let i = 0; i < series.length; i++) {
     const { config } = series[i]!;
     const data = samples[i];
-    if (!config.label || config.hideInReadout || !data) continue;
-    const value = seriesValueAt(config, data, xValue, x.domain);
+    const axes = resolve(series[i]!);
+    if (!config.label || config.hideInReadout || !data || !axes) continue;
+    const value = seriesValueAt(
+      config,
+      data,
+      axes.coordinates.x.invert(pointer[0]),
+      axes.x.domain,
+    );
     if (value === null) continue;
     const color = colors[i]!;
-    const text = `${config.label}  ${yFormat(value)}`;
-    const at = coordinates.y.map(value);
+    const text = `${config.label}  ${(axes.y.format ?? formatTickValue)(value)}`;
+    const at = axes.coordinates.y.map(value);
     if (contains(coordinates.rect, pointer[0], at)) {
       ctx.beginPath();
       ctx.arc(pointer[0], at, 3, 0, 2 * Math.PI);

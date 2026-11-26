@@ -1,0 +1,70 @@
+---
+title: Plot overview
+description: Compose a canvas chart for responses and measurements.
+---
+
+Use `Plot` for line, area, bar, step, point and band series on linear or log axes, with draggable markers for editing. Plot draws the data it is given; analysis and other DSP belong in the plug-in.
+
+<Demo name="plot" height={290} />
+
+```tsx
+import { Plot, formatters } from '@soundor/components';
+
+<Plot width={440} height={220} title="Response">
+  <Plot.XAxis domain={[20, 20_000]} scale="log" format={formatters.frequency} />
+  <Plot.YAxis domain={[-24, 24]} format={formatters.decibels} />
+  <Plot.Grid />
+  <Plot.Area source={inputSpectrum} opacity={0.2} />
+  <Plot.Line points={response} />
+  <Plot.HorizontalLine value={0} />
+  {bands.map((band) => (
+    <Plot.Marker
+      key={band.id}
+      x={band.frequency}
+      y={band.gain}
+      onMove={([hz, db]) => moveBand(band.id, hz, db)}
+    />
+  ))}
+  <Plot.Readout />
+</Plot>;
+```
+
+Only what you put in is drawn. A single `Plot.Line` inside `Plot` is enough to draw a chart. Without a declared axis, that dimension spans the extent of the series' static data (or 0 to 1) and draws no line or labels.
+
+## Parts
+
+| Page                                                     | What it covers                                                                                                                    |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| [Axes and guides](/docs/components/plot/axes-and-guides) | `Plot.XAxis`, `Plot.YAxis`, `Plot.Grid`, `Plot.HorizontalLine`, `Plot.VerticalLine`, and `Plot.FrequencyKeyboard`.                |
+| [Series](/docs/components/plot/series)                   | `Plot.Line`, `Plot.Area`, `Plot.Steps`, `Plot.Bars`, `Plot.Points`, `Plot.Band`, `Plot.Legend`, `Plot.Readout`, and live sources. |
+| [Editing](/docs/components/plot/editing)                 | `Plot.Marker`, custom overlays, background input, selection, and grouped movement.                                                |
+| [Examples](/docs/components/plot/examples)               | Interactive EQ, spectrum, levels, compressor, envelope, waveform, and automation demos.                                           |
+
+## Order and composition
+
+Parts are ordinary React components and belong inside `Plot`. Your own components can render them, including conditionally or in a `map`:
+
+```tsx
+<Plot width={440} height={220}>
+  <FrequencyAxis />
+  <GainAxis />
+  {showSpectrum && <Spectrum />}
+  <EQResponse />
+  <EQBands bands={bands} />
+</Plot>
+```
+
+The grid is drawn beneath the series. Series are drawn in tree order, first at the bottom. Markers and guides are drawn over the series in their own order, on the same canvas. Custom views can be layered over that canvas.
+
+## Accessibility
+
+The plot is announced as an image with its `accessibilityLabel` (or its `title`). Describe what it shows, and provide important values as text or controls. See [marker keyboard behavior](/docs/components/plot/editing#keyboard-and-accessibility) and [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/plot/plot.tsx"
+  name="PlotProps"
+/>
+
+Plot is built from the [chart helpers](/docs/utils/chart-helpers).

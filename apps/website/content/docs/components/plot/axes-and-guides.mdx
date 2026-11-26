@@ -1,0 +1,54 @@
+---
+title: Axes and guides
+description: Set domains and scales, draw grid lines, and add visual references.
+---
+
+`Plot.XAxis` and `Plot.YAxis` set a `domain`, `scale`, `ticks` and `format`. `Plot.Grid` draws lines at the axes' ticks, beneath every series. Use positive domains and samples for log axes; non-finite mapped samples are not drawn.
+
+## Independent scales
+
+A plot accepts one unnamed axis and any number of uniquely named axes per dimension. Set `id` to name an axis. Set `position` to `top` or `bottom` for X, or `left` or `right` for Y. A `hidden` axis keeps its scale without using space for labels.
+
+Series, markers, guides and grids accept `xAxis` and `yAxis` references. Omit the reference to use the unnamed axis or, if none is declared, the first named axis by ID. A missing explicit reference hides that layer until the axis is available.
+
+```tsx
+<Plot width={440} height={220}>
+  <Plot.XAxis domain={[20, 20000]} scale="log" />
+  <Plot.YAxis domain={[-12, 12]} />
+  <Plot.YAxis id="spectrum" domain={[-90, 0]} position="right" />
+  <Plot.Grid />
+  <Plot.Area source={spectrum} yAxis="spectrum" />
+  <Plot.Line points={response} />
+</Plot>
+```
+
+## Guides and frequency keyboard
+
+`Plot.HorizontalLine` draws at a y `value`; `Plot.VerticalLine` draws at an x `value`. Both take an optional `label`.
+
+`Plot.FrequencyKeyboard` draws a pitch reference aligned with the plot's frequency axis. See [Plot.FrequencyKeyboard props](/docs/components/frequency-keyboard#plotfrequencykeyboard).
+
+## Props
+
+### Plot.XAxis and Plot.YAxis
+
+<auto-type-table
+  path="packages/components/src/components/plot/parts.tsx"
+  name="PlotAxisProps"
+/>
+
+### Plot.Grid and axis references
+
+`Plot.Grid` takes only these props. They are also used by series, guides, markers, and `usePlotCoordinates`.
+
+<auto-type-table
+  path="packages/components/src/components/plot/controller.ts"
+  name="PlotAxisReference"
+/>
+
+### Plot.HorizontalLine and Plot.VerticalLine
+
+<auto-type-table
+  path="packages/components/src/components/plot/parts.tsx"
+  name="PlotGuideProps"
+/>

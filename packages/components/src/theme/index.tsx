@@ -47,6 +47,8 @@ export interface ComponentSlots {
    * a `Menu.Label`.
    */
   Menu: 'root' | 'item' | 'label' | 'icon' | 'separator' | 'heading';
+  Popover: 'root';
+  Tooltip: 'root' | 'label';
   Knob: 'root' | 'control' | 'label' | 'value';
   Slider: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';
   Fader: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';
@@ -54,6 +56,10 @@ export interface ComponentSlots {
   TextField: 'root' | 'control' | 'label' | 'input' | 'message';
   LevelMeter: 'root' | 'channel' | 'track' | 'indicator' | 'label';
   Plot: 'root' | 'canvas' | 'title' | 'note';
+  PlotMarker: 'root';
+  Spectrogram: 'root' | 'canvas';
+  FrequencyKeyboard: 'root' | 'canvas';
+  SelectableList: 'root' | 'item' | 'label';
   XYPad: 'root' | 'canvas' | 'title' | 'note' | 'value';
   EnvelopeEditor: 'root' | 'plot' | 'handle' | 'values' | 'label' | 'value';
   Panel: 'root' | 'header' | 'title' | 'content';

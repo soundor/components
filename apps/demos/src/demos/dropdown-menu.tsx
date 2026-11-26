@@ -47,7 +47,7 @@ export default function Demo() {
               </Text>
             </Pressable>
           </DropdownMenu.Trigger>
-          <DropdownMenu.Content align="end">
+          <DropdownMenu.Content side="right" align="end">
             <Menu.Label>View</Menu.Label>
             <Menu.Item checked={snap} onPress={() => setSnap(!snap)}>
               Snap to grid

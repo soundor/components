@@ -1,0 +1,43 @@
+---
+title: Tooltip
+description: Supplemental text on hover or keyboard focus.
+---
+
+<Demo name="tooltip" height={320} />
+
+```tsx
+<Tooltip content="Includes the post-effects signal">
+  <Button icon={analyzerIcon} accessibilityLabel="Analyzer" />
+</Tooltip>
+```
+
+`Tooltip` enhances one control that forwards a Soundor node ref. It appears on
+hover or keyboard-visible focus. `openDelay` and `closeDelay` are milliseconds
+and default to 500 and 100. `side`, `align` and `offset` choose the preferred
+position; the surface flips and clamps at the editor's edge. `content` may
+change while open, for example to show a Knob's current value. Pressing or
+starting a drag hides an automatic tooltip until a new hover or focus.
+
+Supply `open` to own visibility. For a Plot marker or other external anchor,
+use `<Tooltip open={showDescription} anchor={markerRef} content={description} />`.
+External points, rectangles and dynamic readers use logical view coordinates.
+Hide controlled hover tips on gesture start or use controlled visibility to
+show a live readout during a gesture.
+
+Content is plain text and does not receive pointer input or focus. Soundor
+currently has no tooltip role or description relationship, so for compatible
+controls the text is also supplied as the accessibility hint (an explicitly
+provided hint takes precedence). Always give icon-only controls a meaningful
+label. Disabled controls may receive hover but cannot take keyboard focus;
+make essential explanations available independently of the tooltip.
+
+Styling slots are `root` and `label` under `theme.components.Tooltip`.
+
+## Props
+
+<auto-type-table
+  path="packages/components/src/components/tooltip/index.tsx"
+  name="TooltipProps"
+/>
+
+Placement defaults to `side="top"` and `align="center"`. See [Popup anchors](/docs/components/dropdown-menu#popup-anchors) for the supported `anchor` shapes.

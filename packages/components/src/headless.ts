@@ -11,6 +11,11 @@ export type {
   RangeInteraction,
 } from './internal/range';
 export type { ValueScale } from './internal/scale';
+export {
+  useSelection,
+  type SelectionItem,
+  type SelectionOptions,
+} from './internal/selection';
 export { useXYPad, type XYInteraction } from './internal/xy-interaction';
 export {
   envelopeGeometry,

@@ -14,8 +14,15 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import type { KeyboardEvent, UiNode } from 'soundor:ui';
+import {
+  overlayRoot,
+  root,
+  type KeyboardEvent,
+  type PointerEvent,
+  type UiNode,
+} from 'soundor:ui';
 
+import { anchorBox, boxOf, watchAnchor, type PopupAnchor } from './anchor';
 import {
   computePlacement,
   naturalSize,
@@ -29,10 +36,7 @@ import {
 /** Why a popup asks to close. */
 export type DismissReason = 'escape' | 'outside' | 'tab';
 
-/** A node to sit beside, or a point (a context menu's) in view coordinates. */
-export type PopupAnchor =
-  | RefObject<UiNode | null>
-  | { readonly x: number; readonly y: number };
+export type { PopupAnchor } from './anchor';
 
 export interface PopupProps {
   anchor: PopupAnchor;
@@ -45,6 +49,14 @@ export interface PopupProps {
   flip?: boolean;
   /** At least as wide as the anchor: a Select's list under its field. */
   matchAnchorWidth?: boolean;
+  modal?: boolean;
+  autoFocus?: boolean;
+  restoreFocus?: boolean;
+  dismissOnOutside?: boolean;
+  dismissOnTab?: boolean;
+  passive?: boolean;
+  /** Also disregard pointer presses on this trigger when positioning elsewhere. */
+  triggerRef?: RefObject<UiNode | null>;
   /** Asked to close: Escape, Tab, or a press outside. The owner decides. */
   onDismiss: (reason: DismissReason) => void;
   accessibilityRole?: AccessibilityRole;
@@ -57,22 +69,6 @@ export interface PopupProps {
   onKeyDown?: (event: KeyboardEvent) => void;
   debugId?: string;
   children?: ReactNode;
-}
-
-// The bounds of a node in view coordinates, or nothing where there is no
-// layout to ask (the simulated runtime) or nothing laid out yet.
-function boxOf(node: UiNode | null | undefined): Box | null {
-  if (!node?.isConnected) return null;
-  try {
-    return node.getBoundingClientRect();
-  } catch {
-    return null;
-  }
-}
-
-function anchorBox(anchor: PopupAnchor): Box | null {
-  if ('current' in anchor) return boxOf(anchor.current);
-  return { x: anchor.x, y: anchor.y, width: 0, height: 0 };
 }
 
 const fill = {
@@ -90,7 +86,7 @@ const fill = {
  * anywhere outside it, Escape and Tab ask it to close.
  *
  * It is placed beside its anchor once it has been laid out, and again when
- * the view, the anchor or the popup changes size; never on every frame.
+ * the view, anchor or popup changes size, or the anchor moves.
  */
 export function Popup({
   anchor,
@@ -101,6 +97,13 @@ export function Popup({
   padding = 4,
   flip = true,
   matchAnchorWidth = false,
+  modal = true,
+  autoFocus = true,
+  restoreFocus = true,
+  dismissOnOutside = true,
+  dismissOnTab = true,
+  passive = false,
+  triggerRef,
   onDismiss,
   accessibilityRole,
   accessibilityLabel,
@@ -120,74 +123,67 @@ export function Popup({
   // its content was last known to need.
   const placed = useRef<Placement | null>(null);
   const natural = useRef<{ width: number; height: number } | null>(null);
-  const place = useCallback(() => {
-    const target = anchorBox(anchor);
-    const own = boxOf(surface.current);
-    if (!target || !own) {
-      setUnmeasured(true);
-      return;
-    }
-    // Not laid out yet: the first layout comes, and the observer with it.
-    if (own.width === 0 && own.height === 0) return;
-    const { safeArea, scale } = view;
-    const bounds =
-      safeArea.width > 0 && safeArea.height > 0
-        ? safeArea
-        : { x: 0, y: 0, width: view.width, height: view.height };
-    const size = naturalSize(own, placed.current, natural.current);
-    natural.current = size;
-    const next = computePlacement(target, size, bounds, {
+  const place = useCallback(
+    (target: Box | null = anchorBox(anchor)) => {
+      const own = boxOf(surface.current);
+      if (!own) {
+        setUnmeasured(true);
+        return;
+      }
+      if (!target) {
+        setUnmeasured(false);
+        placed.current = null;
+        setPlacement(null);
+        return;
+      }
+      setUnmeasured(false);
+      // Not laid out yet: the first layout comes, and the observer with it.
+      if (own.width === 0 && own.height === 0) return;
+      const { safeArea, scale } = view;
+      const bounds =
+        safeArea.width > 0 && safeArea.height > 0
+          ? safeArea
+          : { x: 0, y: 0, width: view.width, height: view.height };
+      const size = naturalSize(own, placed.current, natural.current);
+      natural.current = size;
+      const next = computePlacement(target, size, bounds, {
+        side,
+        align,
+        offset,
+        alignOffset,
+        padding,
+        flip,
+        scale,
+      });
+      if (!samePlacement(placed.current, next)) {
+        placed.current = next;
+        setPlacement(next);
+      }
+      setMinWidth(
+        matchAnchorWidth ? Math.min(target.width, next.maxWidth) : undefined,
+      );
+    },
+    [
+      anchor,
+      view,
       side,
       align,
       offset,
       alignOffset,
       padding,
       flip,
-      scale,
-    });
-    if (!samePlacement(placed.current, next)) {
-      placed.current = next;
-      setPlacement(next);
-    }
-    if (matchAnchorWidth) setMinWidth(target.width);
-  }, [
-    anchor,
-    view,
-    side,
-    align,
-    offset,
-    alignOffset,
-    padding,
-    flip,
-    matchAnchorWidth,
-  ]);
+      matchAnchorWidth,
+    ],
+  );
 
   // Placed before it shows; and again when the view or any option changes.
-  useLayoutEffect(place, [place]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronize with measured runtime layout
+  useLayoutEffect(() => place(), [place]);
 
   // An anchor that moves without changing size (a list scrolled under it, a
   // panel laid out again) tells no observer: its place is checked each
   // frame while open, and the popup placed again only when it moved.
-  useLayoutEffect(() => {
-    if (!('current' in anchor) || typeof requestAnimationFrame !== 'function')
-      return undefined;
-    let last = boxOf(anchor.current);
-    let frame = requestAnimationFrame(function check() {
-      const box = boxOf(anchor.current);
-      if (
-        box &&
-        last &&
-        (box.x !== last.x ||
-          box.y !== last.y ||
-          box.width !== last.width ||
-          box.height !== last.height)
-      )
-        place();
-      last = box;
-      frame = requestAnimationFrame(check);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [anchor, place]);
+  useLayoutEffect(() => watchAnchor(anchor, place), [anchor, place]);
 
   // Sizes change without a render: the popup's content, the anchor's layout.
   useLayoutEffect(() => {
@@ -212,29 +208,78 @@ export function Popup({
       // Handled here, so a Modal the popup was opened from stays open.
       event.preventDefault();
       onDismiss('escape');
-    } else if (event.key === 'Tab') {
+    } else if (dismissOnTab && event.key === 'Tab') {
       event.preventDefault();
       onDismiss('tab');
     }
   };
 
+  useLayoutEffect(() => {
+    if (modal || !dismissOnOutside) return undefined;
+    const outside = (event: PointerEvent) => {
+      const node = surface.current;
+      const entry = node?.parent;
+      if (!node || !entry || node.contains(event.target)) return;
+      if (triggerRef?.current?.contains(event.target)) return;
+      if ('current' in anchor && anchor.current?.contains(event.target)) return;
+      // An overlay opened above us owns its input (including its backdrop).
+      const entries = overlayRoot.children;
+      for (let i = entries.length - 1; i >= 0; i--) {
+        const other = entries[i]!;
+        if (other === entry) break;
+        if (other.contains(event.target)) return;
+      }
+      onDismiss('outside');
+    };
+    root.addEventListener('pointerdown', outside, true);
+    overlayRoot.addEventListener('pointerdown', outside, true);
+    return () => {
+      root.removeEventListener('pointerdown', outside, true);
+      overlayRoot.removeEventListener('pointerdown', outside, true);
+    };
+  }, [modal, dismissOnOutside, anchor, onDismiss, triggerRef]);
+
+  useLayoutEffect(() => {
+    if (modal || passive) return undefined;
+    const escapeFromAnchor = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (
+        triggerRef?.current?.contains(event.target) ||
+        ('current' in anchor && anchor.current?.contains(event.target))
+      )
+        keyDown(event);
+    };
+    root.addEventListener('keydown', escapeFromAnchor);
+    overlayRoot.addEventListener('keydown', escapeFromAnchor);
+    return () => {
+      root.removeEventListener('keydown', escapeFromAnchor);
+      overlayRoot.removeEventListener('keydown', escapeFromAnchor);
+    };
+  });
+
   const shown = placement !== null || unmeasured;
   return (
     <Portal>
-      <FocusScope trapped autoFocus restoreFocus>
-        <View
-          accessible={false}
-          style={fill}
-          onPointerDown={(event) => {
-            // Focus stays in the popup, so closing gives it back.
-            event.preventDefault();
-            onDismiss('outside');
-          }}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            onDismiss('outside');
-          }}
-        />
+      <FocusScope
+        trapped={modal}
+        autoFocus={autoFocus}
+        restoreFocus={restoreFocus}
+      >
+        {modal && (
+          <View
+            accessible={false}
+            style={fill}
+            onPointerDown={(event) => {
+              // Focus stays in the popup, so closing gives it back.
+              event.preventDefault();
+              if (dismissOnOutside) onDismiss('outside');
+            }}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              if (dismissOnOutside) onDismiss('outside');
+            }}
+          />
+        )}
         <View
           ref={(node) => {
             surface.current = node;
@@ -243,7 +288,8 @@ export function Popup({
           debugId={debugId}
           accessibilityRole={accessibilityRole}
           accessibilityLabel={accessibilityLabel}
-          accessibilityActions={[{ name: 'escape' }]}
+          accessible={passive ? false : undefined}
+          accessibilityActions={passive ? undefined : [{ name: 'escape' }]}
           onAccessibilityAction={(event) => {
             if (event.actionName !== 'escape') return;
             event.preventDefault();
@@ -264,6 +310,7 @@ export function Popup({
               }),
               // Laid out, measured and placed before it is seen.
               opacity: shown ? 1 : 0,
+              pointerEvents: shown && !passive ? undefined : 'none',
             },
           ]}
         >

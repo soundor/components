@@ -1,0 +1,52 @@
+---
+title: Plot examples
+description: Explore interactive charts and editors built with Plot.
+---
+
+Each demo shows a complete component, with source below it.
+
+## Parametric EQ
+
+Each band is a draggable marker; application state holds the bands. The total is a `Plot.Area`, and each band is a faint dashed `Plot.Line` with `hideInReadout`. All of them set `extend`, so the curve runs to the frame even with a handle at 20 Hz or 20 kHz. For a more complete editor, see the [equalizer reference](/docs/guides/equalizer-reference).
+
+<Demo name="plot-eq" height={300} />
+
+## Live spectrum
+
+Two series, each with a `source` the demo updates 30 times a second. The plot redraws once per frame, with no React render.
+
+<Demo name="plot-spectrum" height={300} />
+
+## Level bands with peak hold
+
+`Plot.Bars` shows the levels; `Plot.Points` shows the peaks. `hideInReadout` keeps a series out of the hover readout.
+
+<Demo name="plot-bars" height={280} />
+
+## Compressor curve
+
+The marker sets the threshold, the Slider sets the ratio, and the title's `note` shows both. The marker stays on the curve because the handler uses only the x coordinate of the drag.
+
+<Demo name="plot-compressor" height={360} />
+
+## Envelope editor
+
+The first marker sets a time; the second sets a time and a level. A `Plot.VerticalLine` marks where the key is released.
+
+<Demo name="plot-envelope" height={280} />
+
+## Waveform with playhead
+
+`Plot.Band` draws the region between the lowest and highest sample of each slice. The playhead is a marker: dragging it pauses playback with `onMoveStart` and resumes with `onMoveEnd`.
+
+<Demo name="plot-waveform" height={250} />
+
+## Step automation
+
+`Plot.Steps` holds each value until the next point, which suits sequencers and automation. One small marker per step makes every step draggable.
+
+<Demo name="plot-automation" height={260} />
+
+## Combined with an XYPad
+
+A Plot and an [XYPad](/docs/components/xy-pad) can share state, so the picture follows the gesture. See [the XYPad example](/docs/components/xy-pad#drive-a-response-curve).

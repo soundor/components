@@ -1,0 +1,48 @@
+---
+title: FrequencyKeyboard
+description: Equal-tempered pitch positions on a frequency scale.
+---
+
+<Demo name="frequency-keyboard" height={280} />
+
+`FrequencyKeyboard` shows white and black keys on a logarithmic frequency
+scale. It displays pitch without taking input or generating audio. Set
+`width`, `height` (30 by default), `frequencyRange`, and `tuning` (A4 in Hz,
+440 by default). `highlightedNotes` takes equal-tempered note numbers with
+A4 at 69; `highlightedRange` highlights note centers inside a range in Hz.
+Use `showOctaves` and `showNotes` to control labels. Labels are omitted when
+they would overlap; accidentals are shown as black keys.
+
+Use `Plot.FrequencyKeyboard` inside a plot to align the strip with the plot's
+actual frequency mapping, including its margins and safe zone. It occupies
+the bottom of the plotting area without intercepting pointer input. Select
+a named axis with `xAxis`. Use a positive logarithmic domain.
+
+```tsx
+<Plot width={420} height={180}>
+  <Plot.XAxis id="frequency" domain={[55, 3520]} scale="log" hidden />
+  <Plot.VerticalLine xAxis="frequency" value={440} label="A4" />
+  <Plot.FrequencyKeyboard xAxis="frequency" highlightedNotes={[69]} />
+</Plot>
+```
+
+Both forms use `FrequencyKeyboard.root` and `.canvas` theme slots. Give each
+an `accessibilityLabel` if it communicates an important reference. If the
+highlighted pitches matter independently of the visualization, provide a
+text or control readout as well.
+
+## Props
+
+### FrequencyKeyboard
+
+<auto-type-table
+  path="packages/components/src/components/frequency-keyboard/index.tsx"
+  name="FrequencyKeyboardProps"
+/>
+
+### Plot.FrequencyKeyboard
+
+<auto-type-table
+  path="packages/components/src/components/frequency-keyboard/index.tsx"
+  name="PlotFrequencyKeyboardProps"
+/>

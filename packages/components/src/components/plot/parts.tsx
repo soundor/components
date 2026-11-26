@@ -3,10 +3,18 @@ import {
   useCallback,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
+  type ReactNode,
 } from 'react';
-import type { UiNode } from 'soundor:ui';
+import type {
+  AccessibilityActionEvent,
+  KeyboardEvent,
+  PointerEvent,
+  UiNode,
+  WheelEvent,
+} from 'soundor:ui';
 
 import {
   contains,
@@ -24,19 +32,34 @@ import {
   type PlotSource,
 } from '../../chart/series';
 import { useXYPad } from '../../headless';
-import { textStyle, useTheme } from '../../theme';
+import { withActions, type HostProps } from '../../internal/host';
+import {
+  ring,
+  textStyle,
+  useComponent,
+  useTheme,
+  type StyleProps,
+} from '../../theme';
 import {
   usePlotController,
   usePlotSpace,
   type GuideLayer,
   type PlotController,
+  type PlotAxisReference,
   type SeriesLayer,
 } from './controller';
 import { seriesColor } from './plot';
+import {
+  selectPlotItem,
+  type PlotGroupDrag,
+  type PlotSelection,
+} from './selection';
 
 // Axes and grid ----------------------------------------------------------
 
 export interface PlotAxisProps {
+  id?: string;
+  hidden?: boolean;
   /** The values at the ends of the axis. Without an axis, the data's extent. */
   domain: readonly [number, number];
   scale?: Axis['scale'];
@@ -48,9 +71,22 @@ export interface PlotAxisProps {
   format?: (value: number) => string;
 }
 
-function useAxis(name: 'x' | 'y', part: string, props: PlotAxisProps) {
+function useAxis(
+  name: 'x' | 'y',
+  part: string,
+  props: PlotAxisProps,
+  side: 'top' | 'bottom' | 'left' | 'right',
+) {
   const controller = usePlotController(part);
-  const { domain, scale, ticks, minorTicks, format } = props;
+  const {
+    id,
+    hidden = false,
+    domain,
+    scale,
+    ticks,
+    minorTicks,
+    format,
+  } = props;
   const [lo, hi] = domain;
   // By value: ticks written inline are a new array each render, and the
   // same axis.
@@ -58,41 +94,52 @@ function useAxis(name: 'x' | 'y', part: string, props: PlotAxisProps) {
   const minorKey =
     typeof minorTicks === 'object' ? minorTicks.join() : minorTicks;
   const axis = useMemo(
-    (): Axis => ({ domain: [lo, hi], scale, ticks, minorTicks, format }),
+    () => ({
+      domain: [lo, hi] as const,
+      scale,
+      ticks,
+      minorTicks,
+      format,
+      hidden,
+      side,
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lo, hi, scale, tickKey, minorKey, format],
+    [lo, hi, scale, tickKey, minorKey, format, hidden, side],
   );
   useLayoutEffect(
-    () => controller.setAxis(name, axis),
-    [controller, name, axis],
+    () => controller.setAxis(name, id, axis),
+    [controller, name, id, axis],
   );
   return null;
 }
 
 /**
  * The horizontal axis: its domain, scale and labels. Drawn along the bottom,
- * with room kept for its labels. One per Plot.
+ * with room kept for its labels. Give additional axes distinct IDs.
  */
-function XAxis(props: PlotAxisProps) {
-  return useAxis('x', 'Plot.XAxis', props);
+function XAxis(props: PlotAxisProps & { position?: 'top' | 'bottom' }) {
+  return useAxis('x', 'Plot.XAxis', props, props.position ?? 'bottom');
 }
 
-/** The vertical axis: drawn along the left, with room for its labels. One per Plot. */
-function YAxis(props: PlotAxisProps) {
-  return useAxis('y', 'Plot.YAxis', props);
+/** A vertical axis: drawn along the left by default, with room for its labels. */
+function YAxis(props: PlotAxisProps & { position?: 'left' | 'right' }) {
+  return useAxis('y', 'Plot.YAxis', props, props.position ?? 'left');
 }
 
 /** Lines at the axes' ticks, under every series. */
-function Grid() {
+function Grid({ xAxis, yAxis }: PlotAxisReference) {
   const controller = usePlotController('Plot.Grid');
-  useLayoutEffect(() => controller.enable('grid'), [controller]);
+  useLayoutEffect(
+    () => controller.addGrid({ xAxis, yAxis }),
+    [controller, xAxis, yAxis],
+  );
   return null;
 }
 
 // Series -----------------------------------------------------------------
 
 /** What every series takes. */
-interface SeriesStyle {
+interface SeriesStyle extends PlotAxisReference {
   /** Its name in the legend and the readout. */
   label?: string;
   /** A colour, or one of the theme's accents; the theme's voices in turn by default. */
@@ -263,6 +310,8 @@ function useSeries(
       },
       data: source ? () => liveData(source) : () => data ?? undefined,
       extent,
+      xAxis: props.xAxis,
+      yAxis: props.yAxis,
     });
   });
   useLayoutEffect(() => controller.addSeries(layer), [controller, layer]);
@@ -306,9 +355,19 @@ function Band(props: PlotBandProps) {
 
 // Markers and guides -----------------------------------------------------
 
-export interface PlotMarkerProps {
+export interface PlotMarkerState {
+  hovered: boolean;
+  focused: boolean;
+  dragging: boolean;
+  selected: boolean;
+  disabled: boolean;
+}
+
+export interface PlotMarkerProps
+  extends PlotAxisReference, HostProps, StyleProps<'PlotMarker'> {
   x: number;
   y: number;
+  id?: string;
   /**
    * Drawn in the handle, and what assistive technology calls it: "Point 1",
    * "Point 2"… by default.
@@ -317,6 +376,23 @@ export interface PlotMarkerProps {
   color?: string;
   /** The handle's, in pixels: 8 with a label, 4 without. */
   radius?: number;
+  hitRadius?: number;
+  disabled?: boolean;
+  selected?: boolean;
+  movement?: 'x' | 'y' | 'both';
+  constrain?: (point: Point) => Point;
+  render?: (state: PlotMarkerState) => ReactNode;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  describeValue?: (x: number, y: number) => string;
+  onSelect?: (
+    event: PointerEvent | KeyboardEvent | AccessibilityActionEvent,
+  ) => void;
+  onDoubleClick?: (event: PointerEvent) => void;
+  onContextMenu?: (event: PointerEvent) => void;
+  onWheel?: (event: WheelEvent) => void;
+  onRemove?: () => void;
+  onMoveCancel?: () => void;
   /**
    * Makes it draggable and keyboard adjustable: a tab stop of its own. It
    * is given the point the user moved it to; set `x` and `y` from it, or
@@ -329,7 +405,7 @@ export interface PlotMarkerProps {
   onMoveEnd?: () => void;
 }
 
-export interface PlotGuideProps {
+export interface PlotGuideProps extends PlotAxisReference {
   /** Where it is: a y for a horizontal line, an x for a vertical one. */
   value: number;
   /** Drawn beside it, at the plot's edge. */
@@ -342,6 +418,8 @@ function useGuide(
   part: string,
   marker: GuideLayer['marker'],
   safeZone: number,
+  axes: PlotAxisReference,
+  id?: string,
 ) {
   const controller = usePlotController(part);
   const [layer] = useState<GuideLayer>(() => ({
@@ -350,7 +428,9 @@ function useGuide(
     focused: false,
     safeZone: 0,
   }));
-  useLayoutEffect(() => controller.updateGuide(layer, marker, safeZone));
+  useLayoutEffect(() =>
+    controller.updateGuide(layer, marker, safeZone, axes, id),
+  );
   useLayoutEffect(() => controller.addGuide(layer), [controller, layer]);
   return { controller, layer, anchor: useAnchor(layer, controller) };
 }
@@ -362,19 +442,51 @@ function Marker({
   label,
   color,
   radius,
+  hitRadius,
   onMove,
   onMoveStart,
   onMoveEnd,
+  xAxis,
+  yAxis,
+  id,
+  ...props
 }: PlotMarkerProps) {
+  const space = usePlotSpace('Plot.Marker');
+  const selection = space.selection;
+  const selected =
+    props.selected ?? (id !== undefined && selection?.selectedIds.includes(id));
   const draggable = onMove !== undefined;
+  const interactive = Boolean(
+    draggable ||
+    props.render ||
+    props.ref ||
+    props.onSelect ||
+    props.onDoubleClick ||
+    props.onContextMenu ||
+    props.onWheel ||
+    props.onRemove ||
+    (id !== undefined && selection),
+  );
   // A handle's radius and its halo, which is 5 pixels more.
-  const zone = draggable ? (radius ?? (label ? 8 : 4)) + 5 : 0;
+  const zone = interactive
+    ? Math.max(hitRadius ?? 0, (radius ?? (label ? 8 : 4)) + 5)
+    : 0;
   const { controller, layer, anchor } = useGuide(
     'Plot.Marker',
-    { x, y, label, color, radius },
+    {
+      x,
+      y,
+      label,
+      color,
+      radius,
+      custom: Boolean(props.render),
+      selected,
+      disabled: props.disabled,
+    },
     zone,
+    { xAxis, yAxis },
+    id,
   );
-  const space = usePlotSpace('Plot.Marker');
   // Unlabelled handles are numbered in the order they are drawn.
   useSyncExternalStore(
     controller.subscribe,
@@ -387,9 +499,11 @@ function Marker({
         .guides.filter((guide) => guide.safeZone > 0)
         .indexOf(layer) + 1
     : 0;
-  const { coordinates } = space;
+  const resolved = space.resolve({ xAxis, yAxis });
+  const { coordinates } = resolved ?? space;
   const shown =
-    draggable &&
+    interactive &&
+    resolved &&
     contains(
       coordinates.rect,
       coordinates.x.map(x),
@@ -401,13 +515,18 @@ function Marker({
       {anchor}
       {shown && (
         <MarkerControl
+          {...props}
+          id={id}
+          selection={selection}
+          selected={selected}
           x={x}
           y={y}
           radius={radius ?? 8}
+          hitRadius={hitRadius}
           label={label ?? `Point ${Math.max(1, number)}`}
           coordinates={coordinates}
-          xAxis={space.x}
-          yAxis={space.y}
+          xAxis={resolved.x}
+          yAxis={resolved.y}
           onMove={onMove}
           onMoveStart={onMoveStart}
           onMoveEnd={onMoveEnd}
@@ -418,17 +537,13 @@ function Marker({
   );
 }
 
-interface MarkerControlProps {
-  x: number;
-  y: number;
+interface MarkerControlProps extends Omit<PlotMarkerProps, 'xAxis' | 'yAxis'> {
+  selection?: PlotSelection;
   radius: number;
   label: string;
   coordinates: Coordinates;
   xAxis: Axis;
   yAxis: Axis;
-  onMove: (point: Point) => void;
-  onMoveStart?: () => void;
-  onMoveEnd?: () => void;
   onFocus: (focused: boolean) => void;
 }
 
@@ -437,6 +552,7 @@ function MarkerControl({
   x,
   y,
   radius: own,
+  hitRadius,
   label,
   coordinates,
   xAxis,
@@ -445,9 +561,51 @@ function MarkerControl({
   onMoveStart,
   onMoveEnd,
   onFocus,
+  onMoveCancel,
+  movement = 'both',
+  constrain,
+  disabled = false,
+  selected = false,
+  render,
+  accessibilityLabel,
+  accessibilityHint,
+  describeValue,
+  onSelect,
+  onRemove,
+  onDoubleClick,
+  onContextMenu,
+  onWheel,
+  ref,
+  accessibilityActions,
+  onAccessibilityAction,
+  id,
+  selection,
+  ...props
 }: MarkerControlProps) {
+  const { theme, slot } = useComponent('PlotMarker', props);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const group = useRef<{
+    notify: NonNullable<PlotSelection['onGroupDrag']>;
+    event: PlotGroupDrag;
+    origin: Point;
+  } | null>(null);
+  const select =
+    id !== undefined && selection
+      ? (event: PointerEvent | KeyboardEvent | AccessibilityActionEvent) => {
+          selectPlotItem(
+            selection,
+            id,
+            'shiftKey' in event &&
+              (event.shiftKey || event.ctrlKey || event.metaKey),
+          );
+          onSelect?.(event);
+        }
+      : onSelect;
   const control = useXYPad(
     {
+      disabled: disabled || !onMove || movement === 'y',
       value: x,
       defaultValue: x,
       min: xAxis.domain[0],
@@ -456,6 +614,7 @@ function MarkerControl({
       format: xAxis.format,
     },
     {
+      disabled: disabled || !onMove || movement === 'x',
       value: y,
       defaultValue: y,
       min: yAxis.domain[0],
@@ -464,48 +623,202 @@ function MarkerControl({
       format: yAxis.format,
     },
     {
-      label,
+      label: accessibilityLabel ?? label,
+      hint: accessibilityHint,
+      describeValue,
       dragMode: 'relative',
+      restoreOnPointerCancel: true,
       travel: [coordinates.inner.width, coordinates.inner.height],
-      onPointChange: (currentX, currentY) => onMove([currentX, currentY]),
+      onPointChange: (currentX, currentY, cancelled) => {
+        const point: Point = [currentX, currentY];
+        const next = !cancelled && constrain ? constrain(point) : point;
+        const active = group.current;
+        if (!active) onMove?.(next);
+        else if (!cancelled) {
+          active.event = {
+            ...active.event,
+            phase: 'move',
+            delta: [
+              coordinates.x.map(next[0]) - active.origin[0],
+              coordinates.y.map(next[1]) - active.origin[1],
+            ],
+          };
+          active.notify(active.event);
+        }
+      },
       onInteractionStart: onMoveStart,
-      onInteractionEnd: onMoveEnd,
+      onInteractionEnd: (cancelled) => {
+        const active = group.current;
+        group.current = null;
+        setDragging(false);
+        try {
+          if (active)
+            active.notify({
+              ...active.event,
+              phase: cancelled ? 'cancel' : 'end',
+            });
+          if (cancelled) onMoveCancel?.();
+        } finally {
+          onMoveEnd?.();
+        }
+      },
     },
   );
   const atX = coordinates.x.map(x);
   const atY = coordinates.y.map(y);
-  const radius = Math.max(12, own + 5);
+  const radius = hitRadius ?? Math.max(12, own + 5);
+  const actions = withActions(
+    {
+      accessibilityActions:
+        select && !disabled
+          ? [
+              ...(control.handlers.accessibilityActions ?? []),
+              { name: 'activate' },
+            ]
+          : control.handlers.accessibilityActions,
+      onAccessibilityAction: (event) => {
+        if (select && !disabled && event.actionName === 'activate') {
+          select(event);
+          event.preventDefault();
+        } else control.handlers.onAccessibilityAction?.(event);
+      },
+    },
+    {
+      accessibilityActions,
+      onAccessibilityAction,
+    },
+  );
   return (
     <View
       {...control.handlers}
-      onFocusVisibleChange={(event) => onFocus(event.focusVisible)}
+      {...actions}
+      ref={ref}
+      focusable={!disabled}
+      accessibilityRole={onMove ? 'adjustable' : select ? 'button' : undefined}
+      accessibilityState={{
+        ...control.handlers.accessibilityState,
+        disabled,
+        selected,
+      }}
+      onFocusVisibleChange={(event) => {
+        setFocused(event.focusVisible);
+        onFocus(event.focusVisible);
+      }}
       onBlur={(event) => {
         control.handlers.onBlur?.(event);
+        setFocused(false);
         onFocus(false);
       }}
-      style={{
-        position: 'absolute',
-        left: atX - radius,
-        top: atY - radius,
-        width: radius * 2,
-        height: radius * 2,
-        borderRadius: radius,
-        cursor: 'crosshair',
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onPointerDown={(event) => {
+        if (disabled) return;
+        if (event.button === 0) select?.(event);
+        if (!event.defaultPrevented && onMove) {
+          control.handlers.onPointerDown?.(event);
+          if (event.button === 0 && !event.altKey) {
+            setDragging(true);
+            const notify = selection?.onGroupDrag;
+            if (
+              !group.current &&
+              notify &&
+              id !== undefined &&
+              selection?.multiple &&
+              selection.selectedIds.length > 1 &&
+              selection.selectedIds.includes(id) &&
+              !event.shiftKey &&
+              !event.ctrlKey &&
+              !event.metaKey
+            ) {
+              const start: PlotGroupDrag = {
+                ids: [...selection.selectedIds],
+                markerId: id,
+                phase: 'start',
+                delta: [0, 0],
+                coordinates,
+              };
+              group.current = { notify, event: start, origin: [atX, atY] };
+              notify(start);
+            }
+          }
+        }
       }}
-    />
+      onDoubleClick={
+        disabled
+          ? undefined
+          : (onDoubleClick ??
+            (onMove ? control.handlers.onDoubleClick : undefined))
+      }
+      onWheel={disabled ? undefined : onWheel}
+      onContextMenu={disabled ? undefined : onContextMenu}
+      onKeyDown={(event) => {
+        if (disabled || event.defaultPrevented) return;
+        if ((event.key === 'Enter' || event.key === ' ') && select) {
+          select(event);
+          event.preventDefault();
+        } else if (
+          (event.key === 'Backspace' || event.key === 'Delete') &&
+          onRemove
+        ) {
+          onRemove();
+          event.preventDefault();
+        } else if (onMove) control.handlers.onKeyDown?.(event);
+      }}
+      style={[
+        slot('root', {
+          borderRadius: radius,
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: disabled ? 'default' : 'crosshair',
+          opacity: disabled ? theme.opacity.opacityDisabled : 1,
+          ...ring(theme, focused && Boolean(render)),
+        }),
+        {
+          position: 'absolute',
+          left: atX - radius,
+          top: atY - radius,
+          width: radius * 2,
+          height: radius * 2,
+        },
+      ]}
+    >
+      {render && (
+        <View accessible={false} style={{ pointerEvents: 'none' }}>
+          {render({ hovered, focused, dragging, selected, disabled })}
+        </View>
+      )}
+    </View>
   );
 }
 
 /** A level line across the plot: 0 dB, a threshold. */
-function HorizontalLine({ value, label, color, dash }: PlotGuideProps) {
-  return useGuide('Plot.HorizontalLine', { y: value, label, color, dash }, 0)
-    .anchor;
+function HorizontalLine({
+  value,
+  label,
+  color,
+  dash,
+  xAxis,
+  yAxis,
+}: PlotGuideProps) {
+  return useGuide('Plot.HorizontalLine', { y: value, label, color, dash }, 0, {
+    xAxis,
+    yAxis,
+  }).anchor;
 }
 
 /** An upright line across the plot: a release point, a playhead you do not drag. */
-function VerticalLine({ value, label, color, dash }: PlotGuideProps) {
-  return useGuide('Plot.VerticalLine', { x: value, label, color, dash }, 0)
-    .anchor;
+function VerticalLine({
+  value,
+  label,
+  color,
+  dash,
+  xAxis,
+  yAxis,
+}: PlotGuideProps) {
+  return useGuide('Plot.VerticalLine', { x: value, label, color, dash }, 0, {
+    xAxis,
+    yAxis,
+  }).anchor;
 }
 
 // Legend and readout -----------------------------------------------------
@@ -583,8 +896,15 @@ function Readout() {
  * your own over the plot, such as handles; `safeZone` on the Plot keeps them
  * whole at the ends of the axes.
  */
-export function usePlotCoordinates(): Coordinates {
-  return usePlotSpace('usePlotCoordinates').coordinates;
+export function usePlotCoordinates(): Coordinates;
+export function usePlotCoordinates(
+  axes: PlotAxisReference,
+): Coordinates | undefined;
+export function usePlotCoordinates(
+  axes?: PlotAxisReference,
+): Coordinates | undefined {
+  const space = usePlotSpace('usePlotCoordinates');
+  return axes ? space.resolve(axes)?.coordinates : space.coordinates;
 }
 
 export const parts = {

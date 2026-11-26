@@ -13,6 +13,12 @@ export {
   type SelectProps,
 } from './components/select';
 export {
+  SelectableList,
+  type SelectableListProps,
+  type SelectableListItemState,
+} from './components/selectable-list';
+export type { SelectionItem } from './internal/selection';
+export {
   DropdownMenu,
   type DropdownMenuContentProps,
   type DropdownMenuProps,
@@ -33,7 +39,14 @@ export {
   type MenuLabelProps,
 } from './components/menu';
 export type { HostProps } from './internal/host';
-export type { PopupAnchor } from './internal/popup/popup';
+export type { PopupAnchor, PopupRegion } from './internal/popup/anchor';
+export {
+  Popover,
+  type PopoverProps,
+  type PopoverContentProps,
+  type PopoverTriggerProps,
+} from './components/popover';
+export { Tooltip, type TooltipProps } from './components/tooltip';
 export { Knob, type KnobProps } from './components/knob';
 export { Slider, type SliderProps } from './components/slider';
 export { Fader, type FaderProps } from './components/fader';
@@ -41,16 +54,33 @@ export { ValueField, type ValueFieldProps } from './components/value-field';
 export { TextField, type TextFieldProps } from './components/text-field';
 export { LevelMeter, type LevelMeterProps } from './components/level-meter';
 export {
+  FrequencyKeyboard,
+  type FrequencyKeyboardProps,
+  type PlotFrequencyKeyboardProps,
+} from './components/frequency-keyboard';
+export {
+  Spectrogram,
+  type SpectrogramProps,
+  type SpectrumFrame,
+} from './components/spectrogram';
+export {
   Plot,
   usePlotCoordinates,
   type PlotAreaProps,
   type PlotAxis,
   type PlotAxisProps,
+  type PlotAxisReference,
+  type PlotBackgroundProps,
+  type PlotBackgroundEvent,
+  type PlotBackgroundDragEvent,
   type PlotBandProps,
   type PlotBarsProps,
   type PlotGuideProps,
+  type PlotGroupDrag,
+  type PlotSelection,
   type PlotLineProps,
   type PlotMarkerProps,
+  type PlotMarkerState,
   type PlotPointsProps,
   type PlotProps,
   type PlotSeriesSamples,

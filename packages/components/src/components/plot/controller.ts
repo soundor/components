@@ -2,6 +2,15 @@ import { createContext, useContext } from 'react';
 import type { UiNode } from 'soundor:ui';
 
 import type { Axis, Coordinates } from '../../chart/geometry';
+import type { PlotSelection } from './selection';
+
+export interface PlotAxisReference {
+  xAxis?: string;
+  yAxis?: string;
+}
+
+export type AxisSide = 'top' | 'bottom' | 'left' | 'right';
+export type RegisteredAxis = Axis & { side: AxisSide; hidden: boolean };
 import type {
   PlotMarker,
   PlotSeries,
@@ -10,7 +19,7 @@ import type {
 } from '../../chart/series';
 
 /** A series as the canvas draws it: read at each frame, never rendered. */
-export interface SeriesLayer {
+export interface SeriesLayer extends PlotAxisReference {
   /** Its place in the tree, for the order it is drawn and its default colour. */
   node: UiNode | null;
   config: PlotSeries;
@@ -23,7 +32,8 @@ export interface SeriesLayer {
 }
 
 /** A marker or a guide line, drawn over every series. */
-export interface GuideLayer {
+export interface GuideLayer extends PlotAxisReference {
+  id?: string;
   node: UiNode | null;
   marker: PlotMarker;
   /** Has keyboard focus: drawn highlighted. */
@@ -33,7 +43,7 @@ export interface GuideLayer {
 }
 
 type AxisName = 'x' | 'y';
-type Feature = 'grid' | 'legend' | 'readout';
+type Feature = 'legend' | 'readout';
 
 /**
  * What a Plot's parts register with it. Parts are components of their own,
@@ -49,9 +59,12 @@ type Feature = 'grid' | 'legend' | 'readout';
 export class PlotController {
   readonly series = new Set<SeriesLayer>();
   readonly guides = new Set<GuideLayer>();
-  private readonly axes: Partial<Record<AxisName, Axis>> = {};
+  readonly axes = {
+    x: new Map<string | undefined, RegisteredAxis>(),
+    y: new Map<string | undefined, RegisteredAxis>(),
+  };
+  readonly grids = new Set<PlotAxisReference>();
   private readonly features: Record<Feature, number> = {
-    grid: 0,
     legend: 0,
     readout: 0,
   };
@@ -96,20 +109,37 @@ export class PlotController {
   }
 
   axis(name: AxisName) {
-    return this.axes[name];
+    const axes = this.axes[name];
+    return axes.get(undefined) ?? this.namedAxes(name)[0]?.[1];
   }
 
-  setAxis(name: AxisName, axis: Axis) {
-    if (this.axes[name] === axis) return () => {};
-    if (this.axes[name])
+  namedAxes(name: AxisName) {
+    return [...this.axes[name]].sort(([a], [b]) => {
+      if (a === b) return 0;
+      return a === undefined || (b !== undefined && a < b) ? -1 : 1;
+    });
+  }
+
+  setAxis(name: AxisName, id: string | undefined, axis: RegisteredAxis) {
+    const axes = this.axes[name];
+    if (axes.has(id))
       throw new Error(
-        `A Plot takes one Plot.${name === 'x' ? 'XAxis' : 'YAxis'}.`,
+        `A Plot takes one Plot.${name === 'x' ? 'XAxis' : 'YAxis'}${id === undefined ? '.' : ` with id "${id}".`}`,
       );
-    this.axes[name] = axis;
+    axes.set(id, axis);
     this.structure();
     return () => {
-      if (this.axes[name] !== axis) return;
-      delete this.axes[name];
+      if (axes.get(id) !== axis) return;
+      axes.delete(id);
+      this.structure();
+    };
+  }
+
+  addGrid(grid: PlotAxisReference) {
+    this.grids.add(grid);
+    this.structure();
+    return () => {
+      this.grids.delete(grid);
       this.structure();
     };
   }
@@ -191,7 +221,7 @@ export class PlotController {
    */
   updateSeries(
     layer: SeriesLayer,
-    next: Pick<SeriesLayer, 'config' | 'data' | 'extent'>,
+    next: Pick<SeriesLayer, 'config' | 'data' | 'extent'> & PlotAxisReference,
   ) {
     const { type, label, color, hideInReadout } = next.config;
     const key = JSON.stringify([
@@ -200,11 +230,15 @@ export class PlotController {
       color,
       hideInReadout,
       next.extent,
+      next.xAxis,
+      next.yAxis,
     ]);
     const before = layer.key;
     layer.config = next.config;
     layer.data = next.data;
     layer.extent = next.extent;
+    layer.xAxis = next.xAxis;
+    layer.yAxis = next.yAxis;
     layer.key = key;
     this.reorder();
     if (before !== undefined && before !== key) this.structure();
@@ -216,8 +250,13 @@ export class PlotController {
     layer: GuideLayer,
     marker: GuideLayer['marker'],
     safeZone: number,
+    axes: PlotAxisReference,
+    id?: string,
   ) {
+    layer.id = id;
     layer.marker = marker;
+    layer.xAxis = axes.xAxis;
+    layer.yAxis = axes.yAxis;
     this.reorder();
     if (layer.safeZone !== safeZone) {
       layer.safeZone = safeZone;
@@ -248,6 +287,10 @@ export interface PlotSpace {
   y: Axis;
   /** Has a title or a note: the legend goes under it. */
   captioned: boolean;
+  resolve: (
+    axes?: PlotAxisReference,
+  ) => { coordinates: Coordinates; x: Axis; y: Axis } | undefined;
+  selection?: PlotSelection;
 }
 
 export const SpaceContext = createContext<PlotSpace | null>(null);

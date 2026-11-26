@@ -7,6 +7,11 @@ Use `DropdownMenu` for commands: a preset's Save and Copy, a panel's options, a 
 
 <Demo name="dropdown-menu" height={330} />
 
+The example's View menu prefers the right side, aligned to the trigger's end.
+Near an edge, shared popup placement can flip it to the opposite side or clamp
+it to the safe area. Placement uses Soundor logical view coordinates and
+follows a moving trigger even when its size stays the same.
+
 ```tsx
 import { Button, DropdownMenu, Menu } from '@soundor/components';
 
@@ -80,7 +85,7 @@ The menu opens on the trigger's primary press: a click, `Enter`, `Space` or a sc
 
 ## Placement
 
-`DropdownMenu.Content` takes `side` (below by default), `align` (the trigger's start, centre or end) and `offset`, for where the menu goes when there is room. It flips to the other side when there isn't, follows the trigger if it moves while open, and always stays inside the editor. `anchor` places it beside something else: a node of yours (a ref), or a point in the view.
+`DropdownMenu.Content` takes `side` (below by default), `align` (the trigger's start, centre or end) and `offset`, for where the menu goes when there is room. It flips to the other side when there isn't, follows the trigger if it moves while open, and stays inside the editor. `anchor` places it beside something else: a node ref, a point `{ x, y }`, or a rectangle `{ x, y, width, height }` in logical view coordinates. Pass a new point or rectangle when it moves, or a stable `{ getRegion: () => region }` to follow an anchor whose position changes outside React. The reader runs while the menu is open and may return `null` if the anchor is temporarily unavailable.
 
 ## Opening it yourself
 
@@ -112,10 +117,6 @@ const [open, setOpen] = useState(false);
 
 The menu is a `menu`, its items are `menuitem`s, and a `Menu.Label` is a `header`. In a menu opened from a `Modal`, `Esc` closes the menu and leaves the modal open. Soundor has no "has popup" state to give the trigger: assistive technology learns of the menu from `expanded`.
 
-## Migrating from Dropdown
-
-`Dropdown` and its `items` became `DropdownMenu` and its parts in 0.4. See [Migrating to 0.4](/docs/guides/migrating-to-0-4#dropdown).
-
 ## Props
 
 ### DropdownMenu
@@ -138,3 +139,21 @@ The menu is a `menu`, its items are `menuitem`s, and a `Menu.Label` is a `header
   path="packages/components/src/components/menu/menu.tsx"
   name="MenuItemProps"
 />
+
+### Popup anchors
+
+The `anchor` prop on `DropdownMenu.Content`, `Popover.Content` and `Tooltip` accepts a `PopupAnchor`:
+
+```ts
+type PopupRegion = Readonly<
+  | { x: number; y: number }
+  | { x: number; y: number; width: number; height: number }
+>;
+
+type PopupAnchor =
+  | RefObject<UiNode | null>
+  | PopupRegion
+  | { readonly getRegion: () => PopupRegion | null };
+```
+
+Points and rectangles use logical view coordinates. Use a node ref or a stable `getRegion` reader to follow an anchor that moves outside React renders. Return `null` when the region is unavailable.

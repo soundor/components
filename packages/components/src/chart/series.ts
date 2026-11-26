@@ -32,6 +32,9 @@ export interface PlotSeries extends PlotSeriesData {
 
 /** How `drawMarker` draws a marker: a handle with x and y, a guide line with one. */
 export interface PlotMarker {
+  custom?: boolean;
+  selected?: boolean;
+  disabled?: boolean;
   x?: number;
   y?: number;
   label?: string;
