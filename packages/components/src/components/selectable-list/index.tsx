@@ -87,7 +87,11 @@ export function SelectableList<T extends string>({
               ) : (
                 <Text
                   accessible={false}
-                  style={slot('label', textStyle(theme, 'body'))}
+                  style={slot('label', {
+                    ...textStyle(theme, 'body'),
+                    // Like Button, use the font's natural metrics for control labels.
+                    lineHeight: undefined,
+                  })}
                 >
                   {item.label}
                 </Text>
