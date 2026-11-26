@@ -33,6 +33,25 @@ make essential explanations available independently of the tooltip.
 
 Styling slots are `root` and `label` under `theme.components.Tooltip`.
 
+### Arrow
+
+To add a decorative pointer, pass `Tooltip.Content` with one `Tooltip.Arrow`
+as `content`. The `label` still provides the text and the trigger's fallback
+accessibility hint. The arrow follows the resolved side and uses the same
+placement and styling as [Popover.Arrow](/docs/components/popover#arrow).
+
+```tsx
+<Tooltip
+  content={
+    <Tooltip.Content label="Includes the post-effects signal">
+      <Tooltip.Arrow />
+    </Tooltip.Content>
+  }
+>
+  <Button>Analyzer</Button>
+</Tooltip>
+```
+
 ## Props
 
 <auto-type-table
@@ -41,3 +60,17 @@ Styling slots are `root` and `label` under `theme.components.Tooltip`.
 />
 
 Placement defaults to `side="top"` and `align="center"`. See [Popup anchors](/docs/components/dropdown-menu#popup-anchors) for the supported `anchor` shapes.
+
+### Tooltip.Content
+
+<auto-type-table
+  path="packages/components/src/components/tooltip/index.tsx"
+  name="TooltipContentProps"
+/>
+
+### Tooltip.Arrow
+
+<auto-type-table
+  path="packages/components/src/internal/popup/arrow.tsx"
+  name="PopupArrowProps"
+/>

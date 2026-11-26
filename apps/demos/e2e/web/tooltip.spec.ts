@@ -12,8 +12,13 @@ test('shows on hover and keyboard focus, and hides on press or Escape', async ({
   });
   await target.hover();
   await expect(tip).toBeVisible();
+  const arrow = page.locator('[data-soundor-debug-id="tooltip-arrow"]');
+  await expect(arrow).toBeVisible();
+  await expect(arrow).toHaveAttribute('aria-hidden', 'true');
+  await expect(arrow).toHaveCSS('pointer-events', 'none');
   await target.click();
   await expect(tip).toHaveCount(0);
+  await expect(arrow).toHaveCount(0);
   await page.getByRole('button', { name: 'Before tooltip' }).click();
   await page.keyboard.press('Tab');
   await expect(target).toBeFocused();

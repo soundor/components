@@ -13,6 +13,7 @@ import {
 import type { UiNode } from 'soundor:ui';
 
 import { useMergedRef } from '../../internal/host';
+import { Arrow } from '../../internal/popup/arrow';
 import {
   useOpenState,
   type OpenStateProps,
@@ -138,4 +139,4 @@ function Content({
 }
 
 /** An anchored surface for interactive controls. */
-export const Popover = Object.assign(PopoverRoot, { Trigger, Content });
+export const Popover = Object.assign(PopoverRoot, { Trigger, Content, Arrow });

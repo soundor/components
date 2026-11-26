@@ -28,6 +28,7 @@ import PlotEq from './plot-eq';
 import PlotSpectrum from './plot-spectrum';
 import PlotWaveform from './plot-waveform';
 import Popover from './popover';
+import PopoverArrows from './popover-arrows';
 import SegmentedControl from './segmented-control';
 import Select from './select';
 import SelectStates from './select-states';
@@ -62,6 +63,7 @@ export const demos: Readonly<Record<string, ComponentType>> = {
   'dropdown-menu': DropdownMenu,
   'context-menu': ContextMenu,
   popover: Popover,
+  'popover-arrows': PopoverArrows,
   tooltip: Tooltip,
   knob: Knob,
   showcase: Showcase,

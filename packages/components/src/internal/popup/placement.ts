@@ -37,11 +37,11 @@ export interface PlacementOptions {
   scale: number;
 }
 
-export interface Placement {
-  x: number;
-  y: number;
+export interface Placement extends Box {
   /** The side it is on, after any flip. */
   side: PopupSide;
+  /** Anchor centre relative to the final surface's left (or top for left/right). */
+  anchorOffset: number;
   /**
    * The most the popup may measure along the side's axis (its height above or
    * below the anchor, its width beside it) to stay within the bounds: a long
@@ -159,10 +159,17 @@ export function computePlacement(
 
   const scale = options.scale > 0 ? options.scale : 1;
   const snap = (value: number) => Math.round(value * scale) / scale;
+  x = snap(x);
+  y = snap(y);
   return {
-    x: snap(x),
-    y: snap(y),
+    x,
+    y,
+    width,
+    height,
     side,
+    anchorOffset: vertical
+      ? anchor.x + anchor.width / 2 - x
+      : anchor.y + anchor.height / 2 - y,
     maxHeight: vertical ? along : across,
     maxWidth: vertical ? across : along,
   };
@@ -176,6 +183,9 @@ export function samePlacement(a: Placement | null, b: Placement | null) {
       a.x === b.x &&
       a.y === b.y &&
       a.side === b.side &&
+      a.width === b.width &&
+      a.height === b.height &&
+      a.anchorOffset === b.anchorOffset &&
       a.maxHeight === b.maxHeight &&
       a.maxWidth === b.maxWidth)
   );

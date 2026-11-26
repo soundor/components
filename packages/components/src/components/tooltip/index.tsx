@@ -1,11 +1,14 @@
-import { Text } from '@soundor/react';
+import { Text, type StyleProp } from '@soundor/react';
 import {
   cloneElement,
+  createContext,
+  useContext,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type ReactElement,
+  type ReactNode,
 } from 'react';
 import {
   root,
@@ -16,6 +19,7 @@ import {
 } from 'soundor:ui';
 
 import { useMergedRef, type HostProps } from '../../internal/host';
+import { Arrow } from '../../internal/popup/arrow';
 import type { PopupAlign, PopupSide } from '../../internal/popup/placement';
 import { Popup, type PopupAnchor } from '../../internal/popup/popup';
 import { textStyle, useComponent, type StyleProps } from '../../theme';
@@ -24,7 +28,8 @@ import { surfaceStyle } from '../menu/menu-list';
 export interface TooltipProps extends StyleProps<'Tooltip'> {
   /** A single control forwarding its ref to a Soundor node. */
   children?: ReactElement<HostProps & { accessibilityHint?: string }>;
-  content: string;
+  /** Plain text, or Tooltip.Content for a label with a decorative arrow. */
+  content: string | ReactElement<TooltipContentProps>;
   anchor?: PopupAnchor;
   side?: PopupSide;
   align?: PopupAlign;
@@ -35,8 +40,30 @@ export interface TooltipProps extends StyleProps<'Tooltip'> {
   open?: boolean;
 }
 
-/** Supplementary, non-interactive text for a labeled control or an external anchor. */
-export function Tooltip({
+export interface TooltipContentProps {
+  /** Tooltip text, also supplied as the trigger's accessibility hint. */
+  label: string;
+  /** Optional Tooltip.Arrow. */
+  children?: ReactNode;
+}
+
+const LabelStyleContext = createContext<{ style: StyleProp } | null>(null);
+
+function Content({ label, children }: TooltipContentProps) {
+  const text = useContext(LabelStyleContext);
+  if (!text)
+    throw new Error('Tooltip.Content belongs in Tooltip’s content prop.');
+  return (
+    <>
+      {children}
+      <Text accessible={false} style={text.style}>
+        {label}
+      </Text>
+    </>
+  );
+}
+
+function TooltipRoot({
   children,
   content,
   anchor,
@@ -49,6 +76,7 @@ export function Tooltip({
   ...styles
 }: TooltipProps) {
   const { theme, slot } = useComponent('Tooltip', styles);
+  const label = typeof content === 'string' ? content : content.props.label;
   const [node, setNode] = useState<UiNode | null>(null);
   const ref = useMergedRef<UiNode>(setNode, children?.props.ref);
   const trigger = useMemo(() => ({ current: node }), [node]);
@@ -117,9 +145,9 @@ export function Tooltip({
       {children &&
         cloneElement(children, {
           ref,
-          accessibilityHint: children.props.accessibilityHint ?? content,
+          accessibilityHint: children.props.accessibilityHint ?? label,
         })}
-      {(open ?? (node !== null && visible)) && (anchor || node) && content && (
+      {(open ?? (node !== null && visible)) && (anchor || node) && label && (
         <Popup
           anchor={anchor ?? trigger}
           side={side}
@@ -137,14 +165,16 @@ export function Tooltip({
             padding: theme.spacing.spaceSm,
           })}
         >
-          <Text
-            accessible={false}
-            style={slot('label', textStyle(theme, 'caption'))}
+          <LabelStyleContext.Provider
+            value={{ style: slot('label', textStyle(theme, 'caption')) }}
           >
-            {content}
-          </Text>
+            {typeof content === 'string' ? <Content label={label} /> : content}
+          </LabelStyleContext.Provider>
         </Popup>
       )}
     </>
   );
 }
+
+/** Supplementary, non-interactive text for a labeled control or an external anchor. */
+export const Tooltip = Object.assign(TooltipRoot, { Content, Arrow });

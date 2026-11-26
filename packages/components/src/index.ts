@@ -46,7 +46,12 @@ export {
   type PopoverContentProps,
   type PopoverTriggerProps,
 } from './components/popover';
-export { Tooltip, type TooltipProps } from './components/tooltip';
+export {
+  Tooltip,
+  type TooltipProps,
+  type TooltipContentProps,
+} from './components/tooltip';
+export type { PopupArrowProps } from './internal/popup/arrow';
 export { Knob, type KnobProps } from './components/knob';
 export { Slider, type SliderProps } from './components/slider';
 export { Fader, type FaderProps } from './components/fader';
