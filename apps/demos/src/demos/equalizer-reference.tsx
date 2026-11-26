@@ -13,18 +13,26 @@ import {
   formatters,
   type PlotSamples,
   type PlotSource,
+  type SelectOption,
 } from '@soundor/components';
-import { textStyle, useTheme } from '@soundor/components/theme';
-import { Text, View } from '@soundor/react';
+import { useTheme } from '@soundor/components/theme';
+import { View } from '@soundor/react';
 import { useEffect, useRef, useState } from 'react';
 import type { UiNode } from 'soundor:ui';
 
-const shapes = [
-  { value: 'peak', label: 'Bell', glyph: '⌒' },
-  { value: 'low', label: 'Low shelf', glyph: '⌝' },
-  { value: 'high', label: 'High shelf', glyph: '⌞' },
-] as const;
-type Shape = (typeof shapes)[number]['value'];
+import { FilterIcon } from '../filter-icon';
+
+type Shape = 'peak' | 'low' | 'high';
+const shapes: readonly SelectOption<Shape>[] = (
+  [
+    { value: 'peak', label: 'Bell' },
+    { value: 'low', label: 'Low shelf' },
+    { value: 'high', label: 'High shelf' },
+  ] as const
+).map((option) => ({
+  ...option,
+  icon: ({ color }) => <FilterIcon shape={option.value} color={color} />,
+}));
 type Band = {
   id: string;
   hz: number;
@@ -378,16 +386,12 @@ export default function Demo() {
             <>
               <Select<Shape>
                 accessibilityLabel="Filter type"
-                width={108}
+                width={128}
                 value={band.shape}
                 onChange={(shape) => edit(band.id, { shape })}
                 options={shapes}
                 iconOnly
-                getOptionIcon={(option) => (
-                  <Text accessible={false} style={textStyle(theme, 'body')}>
-                    {shapes.find(({ value }) => value === option.value)?.glyph}
-                  </Text>
-                )}
+                hideCheckmark
               />
               <ValueField
                 label="Frequency"

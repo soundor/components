@@ -1,7 +1,12 @@
 import { Select, type SelectOption } from '@soundor/components';
-import { useTheme } from '@soundor/components/theme';
-import { Text, View } from '@soundor/react';
-import { Path, Svg } from '@soundor/react/svg';
+import {
+  WaveSawtooth,
+  WaveSine,
+  WaveSquare,
+  WaveTriangle,
+  Waveform,
+} from '@soundor/icons/phosphor';
+import { View } from '@soundor/react';
 
 type Wave = 'sine' | 'triangle' | 'saw' | 'square' | 'noise';
 
@@ -18,16 +23,20 @@ const waves: SelectOption<Wave>[] = [
   },
 ];
 
-const shapes: Record<Wave, string> = {
-  sine: 'M1 6 C3 0 5 0 7 6 S11 12 13 6',
-  triangle: 'M1 6 L4 1 L10 11 L13 6',
-  saw: 'M1 10 L7 2 L7 10 L13 2',
-  square: 'M1 10 L1 2 L7 2 L7 10 L13 10 L13 2',
-  noise: 'M1 6 L3 2 L4 9 L6 3 L8 10 L10 1 L13 7',
-};
+const icons = {
+  sine: WaveSine,
+  triangle: WaveTriangle,
+  saw: WaveSawtooth,
+  square: WaveSquare,
+  noise: Waveform,
+} satisfies Record<Wave, typeof WaveSine>;
+
+const visualWaves: SelectOption<Wave>[] = waves.map((option) => {
+  const Icon = icons[option.value];
+  return { ...option, icon: ({ color }) => <Icon size={16} color={color} /> };
+});
 
 export default function Demo() {
-  const theme = useTheme();
   return (
     <View style={{ gap: 16 }}>
       <View style={{ flexDirection: 'row', gap: 16, alignItems: 'flex-start' }}>
@@ -44,35 +53,10 @@ export default function Demo() {
         {/* Each option drawn with an icon of its own. */}
         <Select
           label="Waveform"
-          options={waves}
+          options={visualWaves}
+          hideCheckmark
           defaultValue="saw"
           width={140}
-          renderOption={(option, { active, disabled }) => {
-            const color = disabled
-              ? theme.color.textDisabled
-              : active
-                ? theme.color.selectedForeground
-                : theme.color.text;
-            return (
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-              >
-                <Svg width={14} height={12} viewBox={[0, 0, 14, 12]}>
-                  <Path
-                    d={shapes[option.value]}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={1.4}
-                  />
-                </Svg>
-                <Text
-                  style={{ fontFamily: theme.font.sans, fontSize: 11, color }}
-                >
-                  {option.label}
-                </Text>
-              </View>
-            );
-          }}
         />
       </View>
       <View style={{ flexDirection: 'row', gap: 16, alignItems: 'flex-end' }}>

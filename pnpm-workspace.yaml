@@ -8,6 +8,7 @@ catalog:
   '@playwright/test': 1.65.1
   '@soundor/config': ^0.21.0
   '@soundor/environment': ^0.21.0
+  '@soundor/icons': ^0.3.0
   '@soundor/react': ^0.21.0
   '@soundor/testing-library': ^0.21.0
   '@soundor/vitest': ^0.21.0
@@ -58,6 +59,7 @@ minimumReleaseAgeExclude:
   - '@soundor/engine@0.12.0'
   - '@soundor/environment@0.21.0'
   - '@soundor/expression@0.21.0'
+  - '@soundor/icons@0.3.0'
   - '@soundor/react@0.21.0'
   - '@soundor/runtime-sdk@0.21.0'
   - '@soundor/test-runtime@0.21.0'

@@ -43,19 +43,51 @@ async function pressOutside(menu: TestNode) {
 }
 
 describe('Select', () => {
-  test('icon-only changes presentation but keeps the chosen option accessible', async () => {
+  test('icon-only renders option icons with row state while keeping the value accessible', async () => {
+    const icon = vi.fn(({ color }: { color: string }) => (
+      <Text style={{ color }}>Shape</Text>
+    ));
     await render(
       <Select
         label="Filter"
         iconOnly
-        options={filters}
-        getOptionIcon={(option) => <Text>{`Shape: ${option.value}`}</Text>}
+        hideCheckmark
+        options={filters.map((option) => ({ ...option, icon }))}
       />,
     );
     const user = userEvent.setup();
     const control = screen.getByRole('combobox', { name: 'Filter' });
     expect(control.accessibility.value?.text).toBe('Low Pass');
+    expect(icon).toHaveBeenCalledWith({
+      active: false,
+      checked: true,
+      disabled: false,
+      color: tokens.color.text,
+    });
     await user.click(control);
+    expect(
+      screen.getByRole('menuitem', { name: 'Low Pass' }).accessibility.state
+        ?.checked,
+    ).toBe(true);
+    expect(icon).toHaveBeenCalledWith({
+      active: true,
+      checked: true,
+      disabled: false,
+      color: tokens.color.selectedForeground,
+    });
+    expect(icon).toHaveBeenCalledWith({
+      active: false,
+      checked: false,
+      disabled: true,
+      color: tokens.color.textDisabled,
+    });
+    await user.keyboard('{ArrowDown}');
+    expect(icon).toHaveBeenCalledWith({
+      active: false,
+      checked: true,
+      disabled: false,
+      color: tokens.color.accentForeground,
+    });
     await user.click(screen.getByRole('menuitem', { name: 'High Pass' }));
     expect(control.accessibility.value?.text).toBe('High Pass');
     expect(control.focused).toBe(true);

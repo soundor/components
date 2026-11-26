@@ -35,6 +35,8 @@ import {
 import { CheckIcon } from '../shared/icons';
 
 export interface MenuRowState {
+  /** The foreground color used for this option's label. */
+  color: string;
   /** Highlighted: under the pointer, or reached with the keyboard. */
   active: boolean;
   checked: boolean;
@@ -381,6 +383,9 @@ export interface MenuRowProps {
   disabled?: boolean;
   /** Before the label: a small glyph of your own, in the label's colour. */
   icon?: ReactNode;
+  renderIcon?: (state: MenuRowState) => ReactNode;
+  highlightChecked?: boolean;
+  hideCheckmark?: boolean;
   /** Read after the label, for what it is not clear from it. */
   hint?: string;
   /** A tick before the label, for an option that is on. */
@@ -401,6 +406,9 @@ export function MenuRow({
   label,
   disabled = false,
   icon,
+  renderIcon,
+  highlightChecked = false,
+  hideCheckmark = false,
   hint,
   checked,
   render,
@@ -458,12 +466,21 @@ export function MenuRow({
     ref: attach,
   });
   const active = focused && !disabled;
-  const state: MenuRowState = { active, checked: !!checked, disabled };
+  const selected = highlightChecked && checked && !disabled;
   const foreground = disabled
     ? c.textDisabled
     : active
       ? c.selectedForeground
-      : c.text;
+      : selected
+        ? c.accentForeground
+        : c.text;
+  const state: MenuRowState = {
+    active,
+    checked: !!checked,
+    disabled,
+    color: foreground,
+  };
+  const visualIcon = render ? undefined : (renderIcon?.(state) ?? icon);
   return (
     <View
       {...press.pressableProps}
@@ -479,7 +496,11 @@ export function MenuRow({
         minHeight: rowHeight(theme, size),
         paddingHorizontal: theme.spacing.spaceMd,
         borderRadius: theme.radius.radiusSm,
-        backgroundColor: active ? c.selected : 'transparent',
+        backgroundColor: active
+          ? c.selected
+          : selected
+            ? c.accent
+            : 'transparent',
         cursor: disabled ? 'default' : 'pointer',
       })}
     >
@@ -487,7 +508,7 @@ export function MenuRow({
         render(state)
       ) : (
         <>
-          {checkable && (
+          {checkable && !hideCheckmark && (
             <View
               accessible={false}
               style={{ width: 10, alignItems: 'center' }}
@@ -495,16 +516,17 @@ export function MenuRow({
               {checked && <CheckIcon color={foreground} />}
             </View>
           )}
-          {icon !== undefined && (
+          {visualIcon != null && (
             <View
               accessible={false}
               style={part('icon', {
-                width: 14,
+                width: renderIcon ? undefined : 14,
                 alignItems: 'center',
-                opacity: disabled ? theme.opacity.opacityDisabled : 1,
+                opacity:
+                  disabled && !renderIcon ? theme.opacity.opacityDisabled : 1,
               })}
             >
-              {icon}
+              {visualIcon}
             </View>
           )}
           <Text
