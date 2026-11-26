@@ -11,6 +11,7 @@ export function useGesture(
   disabled: boolean,
   first: unknown,
   second?: unknown,
+  cancelPointerOnCleanup = false,
 ) {
   const active = useRef<Active | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -23,7 +24,11 @@ export function useGesture(
     closing?.finish(cancel);
   };
 
-  useLayoutEffect(() => end, [disabled, first, second]);
+  useLayoutEffect(
+    () => () =>
+      end(cancelPointerOnCleanup && active.current?.mode === 'pointer'),
+    [disabled, first, second, cancelPointerOnCleanup],
+  );
 
   return {
     is: (mode: Mode) => active.current?.mode === mode,

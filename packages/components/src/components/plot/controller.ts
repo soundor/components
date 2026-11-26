@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react';
 import type { UiNode } from 'soundor:ui';
 
 import type { Axis, Coordinates } from '../../chart/geometry';
-import type { PlotSelection } from './selection';
+import type { GroupMarkerEdit, PlotSelection } from './selection';
 
 export interface PlotAxisReference {
   xAxis?: string;
@@ -40,6 +40,7 @@ export interface GuideLayer extends PlotAxisReference {
   focused: boolean;
   /** Draggable: the room its handle needs at the end of an axis. */
   safeZone: number;
+  edit?: GroupMarkerEdit;
 }
 
 type AxisName = 'x' | 'y';
@@ -176,6 +177,13 @@ export class PlotController {
       this.guides.delete(layer);
       this.reorder();
       this.structure();
+    };
+  }
+
+  editGuide(layer: GuideLayer, edit: GroupMarkerEdit) {
+    layer.edit = edit;
+    return () => {
+      layer.edit = undefined;
     };
   }
 

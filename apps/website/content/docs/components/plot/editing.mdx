@@ -38,9 +38,27 @@ Each background event supplies the Soundor pointer `event`, the plot-local logic
 
 ## Selection and grouped movement
 
-Pass `selection={{ selectedIds, onSelectionChange, multiple: true, rectangle: true }}` to `Plot` and a stable `id` to each selectable marker. Shift, Control or Command toggles a marker in multiple mode; Enter or Space also works on a focused marker. Background clicks clear selection unless `selection.clearOnBackgroundPress` is `false`. Shift-drag the background with `rectangle` enabled to replace the selection with the markers inside the rectangle.
+Pass `selection={{ selectedIds, onSelectionChange, multiple: true, rectangle: true }}` to `Plot` and a stable `id` to each selectable marker. The caller owns the selected IDs.
 
-With `onGroupDrag`, dragging a selected marker reports the captured IDs and `start`, `move`, `end`, and `cancel` phases instead of its individual `onMove`. Capture starting values on `start`, then use each marker's scale to map its original value to pixels, add `delta`, and invert. On a log axis, a common pixel displacement preserves frequency ratios. Constrain the shared displacement before converting to data if relative spacing must be preserved at the edges. Restore the original values on `cancel` and close any host gestures on `end` or `cancel`.
+| Interaction                 | Result                                                         |
+| --------------------------- | -------------------------------------------------------------- |
+| Click empty space           | Clear the selection unless `clearOnBackgroundPress` is `false` |
+| Drag empty space            | Replace selection with the enclosed markers                    |
+| Shift + drag empty space    | Add the enclosed markers                                       |
+| Ctrl/Cmd + drag empty space | Toggle the enclosed markers                                    |
+| Click a marker              | Select only that marker                                        |
+| Shift + click a marker      | Add it to the selection                                        |
+| Ctrl/Cmd + click a marker   | Toggle it                                                      |
+| Drag a marker               | Move it, or move its existing selection                        |
+| Shift + drag a marker       | Move it or its group at one-tenth speed                        |
+
+Use Ctrl on Windows and Linux, or Cmd on macOS. The primary modifier wins over Shift for selection. Rectangle selection uses the modifiers and selection at the start of the drag, after a small movement threshold. It updates as the rectangle changes and restores the initial selection if the pointer is cancelled. With rectangle selection enabled in multiple mode, background drags belong to selection rather than `onBackgroundDrag`. Turn off `rectangle` to use a custom background drag. Background double-click and context menus still work.
+
+Click modifiers do not add or toggle selection during a marker drag. A plain drag on an unselected marker selects it; a modified drag on an unselected marker moves it independently. Press or release Shift mid-drag to change speed without jumping, including on logarithmic axes. Enter or Space also selects a focused marker.
+
+By default, a group drag calls the move handlers of each movable, selected marker with one shared displacement, bounded by the first axis edge the group reaches. Each marker keeps its movement settings and constraints. On a log axis, a common pixel displacement preserves frequency ratios. Use functional state updates when several marker handlers write to the same collection.
+
+Use `onGroupDrag` to own the edit yourself, for example to apply a group-wide constraint or record one undo transaction. It reports the captured IDs and `start`, `move`, `end`, and `cancel` phases instead of calling individual `onMove` handlers. Capture starting values on `start`, then use each marker's scale to map its original value to pixels, add `delta`, and invert. Restore the original values on `cancel` and close host gestures on `end` or `cancel`.
 
 ## Handles at the ends of an axis
 

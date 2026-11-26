@@ -1,6 +1,45 @@
 import { expect, test } from '@playwright/test';
 
-import { openDemo } from './demo';
+import { centreOf, openDemo } from './demo';
+
+test('a group on the logarithmic axis changes drag speed without jumping', async ({
+  page,
+}) => {
+  await openDemo(page, 'equalizer-reference');
+  const a = page.getByRole('slider', { name: 'Band 1' });
+  const b = page.getByRole('slider', { name: 'Band 2' });
+  const start = await centreOf(a);
+  const other = await centreOf(b);
+  await page.mouse.move(start.x - 18, start.y - 13);
+  await page.mouse.down();
+  await page.mouse.move(other.x + 18, other.y + 12);
+  await page.mouse.up();
+  await expect(a).toHaveAttribute('aria-selected', 'true');
+  await expect(b).toHaveAttribute('aria-selected', 'true');
+
+  const move = async (travel: number, expected: number) => {
+    await page.mouse.move(start.x + travel, start.y);
+    await expect
+      .poll(async () => (await centreOf(a)).x - start.x)
+      .toBeCloseTo(expected, 0);
+    expect((await centreOf(b)).x - other.x).toBeCloseTo(expected, 0);
+  };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.keyboard.down('Shift');
+  await move(20, 2);
+  await page.keyboard.up('Shift');
+  await move(30, 12);
+  await page.keyboard.down('Shift');
+  await move(50, 14);
+  await page.keyboard.up('Shift');
+  await page.mouse.up();
+  await expect(a).toHaveAttribute('aria-selected', 'true');
+  await expect(b).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('dialog', { name: 'Band editor' })).toHaveCount(
+    0,
+  );
+});
 
 test('the embedded band editor scrolls to reveal its Done button', async ({
   page,

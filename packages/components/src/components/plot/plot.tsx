@@ -61,7 +61,13 @@ import {
   type PlotAxisReference,
   type AxisSide,
 } from './controller';
-import type { PlotSelection } from './selection';
+import {
+  combineSelection,
+  sameSelection,
+  selectionOperation,
+  type PlotSelection,
+  type SelectionOperation,
+} from './selection';
 
 export type PlotAxis = Axis;
 
@@ -326,8 +332,18 @@ export function PlotRoot({
     [coordinates, x, y, captioned, resolve, selection],
   );
   const pointer = useRef<Point | null>(null);
-  const marquee = useRef<{ origin: Point; point: Point } | null>(null);
-  const suppressPress = useRef(false);
+  const marquee = useRef<{
+    origin: Point;
+    point: Point;
+    initial: readonly string[];
+    last: readonly string[];
+    operation: SelectionOperation;
+  } | null>(null);
+  const currentSelection = useRef(selection);
+  useLayoutEffect(() => {
+    currentSelection.current = selection;
+  }, [selection]);
+  const rectangle = Boolean(selection?.multiple && selection.rectangle);
   const invalidate = useDrawing(box, (ctx) => {
     const { rect } = coordinates;
     if (!rect.width || !rect.height) return;
@@ -439,43 +455,45 @@ export function PlotRoot({
       controller.frame = () => {};
     };
   }, [controller, invalidate]);
-  const backgroundDrag = (drag: PlotBackgroundDragEvent) => {
-    if (drag.phase === 'start') {
-      suppressPress.current = false;
-      if (selection?.multiple && selection.rectangle && drag.event.shiftKey) {
-        marquee.current = { origin: drag.origin, point: drag.point };
-      }
+  const rectangleDrag = (drag: PlotBackgroundDragEvent) => {
+    const owner = currentSelection.current;
+    if (drag.phase === 'start' && owner) {
+      const initial = [...owner.selectedIds];
+      marquee.current = {
+        origin: drag.origin,
+        point: drag.point,
+        initial,
+        last: initial,
+        operation: selectionOperation(drag.event),
+      };
     }
     const area = marquee.current;
-    if (!area) {
-      onBackgroundDrag?.(drag);
-      return;
-    }
-    if (drag.phase === 'move') area.point = drag.point;
-    if (drag.phase === 'cancel' || drag.phase === 'end') {
-      marquee.current = null;
-      suppressPress.current = drag.phase === 'end';
-      if (drag.phase === 'end' && selection) {
-        const left = Math.min(area.origin[0], drag.point[0]);
-        const top = Math.min(area.origin[1], drag.point[1]);
-        const box = {
-          left,
-          top,
-          width: Math.abs(drag.point[0] - area.origin[0]),
-          height: Math.abs(drag.point[1] - area.origin[1]),
-        };
-        const ids = new Set<string>();
-        for (const guide of controller.guides) {
-          if (guide.id === undefined || guide.marker.disabled) continue;
-          const axes = resolve(guide)?.coordinates;
-          if (!axes) continue;
-          const x = axes.x.map(guide.marker.x ?? NaN);
-          const y = axes.y.map(guide.marker.y ?? NaN);
-          if (contains(coordinates.rect, x, y) && contains(box, x, y))
-            ids.add(guide.id);
-        }
-        selection.onSelectionChange([...ids]);
+    if (!area) return;
+    if (drag.phase === 'end' || drag.phase === 'cancel') marquee.current = null;
+    area.point = drag.point;
+    let next = area.initial;
+    if (drag.phase !== 'cancel') {
+      const box = {
+        left: Math.min(area.origin[0], drag.point[0]),
+        top: Math.min(area.origin[1], drag.point[1]),
+        width: Math.abs(drag.point[0] - area.origin[0]),
+        height: Math.abs(drag.point[1] - area.origin[1]),
+      };
+      const ids = new Set<string>();
+      for (const guide of controller.order().guides) {
+        if (guide.id === undefined || guide.marker.disabled) continue;
+        const axes = drag.coordinatesFor(guide);
+        if (!axes) continue;
+        const x = axes.x.map(guide.marker.x ?? NaN);
+        const y = axes.y.map(guide.marker.y ?? NaN);
+        if (contains(drag.coordinates.rect, x, y) && contains(box, x, y))
+          ids.add(guide.id);
       }
+      next = combineSelection(area.initial, [...ids], area.operation);
+    }
+    if (!sameSelection(area.last, next)) {
+      area.last = next;
+      owner?.onSelectionChange(next);
     }
     invalidate();
   };
@@ -528,10 +546,8 @@ export function PlotRoot({
         selection) && (
         <PlotBackground
           space={space}
+          threshold={rectangle}
           onBackgroundPress={(event) => {
-            const suppressed = suppressPress.current;
-            suppressPress.current = false;
-            if (suppressed) return;
             if (
               selection &&
               selection.clearOnBackgroundPress !== false &&
@@ -545,9 +561,7 @@ export function PlotRoot({
           onBackgroundPointerEnter={onBackgroundPointerEnter}
           onBackgroundPointerLeave={onBackgroundPointerLeave}
           onBackgroundContextMenu={onBackgroundContextMenu}
-          onBackgroundDrag={
-            selection || onBackgroundDrag ? backgroundDrag : undefined
-          }
+          onBackgroundDrag={rectangle ? rectangleDrag : onBackgroundDrag}
         />
       )}
       <ControllerContext.Provider value={controller}>

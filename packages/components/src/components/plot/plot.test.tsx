@@ -218,15 +218,18 @@ test('unlabelled draggable markers are numbered in the order they are drawn; pla
 test('a marker drag starts and ends its gesture, also when the pointer is cancelled', async () => {
   const onMoveStart = vi.fn();
   const onMoveEnd = vi.fn();
+  const onMove = vi.fn();
+  const onMoveCancel = vi.fn();
   await render(
     <Plot width={260} height={160}>
       <Plot.Marker
         x={0.5}
         y={0.5}
         label="Playhead"
-        onMove={() => {}}
+        onMove={onMove}
         onMoveStart={onMoveStart}
         onMoveEnd={onMoveEnd}
+        onMoveCancel={onMoveCancel}
       />
     </Plot>,
   );
@@ -241,6 +244,9 @@ test('a marker drag starts and ends its gesture, also when the pointer is cancel
   marker.addEventListener('pointerdown', (event) => {
     pointer = (event as unknown as PointerEvent).pointerId;
   });
+  await user.click(marker);
+  expect(onMoveStart).not.toHaveBeenCalled();
+  expect(onMoveEnd).not.toHaveBeenCalled();
   await user.pointer([
     { target: marker, keys: '[MouseLeft>]', clientX: 100, clientY: 80 },
     { clientX: 120, clientY: 80 },
@@ -248,7 +254,52 @@ test('a marker drag starts and ends its gesture, also when the pointer is cancel
   expect(onMoveStart).toHaveBeenCalledTimes(1);
   await fireEvent.pointerCancel(marker, { pointerId: pointer });
   expect(onMoveEnd).toHaveBeenCalledTimes(1);
+  expect(onMoveCancel).toHaveBeenCalledTimes(1);
+  expect(onMove).toHaveBeenLastCalledWith([0.5, 0.5]);
 });
+
+test.each([
+  { multiple: true, rectangle: false },
+  { multiple: false, rectangle: true },
+])(
+  'leaves custom background drags in charge without multiple rectangle selection (%j)',
+  async (config) => {
+    const onSelectionChange = vi.fn();
+    const onBackgroundDrag = vi.fn();
+    const onBackgroundPress = vi.fn();
+    await render(
+      <Plot
+        width={260}
+        height={160}
+        selection={{ ...config, selectedIds: ['a'], onSelectionChange }}
+        onBackgroundDrag={onBackgroundDrag}
+        onBackgroundPress={onBackgroundPress}
+      >
+        <Plot.Marker id="a" x={0.5} y={0.5} />
+      </Plot>,
+    );
+    const target = screen.getByRole('image').nextSibling!;
+    Object.defineProperty(target.parent!, 'getBoundingClientRect', {
+      value: () => ({ x: 0, y: 0, width: 260, height: 160 }),
+    });
+    const user = userEvent.setup();
+    await user.pointer([
+      { target, keys: '[MouseLeft>]', clientX: 20, clientY: 20 },
+      { clientX: 140, clientY: 90 },
+      { keys: '[/MouseLeft]' },
+    ]);
+    expect(onBackgroundDrag.mock.calls.map(([event]) => event.phase)).toEqual([
+      'start',
+      'move',
+      'end',
+    ]);
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(onBackgroundPress).not.toHaveBeenCalled();
+    await user.click(target);
+    expect(onSelectionChange).toHaveBeenCalledWith([]);
+    expect(onBackgroundPress).toHaveBeenCalledTimes(1);
+  },
+);
 
 test('without axes, the domain is the static data’s extent', async () => {
   const onMove = vi.fn<(point: Point) => void>();

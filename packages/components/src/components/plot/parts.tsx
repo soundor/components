@@ -49,8 +49,12 @@ import {
   type SeriesLayer,
 } from './controller';
 import { seriesColor } from './plot';
+import { crossedDragThreshold, watchCaptureLoss } from './pointer';
 import {
-  selectPlotItem,
+  combineSelection,
+  moveSelectedGuides,
+  sameSelection,
+  selectionOperation,
   type PlotGroupDrag,
   type PlotSelection,
 } from './selection';
@@ -518,6 +522,7 @@ function Marker({
           {...props}
           id={id}
           selection={selection}
+          layer={layer}
           selected={selected}
           x={x}
           y={y}
@@ -538,6 +543,7 @@ function Marker({
 }
 
 interface MarkerControlProps extends Omit<PlotMarkerProps, 'xAxis' | 'yAxis'> {
+  layer: GuideLayer;
   selection?: PlotSelection;
   radius: number;
   label: string;
@@ -580,25 +586,65 @@ function MarkerControl({
   onAccessibilityAction,
   id,
   selection,
+  layer,
   ...props
 }: MarkerControlProps) {
+  const controller = usePlotController('Plot.Marker');
+  useLayoutEffect(() => {
+    if (!onMove || disabled) return;
+    return controller.editGuide(layer, {
+      coordinates,
+      movement,
+      point: [x, y],
+      move: onMove,
+      constrain,
+      start: onMoveStart,
+      cancel: onMoveCancel,
+      end: onMoveEnd,
+    });
+  });
   const { theme, slot } = useComponent('PlotMarker', props);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const pointer = useRef<{
+    down: PointerEvent;
+    dragged: boolean;
+    unwatch: () => void;
+  } | null>(null);
+  const suppressed = useRef<number | null>(null);
+  const clearPointer = () => {
+    const held = pointer.current;
+    pointer.current = null;
+    held?.unwatch();
+    return held;
+  };
+  useLayoutEffect(
+    () => () => {
+      clearPointer();
+    },
+    [disabled],
+  );
   const group = useRef<{
     notify: NonNullable<PlotSelection['onGroupDrag']>;
     event: PlotGroupDrag;
     origin: Point;
   } | null>(null);
+  const selectMarker = (operation: ReturnType<typeof selectionOperation>) => {
+    if (id === undefined || !selection) return;
+    const next = combineSelection(
+      selection.selectedIds,
+      [id],
+      selection.multiple ? operation : 'replace',
+    );
+    if (!sameSelection(selection.selectedIds, next))
+      selection.onSelectionChange(next);
+  };
   const select =
     id !== undefined && selection
       ? (event: PointerEvent | KeyboardEvent | AccessibilityActionEvent) => {
-          selectPlotItem(
-            selection,
-            id,
-            'shiftKey' in event &&
-              (event.shiftKey || event.ctrlKey || event.metaKey),
+          selectMarker(
+            'shiftKey' in event ? selectionOperation(event) : 'replace',
           );
           onSelect?.(event);
         }
@@ -635,12 +681,13 @@ function MarkerControl({
         const active = group.current;
         if (!active) onMove?.(next);
         else if (!cancelled) {
+          const axes = active.event.coordinates;
           active.event = {
             ...active.event,
             phase: 'move',
             delta: [
-              coordinates.x.map(next[0]) - active.origin[0],
-              coordinates.y.map(next[1]) - active.origin[1],
+              movement === 'y' ? 0 : axes.x.map(next[0]) - active.origin[0],
+              movement === 'x' ? 0 : axes.y.map(next[1]) - active.origin[1],
             ],
           };
           active.notify(active.event);
@@ -667,6 +714,12 @@ function MarkerControl({
   const atX = coordinates.x.map(x);
   const atY = coordinates.y.map(y);
   const radius = hitRadius ?? Math.max(12, own + 5);
+  const cancelPointer = (event: PointerEvent) => {
+    if (pointer.current?.down.pointerId !== event.pointerId) return;
+    clearPointer();
+    suppressed.current = event.pointerId;
+    control.handlers.onPointerCancel?.(event);
+  };
   const actions = withActions(
     {
       accessibilityActions:
@@ -705,33 +758,57 @@ function MarkerControl({
         onFocus(event.focusVisible);
       }}
       onBlur={(event) => {
-        control.handlers.onBlur?.(event);
+        const held = pointer.current;
+        if (held) cancelPointer(held.down);
+        else control.handlers.onBlur?.(event);
         setFocused(false);
         onFocus(false);
       }}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
       onPointerDown={(event) => {
-        if (disabled) return;
-        if (event.button === 0) select?.(event);
-        if (!event.defaultPrevented && onMove) {
+        if (
+          disabled ||
+          event.button !== 0 ||
+          event.defaultPrevented ||
+          pointer.current
+        )
+          return;
+        suppressed.current = null;
+        if (event.altKey && onMove) {
           control.handlers.onPointerDown?.(event);
-          if (event.button === 0 && !event.altKey) {
-            setDragging(true);
-            const notify = selection?.onGroupDrag;
-            if (
-              !group.current &&
-              notify &&
-              id !== undefined &&
-              selection?.multiple &&
-              selection.selectedIds.length > 1 &&
-              selection.selectedIds.includes(id) &&
-              !event.shiftKey &&
-              !event.ctrlKey &&
-              !event.metaKey
-            ) {
+          return;
+        }
+        pointer.current = {
+          down: event,
+          dragged: false,
+          unwatch: watchCaptureLoss(event.pointerId, () =>
+            cancelPointer(event),
+          ),
+        };
+      }}
+      onPointerMove={(event) => {
+        const held = pointer.current;
+        if (held?.down.pointerId !== event.pointerId) return;
+        if (!held.dragged) {
+          if (!crossedDragThreshold(held.down, event)) return;
+          held.dragged = true;
+          suppressed.current = event.pointerId;
+          if (!onMove) return;
+          control.handlers.onPointerDown?.(held.down);
+          setDragging(true);
+          const selectedIds = selection?.selectedIds ?? [];
+          if (id !== undefined && selectedIds.includes(id)) {
+            if (selection?.multiple && selectedIds.length > 1) {
+              const notify =
+                selection.onGroupDrag ??
+                moveSelectedGuides(
+                  controller.order().guides,
+                  layer,
+                  selectedIds,
+                );
               const start: PlotGroupDrag = {
-                ids: [...selection.selectedIds],
+                ids: [...selectedIds],
                 markerId: id,
                 phase: 'start',
                 delta: [0, 0],
@@ -740,20 +817,49 @@ function MarkerControl({
               group.current = { notify, event: start, origin: [atX, atY] };
               notify(start);
             }
+          } else if (
+            selectionOperation(held.down) === 'replace' &&
+            selectionOperation(event) === 'replace'
+          ) {
+            selectMarker('replace');
           }
         }
+        if (onMove) control.handlers.onPointerMove?.(event);
       }}
-      onDoubleClick={
-        disabled
-          ? undefined
-          : (onDoubleClick ??
-            (onMove ? control.handlers.onDoubleClick : undefined))
-      }
+      onPointerUp={(event) => {
+        if (
+          event.button !== 0 ||
+          pointer.current?.down.pointerId !== event.pointerId
+        )
+          return;
+        clearPointer();
+        control.handlers.onPointerUp?.(event);
+      }}
+      onPointerCancel={cancelPointer}
+      onClick={(event) => {
+        if (
+          disabled ||
+          event.defaultPrevented ||
+          suppressed.current === event.pointerId
+        )
+          return;
+        control.handlers.onClick?.(event);
+        select?.(event);
+      }}
+      onDoubleClick={(event) => {
+        if (disabled || suppressed.current === event.pointerId) return;
+        (
+          onDoubleClick ?? (onMove ? control.handlers.onDoubleClick : undefined)
+        )?.(event);
+      }}
       onWheel={disabled ? undefined : onWheel}
       onContextMenu={disabled ? undefined : onContextMenu}
       onKeyDown={(event) => {
         if (disabled || event.defaultPrevented) return;
-        if ((event.key === 'Enter' || event.key === ' ') && select) {
+        if (event.key === 'Escape' && pointer.current) {
+          cancelPointer(pointer.current.down);
+          event.preventDefault();
+        } else if ((event.key === 'Enter' || event.key === ' ') && select) {
           select(event);
           event.preventDefault();
         } else if (
