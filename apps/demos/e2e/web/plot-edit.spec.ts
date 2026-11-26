@@ -46,8 +46,13 @@ test('only a background double-click adds a point and the background menu opens 
   const markers = page.getByRole('slider', { name: /^Point \d+$/ });
   await marker.dblclick();
   await expect(markers).toHaveCount(1);
-  await page.mouse.dblclick(box.x + 104, box.y + 60);
+  // Click in the handle padding just above the y = 1 grid line.
+  await page.mouse.dblclick(box.x + 104, box.y + 10);
   await expect(markers).toHaveCount(2);
+  await expect(page.getByRole('slider', { name: 'Point 2' })).toHaveAttribute(
+    'aria-valuetext',
+    /Y 1(?:\.0+)?$/,
+  );
   await page.mouse.click(box.x + 104, box.y + 90, { button: 'right' });
   await page.getByRole('menuitem', { name: 'Clear points' }).click();
   await expect(markers).toHaveCount(0);

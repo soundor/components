@@ -11,6 +11,10 @@ import { Text, View } from '@soundor/react';
 import { useRef, useState } from 'react';
 import type { UiNode } from 'soundor:ui';
 
+const unitDomain = [0, 1] as const;
+const clampToDomain = (value: number) =>
+  Math.min(unitDomain[1], Math.max(unitDomain[0], value));
+
 export default function Demo() {
   const theme = useTheme();
   const [points, setPoints] = useState<readonly (readonly [number, number])[]>([
@@ -48,15 +52,15 @@ export default function Demo() {
                     coordinates.y.map(y) + delta[1],
                   );
                   return [
-                    Math.min(1, Math.max(0, nx)),
-                    index === 0 ? y : Math.min(1, Math.max(0, ny)),
+                    clampToDomain(nx),
+                    index === 0 ? y : clampToDomain(ny),
                   ];
                 }),
               );
           },
         }}
-        onBackgroundDoubleClick={({ data }) =>
-          setPoints((prev) => [...prev, data])
+        onBackgroundDoubleClick={({ data: [x, y] }) =>
+          setPoints((prev) => [...prev, [clampToDomain(x), clampToDomain(y)]])
         }
         onBackgroundPointerMove={({ data: [x, y] }) =>
           setCursor(`${x.toFixed(2)}, ${y.toFixed(2)}`)
@@ -67,14 +71,15 @@ export default function Demo() {
           setMenu({ x: event.pageX, y: event.pageY });
         }}
       >
-        <Plot.XAxis domain={[0, 1]} />
-        <Plot.YAxis domain={[0, 1]} />
+        <Plot.XAxis domain={unitDomain} />
+        <Plot.YAxis domain={unitDomain} />
         <Plot.Grid />
         {points.map(([x, y], index) => (
           <Plot.Marker
             key={index}
             id={String(index)}
-            label={`Point ${index + 1}`}
+            label={String(index + 1)}
+            accessibilityLabel={`Point ${index + 1}`}
             ref={index === selected ? anchor : undefined}
             movement={index === 0 ? 'x' : 'both'}
             hitRadius={14}
