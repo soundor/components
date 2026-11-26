@@ -105,17 +105,63 @@ For a group of controls, give the trigger a `View` around them. A secondary pres
 
 `disabled` on the ContextMenu opens no menu and offers no "show menu" action.
 
+## Submenus
+
+A context menu takes the same [submenus](/docs/components/dropdown-menu#submenus) as a DropdownMenu: a `Menu.Sub` with a `Menu.SubTrigger`, the row that opens it, and a `Menu.SubContent` with its rows. Use one for a choice that would make the menu long, such as an EQ band's filter type:
+
+```tsx
+import { ContextMenu, Menu } from '@soundor/components';
+
+<ContextMenu>
+  <ContextMenu.Trigger>
+    <BandHandle band={band} />
+  </ContextMenu.Trigger>
+  <ContextMenu.Content accessibilityLabel={`Band ${band.index}`}>
+    <Menu.Item onPress={() => band.reset()}>Reset</Menu.Item>
+    <Menu.Sub>
+      <Menu.SubTrigger>Filter type</Menu.SubTrigger>
+      <Menu.SubContent>
+        {filterTypes.map((type) => (
+          <Menu.Item
+            key={type}
+            checked={type === band.type}
+            onPress={() => band.setType(type)}
+          >
+            {type}
+          </Menu.Item>
+        ))}
+      </Menu.SubContent>
+    </Menu.Sub>
+    <Menu.Divider />
+    <Menu.Item onPress={() => band.remove()}>Delete</Menu.Item>
+  </ContextMenu.Content>
+</ContextMenu>;
+```
+
+The submenu behaves as it does in a DropdownMenu:
+
+- **Opening:** the pointer resting on the trigger opens it (after 150 ms), a press opens it at once, and `→`, `Enter` or `Space` open it with focus on its first row.
+- **On the way there:** the pointer may cross the rows below the trigger while it heads for the submenu; the submenu stays open while the pointer is [aiming at it](/docs/components/dropdown-menu#on-the-way-to-a-submenu), and the row under the pointer takes over when it isn't.
+- **Placement:** beside the menu, its first row level with the trigger. A menu opened at the pointer near the editor's right edge has its submenus flip to the left; they stay inside the editor, and a long one scrolls.
+- **Closing:** choosing a row closes the whole menu, then runs it. `←` or `Esc` closes only the innermost submenu and gives focus back to its trigger. `Tab` or a click outside closes them all, and focus goes back to the control.
+
+`Menu.Sub` takes `openDelay`, `restDelay` and `aimTolerance` to tune the timing, and `side="left"` to prefer the left in an editor that reads right to left.
+
 ## Keyboard and accessibility
 
-| Input                                | Does                                                          |
-| ------------------------------------ | ------------------------------------------------------------- |
-| Secondary press                      | Open at the pointer, with focus on the menu                   |
-| A long touch                         | Open at the touch, with focus on the menu                     |
-| `Shift+F10`, or the context menu key | Open beside the focused control, with focus on the first item |
-| A screen reader's "show menu"        | Open beside the control, with focus on the first item         |
-| `↑` / `↓`, `Home` / `End`, a letter  | Move between items                                            |
-| `Enter`, `Space` or a click          | Run the item                                                  |
-| `Esc`, `Tab` or a click outside      | Close, and give focus back to the control                     |
+| Input                                          | Does                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------- |
+| Secondary press                                | Open at the pointer, with focus on the menu                   |
+| A long touch                                   | Open at the touch, with focus on the menu                     |
+| `Shift+F10`, or the context menu key           | Open beside the focused control, with focus on the first item |
+| A screen reader's "show menu"                  | Open beside the control, with focus on the first item         |
+| `↑` / `↓`, `Home` / `End`, a letter            | Move between items                                            |
+| `Enter`, `Space` or a click                    | Run the item                                                  |
+| `Esc`, `Tab` or a click outside                | Close, and give focus back to the control                     |
+| `→`, `Enter` or `Space` on a `Menu.SubTrigger` | Open its submenu, with focus on its first row                 |
+| `←` or `Esc` in a submenu                      | Close it, and give focus back to its trigger                  |
+
+A `Menu.SubTrigger` is a `menuitem` whose `expanded` state says whether its submenu is open, and the submenu is a `menu` named after its trigger. A submenu's `Esc` closes only that submenu, so the menu and the control's focus are kept.
 
 ## Engine support
 
@@ -142,6 +188,27 @@ ContextMenu opens on Soundor's semantic `contextmenu` event, which the engine re
 <auto-type-table
   path="packages/components/src/components/context-menu/context-menu.tsx"
   name="ContextMenuContentProps"
+/>
+
+### Menu.Sub
+
+<auto-type-table
+  path="packages/components/src/components/menu/submenu.tsx"
+  name="MenuSubProps"
+/>
+
+### Menu.SubTrigger
+
+<auto-type-table
+  path="packages/components/src/components/menu/submenu.tsx"
+  name="MenuSubTriggerProps"
+/>
+
+### Menu.SubContent
+
+<auto-type-table
+  path="packages/components/src/components/menu/submenu.tsx"
+  name="MenuSubContentProps"
 />
 
 ### ParameterMenuItems
