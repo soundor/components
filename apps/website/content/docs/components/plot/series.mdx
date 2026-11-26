@@ -1,0 +1,71 @@
+---
+title: Series
+description: Draw samples and live data as lines, areas, steps, bars, points, or bands.
+---
+
+| Part          | What it draws                                     |
+| ------------- | ------------------------------------------------- |
+| `Plot.Line`   | A line through the samples.                       |
+| `Plot.Area`   | A line filled down to its `baseline`.             |
+| `Plot.Steps`  | Each value held until the next.                   |
+| `Plot.Bars`   | A bar per sample standing on its `baseline`.      |
+| `Plot.Points` | A dot per sample, sized by `radius`.              |
+| `Plot.Band`   | The region between a `lower` and an `upper` edge. |
+
+## Series data
+
+A series takes exactly one of sorted `[x, y]` `points`, evenly spaced `values` (typed arrays work), or a live `source`. A band takes `lower` and `upper`, or a `source` of both. Each part accepts only the props that apply to it: for example, `Plot.Bars` has no `strokeWidth` and `Plot.Line` has no `radius`. Invalid combinations also fail at runtime.
+
+A series without a `color` uses the theme's voices in draw order. A series with a `label` appears in `Plot.Legend` and in the hover `Plot.Readout` unless it has `hideInReadout`. `Plot.Legend` and `Plot.Readout` take no props.
+
+## Live data
+
+A series' `source` is read when the plot draws. A notification requests a canvas frame without a React render. Each series can have its own source; see [Live plot data](/docs/guides/live-plot-data) for how to write one.
+
+## Extending to the edges
+
+Set `extend` to carry a series' first and last values horizontally to the plot edges, even when [marker spacing](/docs/components/plot/editing#handles-at-the-ends-of-an-axis) insets the mapped data. This suits an EQ response. Leave it off for data that does not continue past its ends, such as a transfer curve or envelope.
+
+## Props
+
+### Plot.Line and Plot.Steps
+
+<auto-type-table
+  path="packages/components/src/components/plot/parts.tsx"
+  name="PlotLineProps"
+/>
+
+### Plot.Area
+
+<auto-type-table
+  path="packages/components/src/components/plot/parts.tsx"
+  name="PlotAreaProps"
+/>
+
+### Plot.Bars
+
+<auto-type-table
+  path="packages/components/src/components/plot/parts.tsx"
+  name="PlotBarsProps"
+/>
+
+### Plot.Points
+
+<auto-type-table
+  path="packages/components/src/components/plot/parts.tsx"
+  name="PlotPointsProps"
+/>
+
+### Plot.Band
+
+<auto-type-table
+  path="packages/components/src/components/plot/parts.tsx"
+  name="PlotBandProps"
+/>
+
+### PlotSource
+
+<auto-type-table
+  path="packages/components/src/chart/series.ts"
+  name="PlotSource"
+/>

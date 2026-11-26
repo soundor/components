@@ -1,0 +1,105 @@
+---
+title: Editing
+description: Edit data with markers, background gestures, selection, and custom overlays.
+---
+
+## Editing the plot background
+
+<Demo name="plot-edit" height={320} />
+
+Background callbacks are for the empty plotting area. The hit layer sits below markers and custom interactive children, and excludes the axis margins. Decorative custom views can opt out with `pointerEvents: 'none'`. Provide a keyboard alternative for actions such as adding a point.
+
+```tsx
+<Plot
+  width={360}
+  height={180}
+  onBackgroundDoubleClick={({ data }) => addPoint(data)}
+>
+  <Plot.XAxis domain={[0, 1]} />
+  <Plot.YAxis domain={[0, 1]} />
+</Plot>
+```
+
+Each background event supplies the Soundor pointer `event`, the plot-local logical pixel `point`, default-scale `data`, and `coordinates` with bounds and conversions. Use `coordinatesFor({ yAxis: 'other' })` for named axes. `onBackgroundDrag` reports `start`, `move`, `end`, and `cancel` with a fixed `origin`, and handles cancellation on unmount. The caller owns graph edits.
+
+## Interactive markers
+
+`Plot.Marker` draws a point. Add `onMove` to make it draggable, `movement="x"` or `movement="y"` to lock it to an axis, and `constrain` to snap or bound emitted data-space values. A cancelled gesture reports the starting point without calling `constrain`, then calls `onMoveCancel` and `onMoveEnd`. Close host edit gestures in `onMoveEnd`.
+
+`hitRadius` is independent of the canvas marker's `radius`. Set `selected` or `disabled`, or provide `render(state)` to draw a non-interactive custom face. Styles use the `PlotMarker.root` theme slot. Set `accessibilityLabel` and `describeValue` to identify the point and describe its values.
+
+`onSelect` handles a primary press, Enter, Space or an assistive activation. `onRemove` requests removal on Delete or Backspace; the caller owns the collection. `onWheel`, `onDoubleClick` and `onContextMenu` receive the Soundor event. Wrap a marker in `ContextMenu.Trigger` for built-in accessibility actions, or pass the marker's `ref` to a Popover.
+
+## Selection and grouped movement
+
+Pass `selection={{ selectedIds, onSelectionChange, multiple: true, rectangle: true }}` to `Plot` and a stable `id` to each selectable marker. Shift, Control or Command toggles a marker in multiple mode; Enter or Space also works on a focused marker. Background clicks clear selection unless `selection.clearOnBackgroundPress` is `false`. Shift-drag the background with `rectangle` enabled to replace the selection with the markers inside the rectangle.
+
+With `onGroupDrag`, dragging a selected marker reports the captured IDs and `start`, `move`, `end`, and `cancel` phases instead of its individual `onMove`. Capture starting values on `start`, then use each marker's scale to map its original value to pixels, add `delta`, and invert. On a log axis, a common pixel displacement preserves frequency ratios. Constrain the shared displacement before converting to data if relative spacing must be preserved at the edges. Restore the original values on `cancel` and close any host gestures on `end` or `cancel`.
+
+## Handles at the ends of an axis
+
+A plot with draggable markers insets the data mapping by the handle radius and halo, so handles stay whole at the ends. The axes and grid still run edge to edge; set [`extend` on a series](/docs/components/plot/series#extending-to-the-edges) to make the data reach them too.
+
+Render custom handle views inside `Plot` to layer them over the canvas. Use `safeZone` on `Plot` to keep them whole at the ends. [EnvelopeEditor](/docs/components/envelope-editor) is built this way.
+
+## usePlotCoordinates
+
+Call `usePlotCoordinates()` from a component inside `Plot` for the default coordinate mapping. `x.map(value)` gives the logical pixel position across the plot, and `inner` is the area the axes map to. Pass [axis references](/docs/components/plot/axes-and-guides#plotgrid-and-axis-references), such as `{ yAxis: 'spectrum' }`, to map against named axes. The named form returns `undefined` until those axes are available.
+
+## Keyboard and accessibility
+
+A marker with `onMove` is a tab stop. The arrow keys move it, and `Shift` makes the step ten times finer. Double-click or `Alt`-click (`Option`-click on a Mac) resets it, as do Delete and Backspace when `onRemove` is not supplied. Escape cancels a drag. The marker is announced by its label (or “Point 1”, “Point 2”… in draw order) with both values, such as “X 1.20 kHz, Y 4.0 dB”.
+
+## Props
+
+### Plot.Marker
+
+<auto-type-table
+  path="packages/components/src/components/plot/parts.tsx"
+  name="PlotMarkerProps"
+/>
+
+### PlotMarkerState
+
+The state passed to the marker's `render` callback:
+
+<auto-type-table
+  path="packages/components/src/components/plot/parts.tsx"
+  name="PlotMarkerState"
+/>
+
+### PlotBackgroundProps
+
+Pass these callbacks directly to `Plot`:
+
+<auto-type-table
+  path="packages/components/src/components/plot/background.tsx"
+  name="PlotBackgroundProps"
+/>
+
+### PlotBackgroundEvent and PlotBackgroundDragEvent
+
+The drag payload adds `phase` and `origin` to the basic background event. `origin` is the starting point in logical pixels relative to the plot.
+
+<auto-type-table
+  path="packages/components/src/components/plot/background.tsx"
+  name="PlotBackgroundDragEvent"
+/>
+
+### PlotSelection
+
+Pass these options via the `selection` prop on `Plot`:
+
+<auto-type-table
+  path="packages/components/src/components/plot/selection.ts"
+  name="PlotSelection"
+/>
+
+### PlotGroupDrag
+
+The payload passed to `selection.onGroupDrag`:
+
+<auto-type-table
+  path="packages/components/src/components/plot/selection.ts"
+  name="PlotGroupDrag"
+/>
