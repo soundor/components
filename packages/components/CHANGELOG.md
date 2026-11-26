@@ -1,5 +1,34 @@
 # @soundor/components
 
+## 0.5.0
+
+### Minor Changes
+
+- 6112d93: Add Popover, a themed interactive floating surface with trigger and external anchors, controlled visibility, and optional modal focus and dismissal behavior.
+- 4ea9df3: Add optional Popover and Tooltip arrows that track the anchor through flips and shifts.
+- f9a1c7b: Add a real-time Spectrogram display with bounded, incremental sweep history and externally supplied spectrum frames.
+- cc1a365: Plot rectangle selection now starts with a plain background drag when both `multiple` and `rectangle` are enabled. Shift adds to the selection, and Ctrl (Cmd on macOS) toggles it. In this configuration, rectangle selection takes precedence over `onBackgroundDrag`; disable `rectangle` to keep custom background drags. Marker clicks select, add, or toggle. Dragging a selected marker moves the group by default, and Shift adjusts the drag speed continuously.
+- 1731927: Extend shared popup placement to support rectangular and dynamic anchors in Soundor view coordinates. Keep anchored menus aligned when their trigger moves or changes size.
+- fa05353: Add submenus to DropdownMenu and ContextMenu: `Menu.Sub`, `Menu.SubTrigger` and `Menu.SubContent`, nesting to any depth. A submenu opens on a short rest or a press, or from the keyboard, and stays open while the pointer heads for it across the rows in between. The `Menu` theme gains `chevron` and `itemOpen` slots.
+- 242fd62: Add a controlled mixed-value display to ValueField, Knob, Slider, Fader, Toggle, SegmentedControl, and Select. Mixed controls stay editable and report the first new value through their existing change handlers.
+- 12db3c1: Add a musical pitch keyboard visualization with configurable tuning, labels, and highlights, usable standalone or aligned with a Plot axis.
+- 54eff18: Add Tooltip for supplementary text on hover and keyboard focus, with delayed visibility and external anchors using shared popup placement.
+- 6d91b29: Expose semantic Plot background pointer, press, double-click, context menu and drag events with plot and data coordinates.
+- 92c24a8: Add controlled Plot marker selection, Shift-drag rectangle selection, and grouped drag events with logical-pixel displacement.
+- 2f80b29: Extend Plot markers with custom faces, selection and removal, axis locks and constraints, semantic pointer callbacks, accessible value descriptions, and external overlay anchors.
+- 22bee4a: Support named, independent Plot axes, with per-layer axis references, configurable placement and visibility, and scale-specific coordinate conversion.
+- 849c5bf: Select icons now live on `option.icon` as a React node or a renderer that receives the label color and option state. Migrate `getOptionIcon` callbacks to per-option icons. Parameter-bound Selects can supply `{ value, icon }` entries through `options`. The selected option remains visually distinct while another row has focus.
+
+  Set `hideCheckmark` to hide the selected option's checkmark without changing its accessible state.
+
+- 3bc1a6a: Add option icons, icon-only triggers, and custom selected-value rendering to Select, including parameter-bound choices.
+- af4915b: Add SelectableList and a headless useSelection hook for controlled, keyboard-operable single and multiple selection.
+
+### Patch Changes
+
+- e6b6cc9: Center the default labels vertically in SelectableList items.
+- a7cc38c: Let tall popovers scroll within the space available beside their anchor so clipped controls remain reachable.
+
 ## 0.4.0
 
 ### Minor Changes
