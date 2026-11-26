@@ -1,13 +1,14 @@
 import {
   useRangeControl,
   type RangeInteraction,
-  type RangeProps,
+  type MixedRangeProps,
 } from './internal/range';
 
 export type {
   ComponentParameter,
   RangeParameter,
   RangeProps,
+  MixedRangeProps,
   RangeInteraction,
 } from './internal/range';
 export type { ValueScale } from './internal/scale';
@@ -31,11 +32,11 @@ export {
   type ResizeGripOptions,
 } from './internal/resize-interaction';
 
-export function useKnob(props: RangeProps, options?: RangeInteraction) {
+export function useKnob(props: MixedRangeProps, options?: RangeInteraction) {
   return useRangeControl(props, { axis: 'y', distance: 160, ...options });
 }
 
-export function useSlider(props: RangeProps, options?: RangeInteraction) {
+export function useSlider(props: MixedRangeProps, options?: RangeInteraction) {
   return useRangeControl(props, {
     axis: 'x',
     dragMode: 'absolute',
@@ -43,7 +44,7 @@ export function useSlider(props: RangeProps, options?: RangeInteraction) {
   });
 }
 
-export function useFader(props: RangeProps, options?: RangeInteraction) {
+export function useFader(props: MixedRangeProps, options?: RangeInteraction) {
   return useRangeControl(props, {
     axis: 'y',
     dragMode: 'relative',
@@ -51,6 +52,9 @@ export function useFader(props: RangeProps, options?: RangeInteraction) {
   });
 }
 
-export function useValueField(props: RangeProps, options?: RangeInteraction) {
+export function useValueField(
+  props: MixedRangeProps,
+  options?: RangeInteraction,
+) {
   return useRangeControl(props, { axis: 'y', distance: 200, ...options });
 }

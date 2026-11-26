@@ -31,7 +31,7 @@ type Override<T> = T extends object ? { [K in keyof T]?: Override<T[K]> } : T;
 
 export interface ComponentSlots {
   Button: 'root' | 'label';
-  Toggle: 'root' | 'label' | 'indicator' | 'track';
+  Toggle: 'root' | 'label' | 'indicator' | 'track' | 'mixed';
   SegmentedControl: 'root' | 'segment' | 'label';
   Select:
     | 'root'
@@ -50,10 +50,10 @@ export interface ComponentSlots {
   Popover: 'root';
   Tooltip: 'root' | 'label';
   PopupArrow: 'root';
-  Knob: 'root' | 'control' | 'label' | 'value';
-  Slider: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';
-  Fader: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb';
-  ValueField: 'root' | 'control' | 'label' | 'input';
+  Knob: 'root' | 'control' | 'label' | 'value' | 'mixed';
+  Slider: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb' | 'mixed';
+  Fader: 'root' | 'control' | 'label' | 'value' | 'track' | 'thumb' | 'mixed';
+  ValueField: 'root' | 'control' | 'label' | 'input' | 'mixed';
   TextField: 'root' | 'control' | 'label' | 'input' | 'message';
   LevelMeter: 'root' | 'channel' | 'track' | 'indicator' | 'label';
   Plot: 'root' | 'canvas' | 'title' | 'note';

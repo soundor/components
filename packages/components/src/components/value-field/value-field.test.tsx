@@ -14,6 +14,34 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+test('mixed text entry starts from mixedStart and commits using the normal parser', async () => {
+  const user = userEvent.setup();
+  const onChange = vi.fn<(value: number) => void>();
+  await render(
+    <ValueField
+      label="Time"
+      mixed
+      mixedLabel="Varies"
+      mixedStart={1500}
+      value={1200}
+      defaultValue={500}
+      max={2000}
+      format={formatters.time}
+      onChange={onChange}
+    />,
+  );
+  const field = () => screen.getByRole('adjustable', { name: 'Time' });
+  expect(field().accessibility.value?.text).toBe('Varies');
+  await user.dblClick(field());
+  expect(screen.getByRole('textinput', { name: 'Time' }).value).toBe('1.50 s');
+  await user.keyboard('{Tab}');
+  expect(onChange).not.toHaveBeenCalled();
+  await user.dblClick(field());
+  await user.keyboard('1.2{Enter}');
+  expect(onChange).toHaveBeenCalledExactlyOnceWith(1200);
+  expect(field().accessibility.value?.text).toBe('Varies');
+});
+
 test('value entry keeps affixes, rejects invalid input, and cancels on Escape', async () => {
   const user = userEvent.setup();
   await render(

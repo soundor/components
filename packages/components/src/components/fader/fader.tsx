@@ -1,6 +1,6 @@
 import { Text, View } from '@soundor/react';
 
-import { useFader, type RangeProps } from '../../headless';
+import { useFader, type MixedRangeProps } from '../../headless';
 import { trueMinus } from '../../internal/format';
 import { withActions, type HostProps } from '../../internal/host';
 import {
@@ -13,7 +13,8 @@ import {
   type StyleProps,
 } from '../../theme';
 
-export interface FaderProps extends RangeProps, HostProps, StyleProps<'Fader'> {
+export interface FaderProps
+  extends MixedRangeProps, HostProps, StyleProps<'Fader'> {
   size?: ControlSize;
   color?: ControlColor;
   length?: number;
@@ -65,8 +66,14 @@ export function Fader({
         opacity: r.disabled ? theme.opacity.opacityDisabled : 1,
       })}
     >
-      <Text accessible={false} style={slot('value', textStyle(theme, 'value'))}>
-        {r.format(r.value)}
+      <Text
+        accessible={false}
+        style={slot(
+          'value',
+          textStyle(theme, 'value', r.mixed ? c.textMuted : undefined),
+        )}
+      >
+        {r.valueText}
       </Text>
       <View
         {...r.handlers}
@@ -142,47 +149,57 @@ export function Fader({
               </Text>
             </View>
           ))}
+        {!r.mixed && (
+          <View
+            style={{
+              position: 'absolute',
+              top,
+              height: bottom - top,
+              left: (width - track) / 2,
+              width: track,
+              borderRadius: track / 2,
+              backgroundColor: accent.fill,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
         <View
-          style={{
-            position: 'absolute',
-            top,
-            height: bottom - top,
-            left: (width - track) / 2,
-            width: track,
-            borderRadius: track / 2,
-            backgroundColor: accent.fill,
-            pointerEvents: 'none',
-          }}
-        />
-        <View
-          style={slot('thumb', {
-            position: 'absolute',
-            top: at(r.normalized) - height / 2,
-            left: (width - cap) / 2,
-            width: cap,
-            height,
-            backgroundColor: c.control,
-            borderWidth: theme.size.borderHairline,
-            borderColor: r.hovered ? c.trackFill : c.controlRim,
-            borderRadius: theme.radius.radiusSm,
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: theme.spacing.spaceXs,
-            pointerEvents: 'none',
-          })}
+          style={slot('thumb', [
+            {
+              position: 'absolute',
+              top: at(r.mixed ? 0.5 : r.normalized) - height / 2,
+              left: (width - cap) / 2,
+              width: cap,
+              height,
+              backgroundColor: c.control,
+              borderWidth: theme.size.borderHairline,
+              borderColor: r.hovered ? c.trackFill : c.controlRim,
+              borderRadius: theme.radius.radiusSm,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: theme.spacing.spaceXs,
+              pointerEvents: 'none',
+            },
+            r.mixed &&
+              slot('mixed', {
+                backgroundColor: c.surfaceInset,
+                borderColor: c.border,
+              }),
+          ])}
         >
-          {[1, 2, 1].map((line, index) => (
-            <View
-              key={index}
-              style={{
-                width: cap - 8,
-                height: line,
-                borderRadius: 1,
-                opacity: line === 1 ? 0.35 : 1,
-                backgroundColor: accent.mark,
-              }}
-            />
-          ))}
+          {!r.mixed &&
+            [1, 2, 1].map((line, index) => (
+              <View
+                key={index}
+                style={{
+                  width: cap - 8,
+                  height: line,
+                  borderRadius: 1,
+                  opacity: line === 1 ? 0.35 : 1,
+                  backgroundColor: accent.mark,
+                }}
+              />
+            ))}
         </View>
       </View>
       {r.label && (

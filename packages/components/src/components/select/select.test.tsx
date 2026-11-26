@@ -43,6 +43,35 @@ async function pressOutside(menu: TestNode) {
 }
 
 describe('Select', () => {
+  test('mixed shows the placeholder style and no checked item, including the backing value', async () => {
+    const onChange = vi.fn<(value: Filter) => void>();
+    const user = userEvent.setup();
+    await render(
+      <Select
+        label="Filter"
+        value="peak"
+        options={filters}
+        mixed
+        mixedLabel="Varies"
+        onChange={onChange}
+      />,
+    );
+    const control = screen.getByRole('combobox', { name: 'Filter' });
+    expect(control.accessibility.value?.text).toBe('Varies');
+    expect(screen.getByText('Varies', { hidden: true }).style.color).toBe(
+      tokens.color.textMuted,
+    );
+    await user.click(control);
+    const items = screen.getAllByRole('menuitem');
+    expect(
+      items.every((item) => item.accessibility.state?.checked === false),
+    ).toBe(true);
+    expect(items[0]?.focused).toBe(true);
+    await user.keyboard('{End}{Enter}');
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('peak');
+    expect(control.accessibility.value?.text).toBe('Varies');
+  });
+
   test('icon-only renders option icons with row state while keeping the value accessible', async () => {
     const icon = vi.fn(({ color }: { color: string }) => (
       <Text style={{ color }}>Shape</Text>

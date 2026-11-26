@@ -1,7 +1,7 @@
 import { Text, View } from '@soundor/react';
 import { Circle, Line, Path, Svg } from '@soundor/react/svg';
 
-import { useKnob, type RangeProps } from '../../headless';
+import { useKnob, type MixedRangeProps } from '../../headless';
 import { withActions, type HostProps } from '../../internal/host';
 import {
   accents,
@@ -25,7 +25,8 @@ function arc(c: number, radius: number, from: number, to: number) {
   return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${b - a > Math.PI ? 1 : 0} 1 ${end.x} ${end.y}`;
 }
 
-export interface KnobProps extends RangeProps, HostProps, StyleProps<'Knob'> {
+export interface KnobProps
+  extends MixedRangeProps, HostProps, StyleProps<'Knob'> {
   size?: ControlSize;
   color?: ControlColor;
   showLabel?: boolean;
@@ -96,7 +97,7 @@ export function Knob({
           strokeWidth={stroke}
           strokeLinecap="round"
         />
-        {from !== angle && (
+        {!r.mixed && from !== angle && (
           <Path
             d={arc(middle, radius, from, angle)}
             fill="none"
@@ -114,11 +115,11 @@ export function Knob({
           strokeWidth={theme.size.borderHairline}
         />
         <Line
-          x1={a.x}
-          y1={a.y}
-          x2={b.x}
-          y2={b.y}
-          stroke={accent.mark}
+          x1={r.mixed ? middle - body / 4 : a.x}
+          y1={r.mixed ? middle : a.y}
+          x2={r.mixed ? middle + body / 4 : b.x}
+          y2={r.mixed ? middle : b.y}
+          stroke={r.mixed ? c.textMuted : accent.mark}
           strokeWidth={stroke}
           strokeLinecap="round"
         />
@@ -140,6 +141,7 @@ export function Knob({
           accessible={false}
           style={slot('value', [
             textStyle(theme, 'value'),
+            r.mixed && slot('mixed', { color: c.textMuted }),
             {
               marginTop:
                 showLabel && r.label
@@ -148,7 +150,7 @@ export function Knob({
             },
           ])}
         >
-          {r.format(r.value)}
+          {r.valueText}
         </Text>
       )}
     </View>

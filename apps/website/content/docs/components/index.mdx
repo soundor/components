@@ -14,3 +14,14 @@ Import styled components from `@soundor/components`. Each component page include
 | Layout and sizing          | [Panel](/docs/components/panel), [ControlGroup](/docs/components/control-group), [Divider](/docs/components/divider), [ResizeGrip](/docs/components/resize-grip)                                                                                                       |
 
 See how the components fit together in the [interactive equalizer reference](/docs/guides/equalizer-reference).
+
+## Mixed values
+
+Set `mixed` on `ValueField`, `Knob`, `Slider`, `Fader`, `Toggle`, `SegmentedControl` or `Select` when the items being edited disagree. The control stays editable but shows no selected value. Use `mixedLabel` to replace “Mixed” wherever the control displays value text.
+
+- **Numeric controls:** The first drag or arrow key starts from `mixedStart`, or the parameter default, `defaultValue`, or minimum in that order. `ValueField` also starts text entry there. Home and End keep their usual bindings.
+- **Choices:** Pick any segment or option, including one matching the underlying `value`. A mixed `Toggle` applies `true`, or `false` with `mixedPress="off"`.
+
+The edit uses the usual `onChange` and, if the control already supports it, `onChangeStart`. The app decides how to apply the value to its items and when to clear `mixed`.
+
+<Demo name="mixed-values" height={720} />

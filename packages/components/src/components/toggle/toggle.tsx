@@ -1,6 +1,7 @@
 import { Pressable, View } from '@soundor/react';
 
 import { extraActions, type HostProps } from '../../internal/host';
+import type { MixedProps } from '../../internal/mixed';
 import { useControlValue, type ComponentParameter } from '../../internal/range';
 import {
   accents,
@@ -16,13 +17,15 @@ import type { ActionProps } from '../shared/action';
 import { Content } from '../shared/content';
 
 export interface ToggleProps
-  extends ActionProps, HostProps, StyleProps<'Toggle'> {
+  extends ActionProps, HostProps, StyleProps<'Toggle'>, MixedProps {
   parameter?: ComponentParameter<boolean>;
   label?: string;
   offLabel?: string;
   value?: boolean;
   defaultValue?: boolean;
   onChange?: (on: boolean) => void;
+  /** What a press applies while mixed. Defaults to 'on'. */
+  mixedPress?: 'on' | 'off';
   variant?: 'button' | 'chip' | 'switch';
   size?: ControlSize;
   color?: ControlColor;
@@ -34,6 +37,8 @@ export function Toggle({
   offLabel,
   value,
   defaultValue = false,
+  mixed = false,
+  mixedPress = 'on',
   onChange,
   variant = 'button',
   size = 'md',
@@ -48,9 +53,9 @@ export function Toggle({
   const c = theme.color;
   const accent = accents(theme, color);
   const own = useControlValue(parameter, value, defaultValue);
-  const on = own.value;
+  const on = !mixed && own.value;
   const disabled = props.disabled || parameter?.info.access === 'readOnly';
-  const shown = on ? label : (offLabel ?? label);
+  const shown = mixed || on ? label : (offLabel ?? label);
   const height =
     size === 'lg'
       ? controlHeight(theme, size) + 10
@@ -71,14 +76,17 @@ export function Toggle({
     <Pressable
       {...extraActions(host, ['activate'])}
       ref={ref}
-      accessibilityRole={variant === 'switch' ? 'switch' : 'togglebutton'}
+      // ARIA switches do not support an indeterminate checked state.
+      accessibilityRole={
+        mixed ? 'checkbox' : variant === 'switch' ? 'switch' : 'togglebutton'
+      }
       accessibilityLabel={props.accessibilityLabel ?? label}
       accessibilityHint={props.accessibilityHint}
-      accessibilityState={{ checked: on }}
+      accessibilityState={{ checked: mixed ? 'mixed' : on }}
       debugId={props.debugId}
       disabled={disabled}
       onPress={() => {
-        const next = !(parameter?.get() ?? on);
+        const next = mixed ? mixedPress === 'on' : !(parameter?.get() ?? on);
         parameter?.set(next, { history: true });
         own.setOwn(next);
         onChange?.(next);
@@ -122,14 +130,21 @@ export function Toggle({
         ])
       }
     >
-      {variant === 'button' && (
+      {(variant === 'button' || (variant === 'chip' && mixed)) && (
         <View
-          style={slot('indicator', {
-            width: 6,
-            height: 6,
-            borderRadius: theme.radius.radiusFull,
-            backgroundColor: on ? accent.foreground : c.textDisabled,
-          })}
+          style={slot('indicator', [
+            {
+              width: 6,
+              height: 6,
+              borderRadius: theme.radius.radiusFull,
+              backgroundColor: on ? accent.foreground : c.textDisabled,
+            },
+            mixed &&
+              slot('mixed', {
+                height: theme.size.borderHairline,
+                backgroundColor: c.textMuted,
+              }),
+          ])}
         />
       )}
       {variant === 'switch' && (
@@ -139,7 +154,7 @@ export function Toggle({
             height: 16,
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: on ? 'flex-end' : 'flex-start',
+            justifyContent: mixed ? 'center' : on ? 'flex-end' : 'flex-start',
             paddingHorizontal: 2,
             borderRadius: theme.radius.radiusLg,
             borderWidth: theme.size.borderHairline,
@@ -148,12 +163,15 @@ export function Toggle({
           })}
         >
           <View
-            style={slot('indicator', {
-              width: 10,
-              height: 10,
-              borderRadius: theme.radius.radiusFull,
-              backgroundColor: c.control,
-            })}
+            style={slot('indicator', [
+              {
+                width: 10,
+                height: 10,
+                borderRadius: theme.radius.radiusFull,
+                backgroundColor: c.control,
+              },
+              mixed && slot('mixed', { backgroundColor: c.textMuted }),
+            ])}
           />
         </View>
       )}

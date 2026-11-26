@@ -4,6 +4,7 @@ import type { UiNode } from 'soundor:ui';
 
 import type { ChoiceOption, ChoiceParameter } from '../../internal/choice';
 import { extraActions, setRef, type HostProps } from '../../internal/host';
+import { defaultMixedLabel, type MixedLabelProps } from '../../internal/mixed';
 import {
   useOpenState,
   type OpenStateProps,
@@ -40,7 +41,12 @@ export type SelectParameter<T extends string> = ChoiceParameter<T>;
 export type SelectOptionState = MenuRowState;
 
 interface SelectBaseProps<T extends string>
-  extends ActionProps, HostProps, StyleProps<'Select'>, OpenStateProps {
+  extends
+    ActionProps,
+    HostProps,
+    StyleProps<'Select'>,
+    OpenStateProps,
+    MixedLabelProps {
   /** Shown above the field, and what assistive technology calls it. */
   label?: string;
   /** Help shown below the field. */
@@ -119,6 +125,8 @@ export function Select<T extends string>({
   label = parameter?.info.label,
   description,
   placeholder,
+  mixed = false,
+  mixedLabel = defaultMixedLabel,
   readOnly: readOnlyProp = false,
   size = 'md',
   width = 160,
@@ -154,7 +162,9 @@ export function Select<T extends string>({
         ? options.find((option) => !option.disabled)?.value
         : undefined),
   );
-  const chosen = options.find((option) => option.value === own.value);
+  const chosen = mixed
+    ? undefined
+    : options.find((option) => option.value === own.value);
   const popup = useOpenState({
     open: openProp,
     defaultOpen,
@@ -165,7 +175,12 @@ export function Select<T extends string>({
   const choose = (option: SelectOption<T>) => {
     const current = parameter?.get() ?? own.value;
     // The chosen option again changes nothing, and writes nothing.
-    if (option.disabled || disabled || readOnly || option.value === current)
+    if (
+      option.disabled ||
+      disabled ||
+      readOnly ||
+      (!mixed && option.value === current)
+    )
       return;
     parameter?.set(option.value, { history: true });
     own.setOwn(option.value);
@@ -187,7 +202,7 @@ export function Select<T extends string>({
     },
   });
   const name = accessibilityLabel ?? label ?? 'Select';
-  const shown = chosen?.label ?? placeholder ?? '';
+  const shown = mixed ? mixedLabel : (chosen?.label ?? placeholder ?? '');
   const empty = chosen === undefined;
   const hint =
     accessibilityHint ?? description ?? (readOnly ? 'Read only' : chosen?.hint);
@@ -228,7 +243,7 @@ export function Select<T extends string>({
         accessibilityRole="combobox"
         accessibilityLabel={name}
         accessibilityHint={hint}
-        accessibilityValue={{ text: chosen?.label ?? placeholder ?? '' }}
+        accessibilityValue={{ text: shown }}
         onKeyDown={(event) => {
           if (
             open ||
@@ -335,7 +350,7 @@ export function Select<T extends string>({
                 label={option.label}
                 hint={option.hint}
                 disabled={option.disabled}
-                checked={option.value === own.value}
+                checked={option.value === chosen?.value}
                 highlightChecked
                 hideCheckmark={hideCheckmark}
                 renderIcon={

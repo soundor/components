@@ -2,7 +2,7 @@ import { Text, TextInput, View } from '@soundor/react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { UiNode } from 'soundor:ui';
 
-import { useValueField, type RangeProps } from '../../headless';
+import { useValueField, type MixedRangeProps } from '../../headless';
 import { useMergedRef, withActions, type HostProps } from '../../internal/host';
 import {
   controlHeight,
@@ -23,7 +23,7 @@ function splitNumber(formatted: string) {
 }
 
 export interface ValueFieldProps
-  extends RangeProps, HostProps, StyleProps<'ValueField'> {
+  extends MixedRangeProps, HostProps, StyleProps<'ValueField'> {
   size?: ControlSize;
   width?: number;
 }
@@ -53,6 +53,7 @@ export function ValueField({
   const input = useRef<UiNode>(null);
   const well = useRef<UiNode>(null);
   const editing = useRef(false);
+  const typedInMixed = useRef(false);
   const restoreFocus = useRef(false);
   // Editing opened from the keyboard keeps the focus ring the field had; a
   // pointer's double-click shows none, as nothing else does for the pointer.
@@ -69,13 +70,15 @@ export function ValueField({
   // and clipped for a frame or two, so it waits.
   const [fitted, setFitted] = useState(false);
   const range = useValueField(props, { onDoubleClick: () => open() });
-  const formatted = range.format(range.value);
-  const shown = splitNumber(formatted);
   const isEditing = entry !== null && !range.disabled;
   function open(fromKeyboard = false) {
     if (range.disabled) return;
     setKeyboardEdit(fromKeyboard);
     editing.current = true;
+    typedInMixed.current = false;
+    const shown = splitNumber(
+      range.mixed ? range.format(range.mixedStart) : range.valueText,
+    );
     numberRange.current = [
       shown.prefix.length,
       shown.prefix.length + shown.number.length,
@@ -91,6 +94,11 @@ export function ValueField({
   }
   function submit(text: string, focus: boolean) {
     if (!editing.current || !entry) return;
+    // Merely opening and leaving the mixed editor does not resolve it.
+    if (range.mixed && !focus && !typedInMixed.current) {
+      finish(false);
+      return;
+    }
     const typed = text.trim();
     // A bare number keeps the prefix and unit it was shown with. Text that
     // has its own ("800 ms" where " s" followed the number, "R 20" where
@@ -161,7 +169,7 @@ export function ValueField({
   // proportion is checked against the real width and stepped down while it
   // overflows; and checked again once fonts have loaded, as the first
   // measurement may be of a fallback font.
-  const shownText = shown.prefix + shown.number + shown.suffix;
+  const shownText = range.valueText;
   const display = shownText.replaceAll(' ', '\u00a0');
   const room = width - 2 * (theme.spacing.spaceMd + theme.size.borderHairline);
   useEffect(() => {
@@ -236,7 +244,10 @@ export function ValueField({
                 backgroundColor: 'transparent',
               },
             ])}
-            onChangeText={() => setInvalid(false)}
+            onChangeText={() => {
+              typedInMixed.current = true;
+              setInvalid(false);
+            }}
             onSubmitEditing={(value) => submit(value, true)}
             onBlur={(event) => {
               if (!range.disabled && event.currentTarget)
@@ -275,6 +286,7 @@ export function ValueField({
               style={[
                 text,
                 { flexShrink: 0, fontSize, opacity: fitted ? 1 : 0 },
+                range.mixed && slot('mixed', { color: c.textMuted }),
               ]}
             >
               {display}
