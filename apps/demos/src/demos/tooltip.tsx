@@ -9,7 +9,13 @@ export default function Demo() {
   return (
     <View style={{ alignItems: 'center', gap: theme.spacing.spaceMd }}>
       <Button>Before tooltip</Button>
-      <Tooltip content="Includes the post-effects signal">
+      <Tooltip
+        content={
+          <Tooltip.Content label="Includes the post-effects signal">
+            <Tooltip.Arrow debugId="tooltip-arrow" />
+          </Tooltip.Content>
+        }
+      >
         <Button accessibilityLabel="Analyzer">Analyzer</Button>
       </Tooltip>
       <Tooltip content={`Drive: ${drive.toFixed(1)} dB`}>

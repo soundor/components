@@ -1,7 +1,9 @@
 import {
   FocusScope,
   Portal,
+  StyleSheet,
   View,
+  createPortalHost,
   useViewSize,
   type AccessibilityRole,
   type StyleProp,
@@ -32,6 +34,7 @@ import {
   type PopupAlign,
   type PopupSide,
 } from './placement';
+import { PopupPlacementContext } from './placement-context';
 
 /** Why a popup asks to close. */
 export type DismissReason = 'escape' | 'outside' | 'tab';
@@ -119,6 +122,18 @@ export function Popup({
   // No layout to measure: shown where it would go unconstrained.
   const [unmeasured, setUnmeasured] = useState(false);
   const [minWidth, setMinWidth] = useState<number | undefined>(undefined);
+  const [arrowHost] = useState(createPortalHost);
+  const [arrowHeight, setArrowHeight] = useState(0);
+  const hasArrow = useRef(false);
+  const registerArrow = useCallback((height: number) => {
+    if (hasArrow.current) throw new Error('A popup can only have one Arrow.');
+    hasArrow.current = true;
+    setArrowHeight(height);
+    return () => {
+      hasArrow.current = false;
+      setArrowHeight(0);
+    };
+  }, []);
   // The last placement, whose maximums the surface is held to, and the size
   // its content was last known to need.
   const placed = useRef<Placement | null>(null);
@@ -149,7 +164,7 @@ export function Popup({
       const next = computePlacement(target, size, bounds, {
         side,
         align,
-        offset,
+        offset: offset + arrowHeight,
         alignOffset,
         padding,
         flip,
@@ -169,6 +184,7 @@ export function Popup({
       side,
       align,
       offset,
+      arrowHeight,
       alignOffset,
       padding,
       flip,
@@ -258,6 +274,7 @@ export function Popup({
   });
 
   const shown = placement !== null || unmeasured;
+  const surfaceStyle = StyleSheet.flatten(style);
   return (
     <Portal>
       <FocusScope
@@ -314,8 +331,28 @@ export function Popup({
             },
           ]}
         >
-          {children}
+          <PopupPlacementContext.Provider
+            value={{
+              placement,
+              surfaceStyle,
+              arrowHost,
+              registerArrow,
+            }}
+          >
+            {children}
+          </PopupPlacementContext.Provider>
         </View>
+        {/* A sibling of the clipped/scrolling surface, in the same overlay. */}
+        {arrowHeight > 0 && (
+          <Portal.Host
+            host={arrowHost}
+            style={{
+              ...fill,
+              zIndex: surfaceStyle.zIndex,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
       </FocusScope>
     </Portal>
   );

@@ -113,6 +113,17 @@ describe('popup placement', () => {
     expect(placed.y).toBe(44);
   });
 
+  test('tracks the anchor centre even if movement is hidden by shifting and snapping', () => {
+    const size = { width: 160, height: 80 };
+    const anchor = { x: 4, y: 20, width: 40, height: 30 };
+    const centred = { ...options, align: 'center' as const };
+    const first = computePlacement(anchor, size, view, centred);
+    const moved = computePlacement({ ...anchor, x: 4.5 }, size, view, centred);
+    expect(first).toMatchObject({ x: 4, anchorOffset: 20 });
+    expect(moved).toMatchObject({ x: 4, anchorOffset: 20.5 });
+    expect(samePlacement(first, moved)).toBe(false);
+  });
+
   test('lands on whole device pixels at any display scale', () => {
     const anchor = { x: 10.3, y: 10.3, width: 33.33, height: 20.2 };
     for (const scale of [1, 1.25, 1.5, 2]) {

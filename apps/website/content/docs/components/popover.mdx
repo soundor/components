@@ -14,6 +14,7 @@ ordinary controls, including a nested Select or ContextMenu.
     <Button>Settings</Button>
   </Popover.Trigger>
   <Popover.Content side="bottom" accessibilityLabel="Settings">
+    <Popover.Arrow />
     <Knob parameter={parameters.gain} />
     <ValueField parameter={parameters.gain} />
   </Popover.Content>
@@ -27,6 +28,18 @@ label and uses dialog semantics. Configure `side`, `align` and `offset` to
 choose its preferred placement; it flips and clamps at the editor's edges.
 The content and its padding scroll together when they are taller than the available space.
 Use `style`, `styles.root` or `theme.components.Popover.root` to style it.
+
+### Arrow
+
+Render one optional `<Popover.Arrow />` inside `Popover.Content`. It uses the
+surface's background and border and points at the anchor centre, following
+flips and shifts as space allows without overlapping rounded corners. `offset`
+is the gap to the arrow tip when present, or to the surface when absent.
+Use `style`, `styles.root` or `theme.components.PopupArrow.root` to override
+the arrow's base `width` (12), protruding `height` (6), `backgroundColor`,
+`borderColor` or `borderWidth`. The size values are in logical pixels.
+
+<Demo name="popover-arrows" height={360} />
 
 For a triggerless editor set `anchor` to a node ref, a point or rectangle in
 logical view coordinates, or a stable `{ getRegion }` reader. Supplying a new
@@ -75,6 +88,13 @@ trap focus and block background pointer input. Use non-modal mode with
 <auto-type-table
   path="packages/components/src/components/popover/index.tsx"
   name="PopoverContentProps"
+/>
+
+### Popover.Arrow
+
+<auto-type-table
+  path="packages/components/src/internal/popup/arrow.tsx"
+  name="PopupArrowProps"
 />
 
 See [Popup anchors](/docs/components/dropdown-menu#popup-anchors) for the supported `anchor` shapes.
