@@ -1,3 +1,4 @@
+import { View } from '@soundor/react';
 import {
   Children,
   cloneElement,
@@ -122,13 +123,16 @@ function Content({
       accessibilityRole="dialog"
       accessibilityLabel={accessibilityLabel}
       debugId={debugId}
-      style={slot('root', {
-        ...surfaceStyle(theme),
-        padding: theme.spacing.spaceMd,
-        gap: theme.spacing.spaceSm,
-      })}
+      style={slot('root', surfaceStyle(theme))}
     >
-      {children}
+      <View style={{ flexShrink: 1, overflowY: 'scroll' }}>
+        {/* Padding travels with the controls and keeps them clear of the scrollbar. */}
+        <View
+          style={{ padding: theme.spacing.spaceMd, gap: theme.spacing.spaceSm }}
+        >
+          {children}
+        </View>
+      </View>
     </Popup>
   );
 }

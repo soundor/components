@@ -10,6 +10,15 @@ test('the external editor stays open and follows its anchor', async ({
   await page.getByRole('button', { name: 'Open editor' }).click();
   const editor = page.getByRole('dialog', { name: 'Floating editor' });
   await expect(editor).toBeVisible();
+  const scrollRange = await editor.evaluate((node) =>
+    Math.max(
+      0,
+      ...[node, ...node.querySelectorAll('*')]
+        .filter((child) => getComputedStyle(child).overflowY === 'scroll')
+        .map((child) => child.scrollHeight - child.clientHeight),
+    ),
+  );
+  expect(scrollRange).toBe(0);
   const initial = await editor.boundingBox();
   await anchor.click();
   await expect

@@ -2,6 +2,23 @@ import { expect, test } from '@playwright/test';
 
 import { openDemo } from './demo';
 
+test('the embedded band editor scrolls to reveal its Done button', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 720, height: 460 });
+  await page.goto('/?embed&demo=equalizer-reference');
+  await page.getByRole('button', { name: 'Add band', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Band editor' });
+  const done = editor.getByRole('button', { name: 'Done' });
+  await expect(done).not.toBeInViewport();
+  // The inset beside the controls is part of the scrollable area.
+  await editor.hover({ position: { x: 4, y: 4 } });
+  await page.mouse.wheel(0, 400);
+  await expect(done).toBeInViewport({ ratio: 0.99 });
+  await done.click();
+  await expect(editor).toHaveCount(0);
+});
+
 test('a band can be created, edited through its floating controls, and removed', async ({
   page,
 }) => {
