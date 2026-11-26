@@ -124,6 +124,7 @@ function Content({
       debugId={debugId}
       style={slot('root', {
         ...surfaceStyle(theme),
+        overflowY: 'scroll',
         padding: theme.spacing.spaceMd,
         gap: theme.spacing.spaceSm,
       })}
