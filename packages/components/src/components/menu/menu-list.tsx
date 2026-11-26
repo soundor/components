@@ -15,8 +15,15 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from 'react';
-import { focusedNode, type KeyboardEvent, type UiNode } from 'soundor:ui';
+import {
+  focusedNode,
+  type AccessibilityActionEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+  type UiNode,
+} from 'soundor:ui';
 
 import {
   firstEnabled,
@@ -26,13 +33,17 @@ import {
   stepEnabled,
 } from '../../internal/menu/navigation';
 import {
+  useSubmenuAim,
+  type OpenSubmenu,
+} from '../../internal/menu/use-submenu-aim';
+import {
   controlHeight,
   textStyle,
   useTheme,
   type ControlSize,
   type Theme,
 } from '../../theme';
-import { CheckIcon } from '../shared/icons';
+import { CheckIcon, SubmenuIcon } from '../shared/icons';
 
 export interface MenuRowState {
   /** The foreground color used for this option's label. */
@@ -43,7 +54,15 @@ export interface MenuRowState {
   disabled: boolean;
 }
 
-export type MenuPart = 'item' | 'label' | 'icon' | 'separator' | 'heading';
+export type MenuPart =
+  | 'root'
+  | 'item'
+  | 'itemOpen'
+  | 'label'
+  | 'icon'
+  | 'chevron'
+  | 'separator'
+  | 'heading';
 
 export interface MenuListProps {
   /**
@@ -56,9 +75,10 @@ export interface MenuListProps {
    * What has focus when the list opens: the first or the last enabled row
    * (opened with the keyboard), the checked row (a Select's chosen option,
    * or the first if it can't be), or the list itself (opened with the
-   * pointer, nothing highlighted yet).
+   * pointer, nothing highlighted yet). A submenu opened by the pointer
+   * takes none: focus stays on its trigger.
    */
-  initialFocus: 'first' | 'last' | 'checked' | 'list';
+  initialFocus: 'first' | 'last' | 'checked' | 'list' | 'none';
   /** What assistive technology calls the menu. */
   label?: string;
   /**
@@ -72,8 +92,21 @@ export interface MenuListProps {
    * closes as it opens: there is nothing to choose.
    */
   close: () => void;
+  /**
+   * Closes the whole menu, submenus and all, for a choice: `close` by
+   * default. A submenu's list is given its root's.
+   */
+  closeAll?: () => void;
   /** A part's style, with the theme's and the instance's slots. */
-  part: (part: MenuPart, base: StyleProp) => StyleProp;
+  part: (part: MenuPart, base?: StyleProp) => StyleProp;
+  /** The surface the list is on: a submenu opens beside it. */
+  surface?: RefObject<UiNode | null>;
+  /** Moves focus to the first row: a submenu already open, entered from the keyboard. */
+  handle?: RefObject<MenuListHandle | null>;
+}
+
+export interface MenuListHandle {
+  focusFirst: () => void;
 }
 
 /** What a row tells its list: read when the keyboard moves. */
@@ -92,6 +125,15 @@ interface MenuListContext {
   /** A row with `checked` set: every row leaves room for the tick. */
   reportCheckable: () => () => void;
   choose: (select: (() => void) | undefined) => void;
+  /** Closes the whole menu. */
+  closeAll: () => void;
+  /** The list's surface. */
+  surface: () => UiNode | null;
+  /** The pointer came over a row, or left it; `accept` highlights it. */
+  hoverIn: (node: UiNode, accept: () => void) => void;
+  hoverOut: (node: UiNode) => void;
+  /** A row's submenu opened; the function returned says it closed. */
+  openSubmenu: (submenu: OpenSubmenu) => () => void;
 }
 
 const ListContext = createContext<MenuListContext | null>(null);
@@ -168,7 +210,10 @@ export function MenuList({
   checkable: checkableProp = false,
   size,
   close,
+  closeAll,
   part,
+  surface,
+  handle,
 }: MenuListProps) {
   const theme = useTheme();
   const list = useRef<UiNode | null>(null);
@@ -179,9 +224,13 @@ export function MenuList({
   const [checkables, setCheckables] = useState(0);
   const checkable = checkableProp || checkables > 0;
   const closeRef = useRef(close);
+  const closeAllRef = useRef(closeAll ?? close);
   useLayoutEffect(() => {
     closeRef.current = close;
+    closeAllRef.current = closeAll ?? close;
   });
+  const surfaceOf = useCallback(() => surface?.current ?? null, [surface]);
+  const aim = useSubmenuAim(surfaceOf);
 
   const ordered = () => {
     const nodes = rowsIn(list.current, rows.current);
@@ -195,6 +244,7 @@ export function MenuList({
   };
   const focusRow = (node: UiNode | undefined, reveal = true) => {
     if (!node) return;
+    aim.focused(node);
     node.focus();
     if (reveal) node.scrollIntoView?.({ block: 'nearest' });
   };
@@ -220,7 +270,7 @@ export function MenuList({
               : firstEnabled(enabled)
             : -1;
     if (index >= 0) focusRow(nodes[index]);
-    else list.current?.focus();
+    else if (initialFocus === 'list') list.current?.focus();
     // Once, on open: later renders keep focus where the user put it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -262,12 +312,48 @@ export function MenuList({
   const choose = useCallback((select: (() => void) | undefined) => {
     // Closed, and focus given back, before the action: it may open a modal
     // that should return focus to the trigger, or unmount the menu's owner.
-    flushSync(() => closeRef.current());
+    // A choice in a submenu closes the whole menu.
+    flushSync(() => closeAllRef.current());
     select?.();
   }, []);
+  const closeEverything = useCallback(() => closeAllRef.current(), []);
+  useLayoutEffect(() => {
+    if (!handle) return undefined;
+    handle.current = {
+      focusFirst: () => {
+        const { nodes, enabled } = ordered();
+        focusRow(nodes[firstEnabled(enabled)]);
+      },
+    };
+    return () => {
+      handle.current = null;
+    };
+  });
   const context = useMemo(
-    () => ({ size, checkable, part, register, reportCheckable, choose }),
-    [size, checkable, part, register, reportCheckable, choose],
+    () => ({
+      size,
+      checkable,
+      part,
+      register,
+      reportCheckable,
+      choose,
+      closeAll: closeEverything,
+      surface: surfaceOf,
+      hoverIn: aim.hoverIn,
+      hoverOut: aim.hoverOut,
+      openSubmenu: aim.open,
+    }),
+    [
+      size,
+      checkable,
+      part,
+      register,
+      reportCheckable,
+      choose,
+      closeEverything,
+      surfaceOf,
+      aim,
+    ],
   );
 
   const onKeyDown = (event: KeyboardEvent) => {
@@ -396,6 +482,27 @@ export interface MenuRowProps {
   select?: () => void;
   /** What threw for a row outside a list names. */
   component?: string;
+  /** In place of choosing: the row opens a submenu. */
+  submenu?: MenuRowSubmenu;
+  /** The row's node, as it attaches and detaches. */
+  nodeRef?: (node: UiNode | null) => void;
+}
+
+/** What a submenu's trigger row does in place of a choice. */
+export interface MenuRowSubmenu {
+  /** Its submenu is open: the row stays highlighted. */
+  open: boolean;
+  /** Which way its chevron points: the side the submenu prefers. */
+  side: 'left' | 'right';
+  /** A click, Enter, Space or a screen reader's activate. */
+  press: (
+    event: PointerEvent | KeyboardEvent | AccessibilityActionEvent,
+  ) => void;
+  /** Keys on the row, before the list's. */
+  keyDown: (event: KeyboardEvent) => void;
+  /** The pointer came over the row, and the list highlighted it. */
+  hoverIn: () => void;
+  hoverOut: () => void;
 }
 
 /**
@@ -414,9 +521,12 @@ export function MenuRow({
   render,
   select,
   component = 'Menu.Item',
+  submenu,
+  nodeRef,
 }: MenuRowProps) {
   const list = useMenuList(component);
   const { size, checkable, part, register, reportCheckable, choose } = list;
+  const { hoverIn, hoverOut } = list;
   const theme = useTheme();
   const c = theme.color;
   const node = useRef<UiNode | null>(null);
@@ -430,11 +540,16 @@ export function MenuRow({
   });
   // Registered as its node attaches, in the commit: before the list's
   // first layout effect looks for a row to focus.
+  const nodeRefRef = useRef(nodeRef);
+  useLayoutEffect(() => {
+    nodeRefRef.current = nodeRef;
+  });
   const attach = useCallback(
     (value: UiNode | null) => {
       node.current = value;
       unregister.current?.();
       unregister.current = value ? register(value, info) : null;
+      nodeRefRef.current?.(value);
     },
     [register],
   );
@@ -453,19 +568,35 @@ export function MenuRow({
   );
   const press = usePressable({
     disabled,
-    onPress: () => {
-      if (!disabled) choose(select);
+    onPress: (event) => {
+      if (disabled) return;
+      if (submenu) submenu.press(event);
+      else choose(select);
     },
-    // The pointer highlights what it is over, as focus does.
+    // The pointer highlights what it is over, as focus does: once it is not
+    // on its way to another row's open submenu.
     onHoverIn: () => {
-      if (!disabled && !node.current?.focused) node.current?.focus();
+      const own = node.current;
+      if (disabled || !own) return;
+      hoverIn(own, () => {
+        if (!own.focused) own.focus();
+        submenu?.hoverIn();
+      });
     },
-    accessibilityState: checkable
-      ? { checked: !!checked, disabled }
-      : { disabled },
+    onHoverOut: () => {
+      if (node.current) hoverOut(node.current);
+      submenu?.hoverOut();
+    },
+    accessibilityState: submenu
+      ? { expanded: submenu.open, disabled }
+      : checkable
+        ? { checked: !!checked, disabled }
+        : { disabled },
     ref: attach,
   });
-  const active = focused && !disabled;
+  // A trigger stays highlighted while its submenu is open, wherever focus is.
+  const open = !!submenu?.open && !disabled;
+  const active = (focused || open) && !disabled;
   const selected = highlightChecked && checked && !disabled;
   const foreground = disabled
     ? c.textDisabled
@@ -486,23 +617,27 @@ export function MenuRow({
       {...press.pressableProps}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
+      onKeyDown={submenu?.keyDown}
       accessibilityRole="menuitem"
       accessibilityLabel={label}
       accessibilityHint={hint}
-      style={part('item', {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.spaceSm,
-        minHeight: rowHeight(theme, size),
-        paddingHorizontal: theme.spacing.spaceMd,
-        borderRadius: theme.radius.radiusSm,
-        backgroundColor: active
-          ? c.selected
-          : selected
-            ? c.accent
-            : 'transparent',
-        cursor: disabled ? 'default' : 'pointer',
-      })}
+      style={[
+        part('item', {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.spaceSm,
+          minHeight: rowHeight(theme, size),
+          paddingHorizontal: theme.spacing.spaceMd,
+          borderRadius: theme.radius.radiusSm,
+          backgroundColor: active
+            ? c.selected
+            : selected
+              ? c.accent
+              : 'transparent',
+          cursor: disabled ? 'default' : 'pointer',
+        }),
+        open && part('itemOpen'),
+      ]}
     >
       {render ? (
         render(state)
@@ -543,6 +678,18 @@ export function MenuRow({
           >
             {label}
           </Text>
+          {submenu && (
+            <View
+              accessible={false}
+              style={part('chevron', {
+                alignItems: 'center',
+                marginRight: -theme.spacing.spaceXxs,
+                opacity: disabled ? theme.opacity.opacityDisabled : 1,
+              })}
+            >
+              <SubmenuIcon color={foreground} side={submenu.side} />
+            </View>
+          )}
         </>
       )}
     </View>

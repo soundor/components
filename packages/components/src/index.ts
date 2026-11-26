@@ -37,6 +37,9 @@ export {
   Menu,
   type MenuItemProps,
   type MenuLabelProps,
+  type MenuSubContentProps,
+  type MenuSubProps,
+  type MenuSubTriggerProps,
 } from './components/menu';
 export type { HostProps } from './internal/host';
 export type { PopupAnchor, PopupRegion } from './internal/popup/anchor';

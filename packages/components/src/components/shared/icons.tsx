@@ -55,3 +55,37 @@ export function ChevronIcon({
     </Svg>
   );
 }
+
+/** A chevron after a menu row's label: the row opens a submenu on that side. */
+export function SubmenuIcon({
+  color,
+  side = 'right',
+  size = 10,
+}: {
+  color: string;
+  side?: 'left' | 'right';
+  size?: number;
+}) {
+  return (
+    <Svg
+      accessible={false}
+      width={size}
+      height={size}
+      viewBox={[0, 0, 10, 10]}
+      style={{ pointerEvents: 'none' }}
+    >
+      <Path
+        d={
+          side === 'right'
+            ? 'M 3.8 1.8 L 7 5 L 3.8 8.2'
+            : 'M 6.2 1.8 L 3 5 L 6.2 8.2'
+        }
+        fill="none"
+        stroke={color}
+        strokeWidth={1.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}

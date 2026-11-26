@@ -37,6 +37,7 @@ The same items go in a DropdownMenu and a [ContextMenu](/docs/components/context
 - `Menu.Item`: an action. Its label is its text, and `onPress` runs it. It can also have `disabled` (shown dimmed and skipped by the keyboard), `icon` (a small glyph before the label), `checked` (a tick, for an option that is on) and `hint` (read after the label by a screen reader).
 - `Menu.Divider`: a line between groups.
 - `Menu.Label`: a heading over a group. A screen reader reads it; the keyboard passes over it.
+- `Menu.Sub`: a row that opens another menu beside it. See [Submenus](#submenus).
 
 `onPress` runs after the menu has closed and given focus back. An action can therefore open a `Modal`, which then returns focus to the trigger, or remove the menu's owner from the editor.
 
@@ -67,6 +68,61 @@ function PresetActions({ preset }: { preset: Preset }) {
 ```
 
 `Menu` is only the items' namespace: there is no `<Menu>` to render. A `Menu.Item` outside a menu's content throws, saying so.
+
+## Submenus
+
+`Menu.Sub` puts a menu inside a menu: a `Menu.SubTrigger`, the row that opens it (its label is its text, and a chevron follows it), and a `Menu.SubContent` with the rows it opens. The submenu takes the same parts as any menu, `Menu.Sub` included, so submenus nest to any depth, in a DropdownMenu and in a [ContextMenu](/docs/components/context-menu) alike.
+
+<Demo name="submenu" height={420} />
+
+```tsx
+<DropdownMenu.Content>
+  <Menu.Item onPress={reset}>Reset</Menu.Item>
+  <Menu.Sub>
+    <Menu.SubTrigger>Filter type</Menu.SubTrigger>
+    <Menu.SubContent>
+      {filterTypes.map((type) => (
+        <Menu.Item
+          key={type}
+          checked={type === band.type}
+          onPress={() => setType(type)}
+        >
+          {type}
+        </Menu.Item>
+      ))}
+    </Menu.SubContent>
+  </Menu.Sub>
+  <Menu.Item onPress={remove}>Delete</Menu.Item>
+</DropdownMenu.Content>
+```
+
+The submenu opens when the pointer rests on its trigger for `openDelay` (150 ms), at once on a press, and with focus on its first row from `→`, `Enter` or `Space`. The trigger stays highlighted while its submenu is open, wherever the pointer is. A submenu leaves room for a tick before its rows when one of them has `checked`, as a menu does: its parent's rows are not affected.
+
+It opens on the right of the menu, its first row level with the trigger. Short of room there, it flips to the left; it is shifted to stay inside the editor, and a long one scrolls. `side="left"` on `Menu.Sub` prefers the left (for an editor that reads right to left): the chevron points left, and `←` opens the submenu and `→` closes it.
+
+### On the way to a submenu
+
+A pointer heading from the trigger to its submenu usually crosses other rows on the way. Those rows do not take over while the pointer is still aiming at the submenu: it stays open as long as the pointer moves inside the triangle from its last point on the trigger to the submenu's near edge, keeps making progress towards it, and does not move back. Then a quick move to the submenu reaches it, even diagonally across the rows below.
+
+The row under the pointer is highlighted, and the submenu closes, when the pointer:
+
+- leaves the triangle, as a slow move down the menu does,
+- moves back, away from the submenu, by more than `aimTolerance` (4 px), or
+- stops, or creeps, for `restDelay` (100 ms).
+
+The same holds for a submenu flipped to the left. Leaving the menu altogether, onto the editor, keeps the submenu open.
+
+| Prop on `Menu.Sub` | Default  | What it is                                                                                    |
+| ------------------ | -------- | --------------------------------------------------------------------------------------------- |
+| `openDelay`        | `150` ms | How long the pointer rests on the trigger before the submenu opens.                           |
+| `restDelay`        | `100` ms | How long the pointer may stop or creep on its way before the row under it takes over.         |
+| `aimTolerance`     | `4` px   | Slack around the submenu's near edge, and how far the pointer may move back before it counts. |
+
+### Closing
+
+Choosing a row in a submenu closes the whole menu, then runs it, as in a flat menu. `←` or `Esc` closes only the innermost submenu and gives focus back to its trigger; `Tab` closes them all. A press outside the menus closes them all, and a press on another row of the parent closes the submenu and does what that row does. Moving to another row of the parent with the keyboard closes the submenu too.
+
+The trigger is a `menuitem` whose `expanded` state says whether its submenu is open. The submenu is a `menu` named after its trigger, unless `Menu.SubContent` has an `accessibilityLabel`. Soundor has no "has popup" or "labelled by" relation to give them: assistive technology learns of the submenu from `expanded` and its name. Theme the trigger's chevron with the `Menu` slot `chevron`, and the trigger while its submenu is open with `itemOpen`; a submenu's surface and rows take the menu's own slots and `styles`.
 
 ## Triggers
 
@@ -106,14 +162,16 @@ const [open, setOpen] = useState(false);
 
 ## Keyboard and accessibility
 
-| Input                             | Does                                                    |
-| --------------------------------- | ------------------------------------------------------- |
-| `Enter` or `Space` on the trigger | Open, with focus on the first item                      |
-| Click on the trigger              | Open, with focus on the menu and nothing highlighted    |
-| `↑` / `↓`, `Home` / `End`         | Move between items, skipping disabled ones and dividers |
-| A letter                          | The next item whose label starts with it                |
-| `Enter`, `Space` or a click       | Run the item                                            |
-| `Esc`, `Tab` or a click outside   | Close, and give focus back to the trigger               |
+| Input                                          | Does                                                    |
+| ---------------------------------------------- | ------------------------------------------------------- |
+| `Enter` or `Space` on the trigger              | Open, with focus on the first item                      |
+| Click on the trigger                           | Open, with focus on the menu and nothing highlighted    |
+| `↑` / `↓`, `Home` / `End`                      | Move between items, skipping disabled ones and dividers |
+| A letter                                       | The next item whose label starts with it                |
+| `Enter`, `Space` or a click                    | Run the item                                            |
+| `Esc`, `Tab` or a click outside                | Close, and give focus back to the trigger               |
+| `→`, `Enter` or `Space` on a `Menu.SubTrigger` | Open its submenu, with focus on its first row           |
+| `←` or `Esc` in a submenu                      | Close it, and give focus back to its trigger            |
 
 The menu is a `menu`, its items are `menuitem`s, and a `Menu.Label` is a `header`. In a menu opened from a `Modal`, `Esc` closes the menu and leaves the modal open. Soundor has no "has popup" state to give the trigger: assistive technology learns of the menu from `expanded`.
 
@@ -138,6 +196,27 @@ The menu is a `menu`, its items are `menuitem`s, and a `Menu.Label` is a `header
 <auto-type-table
   path="packages/components/src/components/menu/menu.tsx"
   name="MenuItemProps"
+/>
+
+### Menu.Sub
+
+<auto-type-table
+  path="packages/components/src/components/menu/submenu.tsx"
+  name="MenuSubProps"
+/>
+
+### Menu.SubTrigger
+
+<auto-type-table
+  path="packages/components/src/components/menu/submenu.tsx"
+  name="MenuSubTriggerProps"
+/>
+
+### Menu.SubContent
+
+<auto-type-table
+  path="packages/components/src/components/menu/submenu.tsx"
+  name="MenuSubContentProps"
 />
 
 ### Popup anchors
