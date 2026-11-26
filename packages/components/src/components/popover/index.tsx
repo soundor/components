@@ -123,20 +123,15 @@ function Content({
       accessibilityRole="dialog"
       accessibilityLabel={accessibilityLabel}
       debugId={debugId}
-      style={slot('root', {
-        ...surfaceStyle(theme),
-        padding: theme.spacing.spaceMd,
-      })}
+      style={slot('root', surfaceStyle(theme))}
     >
-      {/* Scroll the content without counting the surface's padding as overflow. */}
-      <View
-        style={{
-          flexShrink: 1,
-          overflowY: 'scroll',
-          gap: theme.spacing.spaceSm,
-        }}
-      >
-        {children}
+      <View style={{ flexShrink: 1, overflowY: 'scroll' }}>
+        {/* Padding travels with the controls and keeps them clear of the scrollbar. */}
+        <View
+          style={{ padding: theme.spacing.spaceMd, gap: theme.spacing.spaceSm }}
+        >
+          {children}
+        </View>
       </View>
     </Popup>
   );

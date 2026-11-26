@@ -11,7 +11,8 @@ test('the embedded band editor scrolls to reveal its Done button', async ({
   const editor = page.getByRole('dialog', { name: 'Band editor' });
   const done = editor.getByRole('button', { name: 'Done' });
   await expect(done).not.toBeInViewport();
-  await editor.getByRole('combobox', { name: 'Filter type' }).hover();
+  // The inset beside the controls is part of the scrollable area.
+  await editor.hover({ position: { x: 4, y: 4 } });
   await page.mouse.wheel(0, 400);
   await expect(done).toBeInViewport({ ratio: 0.99 });
   await done.click();
