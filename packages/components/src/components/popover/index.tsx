@@ -1,3 +1,4 @@
+import { View } from '@soundor/react';
 import {
   Children,
   cloneElement,
@@ -124,12 +125,19 @@ function Content({
       debugId={debugId}
       style={slot('root', {
         ...surfaceStyle(theme),
-        overflowY: 'scroll',
         padding: theme.spacing.spaceMd,
-        gap: theme.spacing.spaceSm,
       })}
     >
-      {children}
+      {/* Scroll the content without counting the surface's padding as overflow. */}
+      <View
+        style={{
+          flexShrink: 1,
+          overflowY: 'scroll',
+          gap: theme.spacing.spaceSm,
+        }}
+      >
+        {children}
+      </View>
     </Popup>
   );
 }
