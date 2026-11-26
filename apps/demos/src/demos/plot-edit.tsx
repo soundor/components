@@ -6,7 +6,7 @@ import {
   Popover,
   type PopupRegion,
 } from '@soundor/components';
-import { useTheme } from '@soundor/components/theme';
+import { textStyle, useTheme } from '@soundor/components/theme';
 import { Text, View } from '@soundor/react';
 import { useRef, useState } from 'react';
 import type { UiNode } from 'soundor:ui';
@@ -24,7 +24,6 @@ export default function Demo() {
   const [cursor, setCursor] = useState('');
   const [selected, setSelected] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
-  const original = useRef(points);
   const [aux, setAux] = useState(1);
   const anchor = useRef<UiNode | null>(null);
   return (
@@ -38,26 +37,6 @@ export default function Demo() {
           onSelectionChange: setSelectedIds,
           multiple: true,
           rectangle: true,
-          onGroupDrag: ({ phase, delta, ids, coordinates }) => {
-            if (phase === 'start') original.current = points;
-            if (phase === 'cancel') setPoints(original.current);
-            if (phase === 'move')
-              setPoints(
-                original.current.map(([x, y], index) => {
-                  if (!ids.includes(String(index))) return [x, y];
-                  const nx = coordinates.x.invert(
-                    coordinates.x.map(x) + delta[0],
-                  );
-                  const ny = coordinates.y.invert(
-                    coordinates.y.map(y) + delta[1],
-                  );
-                  return [
-                    clampToDomain(nx),
-                    index === 0 ? y : clampToDomain(ny),
-                  ];
-                }),
-              );
-          },
         }}
         onBackgroundDoubleClick={({ data: [x, y] }) =>
           setPoints((prev) => [...prev, [clampToDomain(x), clampToDomain(y)]])
@@ -114,9 +93,9 @@ export default function Demo() {
           </Button>
         </Popover.Content>
       </Popover>
-      <Text style={{ color: theme.color.textSecondary }}>
+      <Text style={textStyle(theme, 'body', theme.color.textSecondary)}>
         {selectedIds.length} selected.{' '}
-        {cursor || 'Double-click to add; Shift-drag to select.'}
+        {cursor || 'Double-click to add; drag empty space to select.'}
       </Text>
       <Button onPress={() => setPoints((prev) => [...prev, [0.25, 0.75]])}>
         Add point

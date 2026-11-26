@@ -53,7 +53,12 @@ export function useXYPad(
   const y = useRangeModel(yProps);
   const disabled = x.disabled && y.disabled;
   const inputDisabled = xProps.disabled === true && yProps.disabled === true;
-  const gesture = useGesture(disabled, xProps.parameter, yProps.parameter);
+  const gesture = useGesture(
+    disabled,
+    xProps.parameter,
+    yProps.parameter,
+    options.restoreOnPointerCancel,
+  );
   const [focusVisible, setFocusVisible] = useState(false);
   const drag = useRef<{
     id: number;

@@ -4,6 +4,7 @@ import type { PointerEvent } from 'soundor:ui';
 
 import type { Coordinates, Point } from '../../chart/geometry';
 import type { PlotAxisReference, PlotSpace } from './controller';
+import { crossedDragThreshold, watchCaptureLoss } from './pointer';
 
 export interface PlotBackgroundEvent {
   /** Logical pixels relative to the Plot, including its axis margins. */
@@ -33,22 +34,36 @@ export interface PlotBackgroundProps {
 
 export function PlotBackground({
   space,
+  threshold,
   ...props
-}: PlotBackgroundProps & { space: PlotSpace }) {
+}: PlotBackgroundProps & { space: PlotSpace; threshold: boolean }) {
   const { coordinates } = space;
   const { rect } = coordinates;
   const drag = useRef<{
     id: number;
     origin: Point;
     last: PlotBackgroundEvent;
+    down: PointerEvent;
+    started: boolean;
+    suppressClick: boolean;
+    unwatch: () => void;
     notify: NonNullable<PlotBackgroundProps['onBackgroundDrag']>;
   } | null>(null);
+  const suppressed = useRef<number | null>(null);
+  function close(
+    held: NonNullable<typeof drag.current>,
+    phase: 'end' | 'cancel',
+    last = held.last,
+  ) {
+    drag.current = null;
+    held.unwatch();
+    if (phase === 'cancel' || held.suppressClick) suppressed.current = held.id;
+    if (held.started) held.notify({ ...last, origin: held.origin, phase });
+  }
   useLayoutEffect(
     () => () => {
       const held = drag.current;
-      drag.current = null;
-      if (held)
-        held.notify({ ...held.last, origin: held.origin, phase: 'cancel' });
+      if (held) close(held, 'cancel');
     },
     [],
   );
@@ -77,8 +92,7 @@ export function PlotBackground({
   const finish = (event: PointerEvent, phase: 'end' | 'cancel') => {
     const held = drag.current;
     if (held?.id !== event.pointerId) return;
-    drag.current = null;
-    held.notify({ ...detail(event), origin: held.origin, phase });
+    close(held, phase, detail(event));
   };
   return (
     <View
@@ -86,11 +100,17 @@ export function PlotBackground({
       style={{ position: 'absolute', ...rect }}
       onClick={
         props.onBackgroundPress &&
-        ((event) => props.onBackgroundPress?.(detail(event)))
+        ((event) => {
+          if (suppressed.current !== event.pointerId)
+            props.onBackgroundPress?.(detail(event));
+        })
       }
       onDoubleClick={
         props.onBackgroundDoubleClick &&
-        ((event) => props.onBackgroundDoubleClick?.(detail(event)))
+        ((event) => {
+          if (suppressed.current !== event.pointerId)
+            props.onBackgroundDoubleClick?.(detail(event));
+        })
       }
       onPointerEnter={
         props.onBackgroundPointerEnter &&
@@ -105,22 +125,26 @@ export function PlotBackground({
         ((event) => props.onBackgroundContextMenu?.(detail(event)))
       }
       onPointerDown={(event) => {
+        if (event.button !== 0 || drag.current) return;
+        suppressed.current = null;
         const notify = props.onBackgroundDrag;
-        if (
-          !notify ||
-          event.button !== 0 ||
-          event.defaultPrevented ||
-          drag.current
-        )
-          return;
+        if (!notify || event.defaultPrevented) return;
         const last = detail(event);
-        drag.current = {
+        const held = {
           id: event.pointerId,
           origin: last.point,
           last,
+          down: event,
+          started: !threshold,
+          suppressClick: false,
+          unwatch: watchCaptureLoss(event.pointerId, () => {
+            if (drag.current === held) close(held, 'cancel');
+          }),
           notify,
         };
-        notify({ ...last, origin: last.point, phase: 'start' });
+        drag.current = held;
+        if (held.started)
+          notify({ ...last, origin: last.point, phase: 'start' });
       }}
       onPointerMove={(event) => {
         const held = drag.current;
@@ -130,10 +154,18 @@ export function PlotBackground({
         props.onBackgroundPointerMove?.(next);
         if (held?.id === event.pointerId) {
           held.last = next;
-          held.notify({ ...next, origin: held.origin, phase: 'move' });
+          held.suppressClick ||= crossedDragThreshold(held.down, event);
+          if (held.started)
+            held.notify({ ...next, origin: held.origin, phase: 'move' });
+          else if (held.suppressClick) {
+            held.started = true;
+            held.notify({ ...next, origin: held.origin, phase: 'start' });
+          }
         }
       }}
-      onPointerUp={(event) => finish(event, 'end')}
+      onPointerUp={(event) => {
+        if (event.button === 0) finish(event, 'end');
+      }}
       onPointerCancel={(event) => finish(event, 'cancel')}
     />
   );

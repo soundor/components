@@ -15,8 +15,8 @@ import {
   type PlotSource,
   type SelectOption,
 } from '@soundor/components';
-import { useTheme } from '@soundor/components/theme';
-import { View } from '@soundor/react';
+import { textStyle, useTheme } from '@soundor/components/theme';
+import { Text, View } from '@soundor/react';
 import { useEffect, useRef, useState } from 'react';
 import type { UiNode } from 'soundor:ui';
 
@@ -340,6 +340,12 @@ export default function Demo() {
           length={190}
         />
       </View>
+      <Text style={textStyle(theme, 'caption', theme.color.textSecondary)}>
+        Drag empty space to select · Shift adds · Ctrl/Cmd toggles
+      </Text>
+      <Text style={textStyle(theme, 'caption', theme.color.textSecondary)}>
+        Drag a selected band to move the group · Hold Shift for fine adjustment
+      </Text>
       <SelectableList
         orientation="horizontal"
         accessibilityLabel="Bands"
