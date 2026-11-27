@@ -14,6 +14,10 @@ import {
 export interface LevelMeterProps extends StyleProps<'LevelMeter'> {
   value: number | undefined | readonly (number | undefined)[];
   label?: string;
+  /** Accessible channel names, in value order. Unnamed channels in a multi-channel meter are numbered. */
+  channelLabels?: readonly string[];
+  /** Returns the full accessible name of the clip-reset button. The channel is undefined for unnamed mono. */
+  clipResetLabel?: (channel: string | undefined) => string;
   min?: number;
   max?: number;
   warningAt?: number;
@@ -65,6 +69,7 @@ function meterFrame(
 interface ChannelProps {
   value?: number;
   label: string;
+  clipResetLabel: string;
   min: number;
   max: number;
   warningAt: number;
@@ -80,6 +85,7 @@ interface ChannelProps {
 function Channel({
   value,
   label,
+  clipResetLabel,
   min,
   max,
   warningAt,
@@ -160,7 +166,7 @@ function Channel({
       })}
     >
       <Pressable
-        accessibilityLabel={`Reset ${label} clip indicator`}
+        accessibilityLabel={clipResetLabel}
         accessibilityState={{ checked: clipped }}
         accessibilityRole="togglebutton"
         onPress={() => setClipped(false)}
@@ -251,6 +257,8 @@ function Channel({
 export function LevelMeter({
   value,
   label = 'Level',
+  channelLabels,
+  clipResetLabel,
   min = -60,
   max = 6,
   warningAt = -6,
@@ -277,23 +285,32 @@ export function LevelMeter({
         gap: theme.spacing.spaceXxs,
       })}
     >
-      {levels.map((level, index) => (
-        <Channel
-          key={index}
-          value={level}
-          label={levels.length === 1 ? label : `${label}, channel ${index + 1}`}
-          min={min}
-          max={max}
-          warningAt={warningAt}
-          clipAt={clipAt}
-          fallRate={fallRate}
-          peakHold={peakHold}
-          length={length}
-          thickness={thickness}
-          vertical={vertical}
-          styles={styles}
-        />
-      ))}
+      {levels.map((level, index) => {
+        const channel =
+          channelLabels?.[index] ||
+          (levels.length > 1 ? `channel ${index + 1}` : undefined);
+        const channelSuffix = channel === undefined ? '' : `, ${channel}`;
+        return (
+          <Channel
+            key={index}
+            value={level}
+            label={`${label}${channelSuffix}`}
+            clipResetLabel={
+              clipResetLabel?.(channel) ?? `${label} clip${channelSuffix}`
+            }
+            min={min}
+            max={max}
+            warningAt={warningAt}
+            clipAt={clipAt}
+            fallRate={fallRate}
+            peakHold={peakHold}
+            length={length}
+            thickness={thickness}
+            vertical={vertical}
+            styles={styles}
+          />
+        );
+      })}
       {ticks && (
         <View
           style={

@@ -20,6 +20,7 @@ export default function Demo() {
     <LevelMeter
       label="Master"
       value={levels}
+      channelLabels={['left', 'right']}
       min={-60}
       max={6}
       warningAt={-6}
