@@ -11,7 +11,7 @@ afterEach(() => {
 test('meter exposes dB and latches its clip status until pressed', async () => {
   const app = await render(<LevelMeter label="Output" value={-4} />);
   const clip = screen.getByRole('togglebutton', {
-    name: 'Reset Output clip indicator',
+    name: 'Output clip',
   });
   await app.rerender(<LevelMeter label="Output" value={1} />);
   await app.rerender(<LevelMeter label="Output" value={-8} />);
@@ -58,7 +58,7 @@ test('uses numbered names for channels without a supplied name', async () => {
   ).toBeDefined();
   expect(
     screen.getByRole('togglebutton', {
-      name: 'Reset Output, channel 1 clip indicator',
+      name: 'Output clip, channel 1',
     }),
   ).toBeDefined();
 
@@ -70,12 +70,12 @@ test('uses numbered names for channels without a supplied name', async () => {
   ).toBeDefined();
   expect(
     screen.getByRole('togglebutton', {
-      name: 'Reset Output, left clip indicator',
+      name: 'Output clip, left',
     }),
   ).toBeDefined();
   expect(
     screen.getByRole('togglebutton', {
-      name: 'Reset Output, channel 2 clip indicator',
+      name: 'Output clip, channel 2',
     }),
   ).toBeDefined();
 });

@@ -2,4 +2,4 @@
 '@soundor/components': minor
 ---
 
-Add optional `channelLabels` and `clipResetLabel` props to `LevelMeter` so apps can name each progress bar and clip-reset button. Existing accessible names remain the default.
+Shorten `LevelMeter`'s default clip-reset names to phrases such as “Output clip, channel 1”. Use the new `channelLabels` and `clipResetLabel` props to customize channel names and clip-reset wording.

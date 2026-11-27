@@ -289,15 +289,14 @@ export function LevelMeter({
         const channel =
           channelLabels?.[index] ||
           (levels.length > 1 ? `channel ${index + 1}` : undefined);
-        const meterLabel =
-          channel === undefined ? label : `${label}, ${channel}`;
+        const channelSuffix = channel === undefined ? '' : `, ${channel}`;
         return (
           <Channel
             key={index}
             value={level}
-            label={meterLabel}
+            label={`${label}${channelSuffix}`}
             clipResetLabel={
-              clipResetLabel?.(channel) ?? `Reset ${meterLabel} clip indicator`
+              clipResetLabel?.(channel) ?? `${label} clip${channelSuffix}`
             }
             min={min}
             max={max}
