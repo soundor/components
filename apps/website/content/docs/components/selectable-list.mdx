@@ -19,8 +19,10 @@ Use `SelectableList` for visible choices such as bands, presets, channels or mod
 
 The caller owns `selectedIds`. Use stable IDs, give each item a label, and set
 `disabled` for unavailable entries. `multiple` makes activation toggle items
-independently. The default orientation is vertical. Each enabled item is
-focusable; arrows along the layout, Home and End move focus without changing
+independently. The default orientation is vertical. The list has one Tab stop:
+the most recently focused option, or the first enabled selected option if none
+has been focused. If neither is available, Tab lands on the first enabled
+option. Arrows along the layout, Home and End move focus without changing
 selection. Enter, Space, a press or assistive activation selects the option.
 
 By default, each label is vertically centered in its item.

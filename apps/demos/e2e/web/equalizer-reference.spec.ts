@@ -2,6 +2,30 @@ import { expect, test } from '@playwright/test';
 
 import { centreOf, openDemo } from './demo';
 
+test('the band list takes one Tab stop and remembers arrow-key focus', async ({
+  page,
+}) => {
+  await openDemo(page, 'equalizer-reference');
+  const bands = page.getByRole('listbox', { name: 'Bands' });
+  const first = bands.getByRole('option', { name: 'Band 1' });
+  const second = bands.getByRole('option', { name: 'Band 2' });
+  const add = page.getByRole('button', { name: 'Add band' });
+
+  await first.click();
+  await expect(first).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(add).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(first).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(second).toBeFocused();
+  await expect(second).toHaveAttribute('aria-selected', 'false');
+  await page.keyboard.press('Tab');
+  await expect(add).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(second).toBeFocused();
+});
+
 test('a group on the logarithmic axis changes drag speed without jumping', async ({
   page,
 }) => {

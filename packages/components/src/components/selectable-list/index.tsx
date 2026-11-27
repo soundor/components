@@ -55,6 +55,8 @@ export function SelectableList<T extends string>({
             accessibilityLabel={item.label}
             accessibilityState={{ selected, disabled }}
             disabled={disabled}
+            tabStop={selection.tabStop(item.id)}
+            onFocus={() => selection.onFocus(item.id)}
             onPress={() => selection.select(item)}
             onKeyDown={(event) => selection.onKeyDown(item.id, event)}
             style={({ focusVisible, hovered }) =>
