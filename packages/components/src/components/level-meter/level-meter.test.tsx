@@ -23,3 +23,77 @@ test('meter exposes dB and latches its clip status until pressed', async () => {
   await userEvent.setup().click(clip);
   expect(clip.accessibility.state?.checked).toBe(false);
 });
+
+test('names stereo channels and their clip resets independently', async () => {
+  await render(
+    <LevelMeter
+      label="Output level"
+      value={[1, 2]}
+      channelLabels={['left', 'right']}
+      clipResetLabel={(channel) => `Reset output clip, ${channel}`}
+    />,
+  );
+  expect(
+    screen.getByRole('progressbar', { name: 'Output level, left' }),
+  ).toBeDefined();
+  expect(
+    screen.getByRole('progressbar', { name: 'Output level, right' }),
+  ).toBeDefined();
+  const left = screen.getByRole('togglebutton', {
+    name: 'Reset output clip, left',
+  });
+  const right = screen.getByRole('togglebutton', {
+    name: 'Reset output clip, right',
+  });
+  expect(left.accessibility.state?.checked).toBe(true);
+  await userEvent.setup().click(left);
+  expect(left.accessibility.state?.checked).toBe(false);
+  expect(right.accessibility.state?.checked).toBe(true);
+});
+
+test('uses numbered names for channels without a supplied name', async () => {
+  const app = await render(<LevelMeter label="Output" value={[-4, -8]} />);
+  expect(
+    screen.getByRole('progressbar', { name: 'Output, channel 1' }),
+  ).toBeDefined();
+  expect(
+    screen.getByRole('togglebutton', {
+      name: 'Reset Output, channel 1 clip indicator',
+    }),
+  ).toBeDefined();
+
+  await app.rerender(
+    <LevelMeter label="Output" value={[-4, -8]} channelLabels={['left']} />,
+  );
+  expect(
+    screen.getByRole('progressbar', { name: 'Output, channel 2' }),
+  ).toBeDefined();
+  expect(
+    screen.getByRole('togglebutton', {
+      name: 'Reset Output, left clip indicator',
+    }),
+  ).toBeDefined();
+  expect(
+    screen.getByRole('togglebutton', {
+      name: 'Reset Output, channel 2 clip indicator',
+    }),
+  ).toBeDefined();
+});
+
+test('formats the clip-reset name on an unnamed mono meter', async () => {
+  await render(
+    <LevelMeter
+      label="Output"
+      value={-4}
+      clipResetLabel={(channel) =>
+        channel === undefined
+          ? 'Reset output clip'
+          : `Reset output clip, ${channel}`
+      }
+    />,
+  );
+  expect(screen.getByRole('progressbar', { name: 'Output' })).toBeDefined();
+  expect(
+    screen.getByRole('togglebutton', { name: 'Reset output clip' }),
+  ).toBeDefined();
+});

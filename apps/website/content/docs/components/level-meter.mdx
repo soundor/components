@@ -17,7 +17,20 @@ Pass one value per channel. Peaks hold for `peakHold` seconds and then fall at `
 
 ## Keyboard and accessibility
 
-The meter is announced as a progress bar with its label and level. The clip indicator is a separate button, reachable with `Tab` and cleared with `Enter` or `Space`, and it is named, for a meter labelled Master, "Reset Master clip indicator". See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+Each channel is announced as a progress bar with its label and level. The clip indicator is a separate toggle button, reachable with `Tab` and cleared with `Enter` or `Space`. Its pressed state indicates whether clipping is latched. See [Keyboard and accessibility](/docs/guides/keyboard-and-accessibility).
+
+Use `channelLabels` to name channels in the same order as `value`. Names are appended to the meter's `label`, so the stereo example's progress bars are named "Master, left" and "Master, right". Missing or empty names fall back to "channel 1", "channel 2", and so on for multi-channel meters. An unnamed mono meter uses just `label`.
+
+`clipResetLabel` returns the full button name. It receives the supplied or numbered channel name, or `undefined` for unnamed mono. Without the callback, button names follow the default pattern "Reset [progress bar name] clip indicator".
+
+```tsx
+<LevelMeter
+  label="Output level"
+  value={[left, right]}
+  channelLabels={['left', 'right']}
+  clipResetLabel={(channel) => `Reset output clip, ${channel}`}
+/>
+```
 
 ## Props
 

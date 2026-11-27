@@ -20,6 +20,8 @@ export default function Demo() {
     <LevelMeter
       label="Master"
       value={levels}
+      channelLabels={['left', 'right']}
+      clipResetLabel={(channel) => `Reset master clip, ${channel}`}
       min={-60}
       max={6}
       warningAt={-6}
