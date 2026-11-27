@@ -11,6 +11,7 @@ Use `SelectableList` for visible choices such as bands, presets, channels or mod
 <SelectableList
   accessibilityLabel="Bands"
   orientation="horizontal"
+  selectionMode="extended"
   items={bands.map((band) => ({ id: band.id, label: band.name }))}
   selectedIds={selectedIds}
   onSelectionChange={setSelectedIds}
@@ -18,12 +19,37 @@ Use `SelectableList` for visible choices such as bands, presets, channels or mod
 ```
 
 The caller owns `selectedIds`. Use stable IDs, give each item a label, and set
-`disabled` for unavailable entries. `multiple` makes activation toggle items
-independently. The default orientation is vertical. The list has one Tab stop:
-the most recently focused option, or the first enabled selected option if none
-has been focused. If neither is available, Tab lands on the first enabled
-option. Arrows along the layout, Home and End move focus without changing
-selection. Enter, Space, a press or assistive activation selects the option.
+`disabled` for unavailable entries. The default orientation is vertical. The
+list has one Tab stop: the last-focused enabled option, otherwise the first
+enabled selected option, or the first enabled option if none is selected.
+
+## Selection modes
+
+- `single` (default): activation selects only that option.
+- `toggle`: activation independently selects or deselects the option. Setting
+  `multiple` without a `selectionMode` still does this. An explicit mode takes precedence.
+- `extended`: click to select only one item, or use modifiers to toggle or select a range.
+
+In `single` and `toggle`, the arrow keys along the list, Home and End move focus
+without changing selection. Enter, Space, a press or assistive activation applies the mode.
+
+With `extended`, use Command on macOS (or iOS with a keyboard) and Control elsewhere:
+
+| Input                                 | Effect                                                               |
+| ------------------------------------- | -------------------------------------------------------------------- |
+| Click, Enter, or assistive activation | Select only the item and set the range anchor.                       |
+| Ctrl/Cmd+click                        | Toggle the item and set the anchor.                                  |
+| Shift+click                           | Replace the selection with the inclusive range from the anchor.      |
+| Ctrl/Cmd+Shift+click                  | Add that range to the selection.                                     |
+| Arrows, Home, End                     | Move focus, select only the destination and set the anchor.          |
+| Shift+arrows, Shift+Home, Shift+End   | Move focus and replace the selection with the range from the anchor. |
+| Ctrl+arrows                           | Move focus without changing selection.                               |
+| Space                                 | Toggle the focused item and set the anchor.                          |
+| Ctrl/Cmd+A                            | Select all enabled items without moving focus.                       |
+
+Ranges follow list order and skip disabled items. If the anchor is unavailable,
+a keyboard range starts from the currently focused item. A click range starts
+from the first enabled selected item, or the clicked item if none is selected.
 
 By default, each label is vertically centered in its item.
 `renderItem(item, state)` replaces the visual content of an item. Keep it

@@ -57,7 +57,7 @@ export function SelectableList<T extends string>({
             disabled={disabled}
             tabStop={selection.tabStop(item.id)}
             onFocus={() => selection.onFocus(item.id)}
-            onPress={() => selection.select(item)}
+            onPress={(event) => selection.select(item, event)}
             onKeyDown={(event) => selection.onKeyDown(item.id, event)}
             style={({ focusVisible, hovered }) =>
               slot('item', {

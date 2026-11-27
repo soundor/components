@@ -81,6 +81,13 @@ const keys: Record<string, [string, string, string]> = {
 const apple = (platform: ShortcutPlatform) =>
   platform === 'macos' || platform === 'ios';
 
+export function selectionModifier(event: {
+  ctrlKey: boolean;
+  metaKey: boolean;
+}) {
+  return apple(environment.platform) ? event.metaKey : event.ctrlKey;
+}
+
 /**
  * A shortcut written once, in a universal syntax, shown the way the platform
  * writes it: `Mod+Shift+Z` is `⇧⌘Z` on macOS and `Ctrl+Shift+Z` on Windows and
