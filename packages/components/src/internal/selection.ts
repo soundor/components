@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { KeyboardEvent, UiNode } from 'soundor:ui';
 
 import { firstEnabled, lastEnabled, stepEnabled } from './menu/navigation';
@@ -25,10 +25,22 @@ export function useSelection<T extends string>({
   orientation = 'vertical',
 }: SelectionOptions<T>) {
   const nodes = useRef(new Map<T, UiNode>());
+  const [lastFocusedId, setLastFocusedId] = useState<T>();
+  const tabStopId =
+    items.find((item) => !item.disabled && item.id === lastFocusedId)?.id ??
+    items.find((item) => !item.disabled && selectedIds.includes(item.id))?.id ??
+    items.find((item) => !item.disabled)?.id;
+
   return {
     attach(id: T, node: UiNode | null) {
       if (node) nodes.current.set(id, node);
       else nodes.current.delete(id);
+    },
+    tabStop(id: T) {
+      return id === tabStopId;
+    },
+    onFocus(id: T) {
+      setLastFocusedId(id);
     },
     select(item: SelectionItem<T>) {
       if (item.disabled) return;
