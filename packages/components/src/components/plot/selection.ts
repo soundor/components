@@ -1,7 +1,6 @@
-import { environment } from 'soundor:host';
-
 import type { Coordinates, Point } from '../../chart/geometry';
 import { beginEdits } from '../../internal/gesture';
+import { selectionModifier } from '../../internal/shortcut';
 import type { GuideLayer } from './controller';
 
 export interface PlotGroupDrag {
@@ -119,9 +118,7 @@ export function selectionOperation(event: {
   ctrlKey: boolean;
   metaKey: boolean;
 }): SelectionOperation {
-  const apple =
-    environment.platform === 'macos' || environment.platform === 'ios';
-  return (apple ? event.metaKey : event.ctrlKey)
+  return selectionModifier(event)
     ? 'toggle'
     : event.shiftKey
       ? 'add'

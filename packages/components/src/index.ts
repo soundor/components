@@ -17,7 +17,7 @@ export {
   type SelectableListProps,
   type SelectableListItemState,
 } from './components/selectable-list';
-export type { SelectionItem } from './internal/selection';
+export type { SelectionItem, SelectionMode } from './internal/selection';
 export {
   DropdownMenu,
   type DropdownMenuContentProps,

@@ -7,11 +7,12 @@ export default function Demo() {
     <SelectableList
       orientation="horizontal"
       accessibilityLabel="Modulation sources"
-      multiple
+      selectionMode="extended"
       items={[
         { id: 'one', label: 'LFO 1' },
         { id: 'two', label: 'LFO 2' },
         { id: 'env', label: 'Envelope', disabled: true },
+        { id: 'three', label: 'LFO 3' },
       ]}
       selectedIds={ids}
       onSelectionChange={select}

@@ -1,5 +1,6 @@
 import { render, screen, userEvent } from '@soundor/testing-library/react';
 import { useState } from 'react';
+import { environment } from 'soundor:host';
 import { expect, test } from 'vitest';
 
 import { Button, SelectableList } from '../../index';
@@ -82,4 +83,90 @@ test('navigation skips disabled options and multi-select toggles independently o
   expect(first.accessibility.state?.selected).toBe(true);
   await user.keyboard('{Home}{Enter}');
   expect(first.accessibility.state?.selected).toBe(false);
+});
+
+async function extendedList() {
+  function Fixture() {
+    const [ids, select] = useState<readonly string[]>([]);
+    return (
+      <SelectableList
+        accessibilityLabel="Bands"
+        selectionMode="extended"
+        items={['A', 'B', 'C', 'D', 'E'].map((id) => ({
+          id,
+          label: id,
+          disabled: id === 'C',
+        }))}
+        selectedIds={ids}
+        onSelectionChange={select}
+      />
+    );
+  }
+  await render(<Fixture />);
+  const option = (name: string) => screen.getByRole('option', { name });
+  return {
+    user: userEvent.setup(),
+    option,
+    selected: () =>
+      ['A', 'B', 'C', 'D', 'E'].filter(
+        (id) => option(id).accessibility.state?.selected,
+      ),
+  };
+}
+
+const mod =
+  environment.platform === 'macos' || environment.platform === 'ios'
+    ? 'Meta'
+    : 'Control';
+
+test('extended presses replace, toggle, replace a range and add a range', async () => {
+  const { user, option, selected } = await extendedList();
+  await user.click(option('A'));
+  await user.keyboard(`{${mod}>}`);
+  await user.click(option('D'));
+  await user.keyboard(`{/${mod}}`);
+  expect(selected()).toEqual(['A', 'D']);
+
+  await user.keyboard(`{${mod}>}{Shift>}`);
+  await user.click(option('E'));
+  await user.keyboard(`{/Shift}{/${mod}}`);
+  expect(selected()).toEqual(['A', 'D', 'E']);
+
+  await user.keyboard('{Shift>}');
+  await user.click(option('B'));
+  await user.keyboard('{/Shift}');
+  expect(selected()).toEqual(['B', 'D']);
+  await user.click(option('E'));
+  expect(selected()).toEqual(['E']);
+  await user.keyboard(`{${mod}>}`);
+  await user.click(option('A'));
+  await user.keyboard('{Shift>}');
+  await user.click(option('D'));
+  await user.keyboard(`{/Shift}{/${mod}}`);
+  expect(selected()).toEqual(['A', 'B', 'D', 'E']);
+});
+
+test('extended keyboard selection moves, shrinks an anchored range, toggles and selects all', async () => {
+  const { user, option, selected } = await extendedList();
+  await user.tab();
+  expect(selected()).toEqual([]);
+  await user.keyboard('{ArrowDown}');
+  expect(selected()).toEqual(['B']);
+  await user.keyboard('{Shift>}{End}{/Shift}');
+  expect(option('E').focused).toBe(true);
+  expect(selected()).toEqual(['B', 'D', 'E']);
+  await user.keyboard('{Shift>}{ArrowUp}{/Shift}');
+  expect(selected()).toEqual(['B', 'D']);
+  await user.keyboard('{Control>}{ArrowUp}{ArrowUp}{/Control}');
+  expect(option('A').focused).toBe(true);
+  expect(selected()).toEqual(['B', 'D']);
+  await user.keyboard(' ');
+  expect(selected()).toEqual(['A', 'B', 'D']);
+  await user.keyboard(' ');
+  expect(selected()).toEqual(['B', 'D']);
+  await user.keyboard(`{${mod}>}a{/${mod}}`);
+  expect(selected()).toEqual(['A', 'B', 'D', 'E']);
+  expect(option('A').focused).toBe(true);
+  await user.keyboard('{End}');
+  expect(selected()).toEqual(['E']);
 });

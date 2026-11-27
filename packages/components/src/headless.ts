@@ -15,6 +15,7 @@ export type { ValueScale } from './internal/scale';
 export {
   useSelection,
   type SelectionItem,
+  type SelectionMode,
   type SelectionOptions,
 } from './internal/selection';
 export { useXYPad, type XYInteraction } from './internal/xy-interaction';

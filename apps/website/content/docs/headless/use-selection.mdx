@@ -21,14 +21,17 @@ Import `useSelection` from `@soundor/components/headless`. Pass the items, the s
 
 ## Return value
 
-| Method                 | Wire it to                                                                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `attach(id, node)`     | The item's node ref. Pass `null` on detach.                                                                                                |
-| `tabStop(id)`          | The item's `tabStop` prop. Keep enabled items focusable even when this returns `false`.                                                    |
-| `onFocus(id)`          | The item's focus handler. Call it whenever the item takes focus so it becomes the list's Tab stop.                                         |
-| `onKeyDown(id, event)` | The item's key handler. Arrow keys along the configured orientation, Home and End move focus without changing selection.                   |
-| `select(item)`         | The item's pointer or assistive activation handler. Disabled items are ignored. With `multiple`, activation toggles that item's selection. |
+| Method                 | Wire it to                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `attach(id, node)`     | The item's node ref. Pass `null` on detach.                                                                              |
+| `tabStop(id)`          | The item's `tabStop` prop. Keep enabled items focusable even when this returns `false`.                                  |
+| `onFocus(id)`          | The item's focus handler. Call it whenever the item takes focus so it becomes the list's Tab stop.                       |
+| `onKeyDown(id, event)` | The item's key handler for navigation and extended keyboard selection.                                                   |
+| `select(item, event?)` | The item's activation handler. Pass the press event to support extended modifiers and Space. Disabled items are ignored. |
 
 Supply the focusable item nodes, accessibility roles and labels, selected states, and focus styles in your views. Wire Enter and Space to item activation if your item does not already handle them.
 
 Until an enabled option has been focused, the Tab stop is the first enabled selected option, or the first enabled option when none is selected.
+
+`selectionMode` works as in [SelectableList](/docs/components/selectable-list#selection-modes)
+and overrides `multiple`. Calling `select(item)` without an event uses plain activation.
