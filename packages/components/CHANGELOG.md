@@ -1,5 +1,16 @@
 # @soundor/components
 
+## 0.6.0
+
+### Minor Changes
+
+- de82dc2: Shorten `LevelMeter`'s default clip-reset names to phrases such as “Output clip, channel 1”. Use the new `channelLabels` and `clipResetLabel` props to customize channel names and clip-reset wording.
+- cae3ffa: Add opt-in `selectionMode="extended"` to `SelectableList` and `useSelection`: click to replace, Ctrl/Cmd+click to toggle, Shift+click to select a range, and use the keyboard to navigate, extend ranges, toggle options or select all. Existing single and `multiple` behavior is unchanged.
+
+### Patch Changes
+
+- edb3926: Make `SelectableList` a single Tab stop. Tab enters on the first enabled selected option (or the first enabled option) and returns to the last-focused option. Arrow keys, Home and End continue to move focus without changing selection. Custom lists can use the same behavior through `useSelection`. This requires `@soundor/react` 0.21.1 or later within the 0.21 series.
+
 ## 0.5.0
 
 ### Minor Changes
