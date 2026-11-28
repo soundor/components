@@ -21,7 +21,9 @@ import {
   DropdownMenu,
   Menu,
   type DropdownMenuTriggerTarget,
+  type MenuItemState,
 } from '../../index';
+import { tokens } from '../../theme/tokens';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -231,6 +233,68 @@ describe('DropdownMenu', () => {
       screen.getByRole('menuitem', { name: 'Zoom to fit' }).accessibility.state
         ?.checked,
     ).toBe(false);
+  });
+
+  test('checkedStyle highlight fills the checked row with the accent instead of a tick', async () => {
+    await render(
+      <Options>
+        {['Peak', 'Notch'].map((type) => (
+          <Menu.Item
+            key={type}
+            checked={type === 'Notch'}
+            checkedStyle="highlight"
+            onPress={() => {}}
+          >
+            {type}
+          </Menu.Item>
+        ))}
+      </Options>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    const notch = screen.getByRole('menuitem', { name: 'Notch' });
+    const peak = screen.getByRole('menuitem', { name: 'Peak' });
+    expect(notch.accessibility.state?.checked).toBe(true);
+    expect(notch.style.backgroundColor).toBe(tokens.color.accent);
+    expect(peak.style.backgroundColor).toBe('transparent');
+    // No tick column: the label is the row's first child in both rows.
+    for (const row of [notch, peak]) {
+      expect(row.children[0]?.type).toBe('text');
+    }
+  });
+
+  test('a function icon draws from the row state, in the label colour', async () => {
+    const icon = vi.fn(({ color }: MenuItemState) => (
+      <Text style={{ color }}>Shape</Text>
+    ));
+    await render(
+      <Options>
+        <Menu.Item onPress={() => {}}>Peak</Menu.Item>
+        <Menu.Item
+          checked
+          checkedStyle="highlight"
+          icon={icon}
+          onPress={() => {}}
+        >
+          Notch
+        </Menu.Item>
+      </Options>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    expect(icon).toHaveBeenLastCalledWith({
+      active: false,
+      checked: true,
+      disabled: false,
+      color: tokens.color.accentForeground,
+    });
+    await user.keyboard('{End}');
+    expect(icon).toHaveBeenLastCalledWith({
+      active: true,
+      checked: true,
+      disabled: false,
+      color: tokens.color.selectedForeground,
+    });
   });
 
   test('an action may unmount the menu, or open a modal that gives focus back to the trigger', async () => {

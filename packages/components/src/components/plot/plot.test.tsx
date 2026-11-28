@@ -526,6 +526,52 @@ test('parts of your own get the plot’s coordinates, and render over the canvas
   expect(screen.getByRole('adjustable', { name: 'Inner' })).toBeDefined();
 });
 
+test('autoSafeZone={false} maps the axes to the frame past a draggable marker', async () => {
+  let seen: ReturnType<typeof usePlotCoordinates> | undefined;
+  function Inspect() {
+    seen = usePlotCoordinates();
+    return null;
+  }
+  const fixture = (safeZone?: number) => (
+    <Plot width={260} height={160} autoSafeZone={false} safeZone={safeZone}>
+      <Plot.XAxis domain={[0, 10]} />
+      <Plot.YAxis domain={[0, 1]} />
+      <Plot.Marker x={5} y={0.5} label="Band" onMove={() => {}} />
+      <Inspect />
+    </Plot>
+  );
+  const { rerender } = await render(fixture());
+  expect(seen!.inner.left).toBe(seen!.rect.left);
+  expect(seen!.x.map(10)).toBe(seen!.rect.left + seen!.rect.width);
+  expect(screen.getByRole('adjustable', { name: 'Band' })).toBeDefined();
+  // Its own safeZone still applies.
+  await rerender(fixture(6));
+  expect(seen!.inner.left - seen!.rect.left).toBe(6);
+});
+
+test('axisLabelGap gives the axes more room', async () => {
+  let seen: ReturnType<typeof usePlotCoordinates> | undefined;
+  function Inspect() {
+    seen = usePlotCoordinates();
+    return null;
+  }
+  const fixture = (axisLabelGap?: number) => (
+    <Plot width={400} height={200} axisLabelGap={axisLabelGap}>
+      <Plot.XAxis domain={[0, 10]} />
+      <Plot.YAxis domain={[0, 1]} />
+      <Inspect />
+    </Plot>
+  );
+  const { rerender } = await render(fixture());
+  const room = (rect: { top: number; height: number }) =>
+    200 - rect.top - rect.height;
+  expect(seen!.rect.left).toBe(56);
+  expect(room(seen!.rect)).toBe(20);
+  await rerender(fixture(30));
+  expect(seen!.rect.left).toBe(70);
+  expect(room(seen!.rect)).toBe(50);
+});
+
 test('what TypeScript cannot rule out is refused at run time', async () => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
   const both = { points: [[0, 0]], values: [0] } as const;

@@ -62,7 +62,7 @@ Use `onGroupDrag` to own the edit yourself, for example to apply a group-wide co
 
 ## Handles at the ends of an axis
 
-A plot with draggable markers insets the data mapping by the handle radius and halo, so handles stay whole at the ends. The axes and grid still run edge to edge; set [`extend` on a series](/docs/components/plot/series#extending-to-the-edges) to make the data reach them too.
+A plot with draggable markers insets the data mapping by the handle radius and halo, so handles stay whole at the ends. The axes and grid still run edge to edge; set [`extend` on a series](/docs/components/plot/series#extending-to-the-edges) to make the data reach them too. Where the axes' room already keeps handles whole, as a full-frame EQ graph's labels do, set `autoSafeZone={false}` on `Plot` to map the data all the way to the frame instead; its own `safeZone` still applies.
 
 Render custom handle views inside `Plot` to layer them over the canvas. Use `safeZone` on `Plot` to keep them whole at the ends. [EnvelopeEditor](/docs/components/envelope-editor) is built this way.
 

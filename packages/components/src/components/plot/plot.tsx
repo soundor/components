@@ -90,6 +90,17 @@ export interface PlotProps
    * their own; the larger is used.
    */
   safeZone?: number;
+  /**
+   * Whether draggable markers keep a safe zone of their own. Turn it off
+   * where the axes' room already keeps handles whole, so that the data maps
+   * all the way to the frame; `safeZone` still applies. On by default.
+   */
+  autoSafeZone?: boolean;
+  /**
+   * Extra pixels between each axis line and its labels, with longer ticks
+   * to meet them. The axes take that much more room. 0 by default.
+   */
+  axisLabelGap?: number;
   selection?: PlotSelection;
   accessibilityLabel?: string;
   debugId?: string;
@@ -140,6 +151,8 @@ export function PlotRoot({
   height,
   children,
   safeZone: ownSafeZone = 0,
+  autoSafeZone = true,
+  axisLabelGap = 0,
   title,
   note,
   indicator,
@@ -186,7 +199,8 @@ export function PlotRoot({
   const header = Boolean(title || note || indicator || legend);
   // A plot with handles keeps them whole at the ends of its axes: its values
   // map inside the plot area, short of its edge by a handle's radius and a bit.
-  const safeZone = Math.max(0, ownSafeZone, draggable);
+  const safeZone = Math.max(0, ownSafeZone, autoSafeZone ? draggable : 0);
+  const labelGap = Math.max(0, axisLabelGap);
   const geometry = useMemo(() => {
     const entries = [
       ...controller.namedAxes('x').map(([, axis]) => ({
@@ -204,7 +218,7 @@ export function PlotRoot({
       top: 0,
       bottom: 0,
     };
-    const yRoom = Math.min(56, logicalWidth * 0.24);
+    const yRoom = Math.min(Math.max(56, 40 + labelGap), logicalWidth * 0.24);
     const captionRoom = header
       ? Math.max(legend && (title || note) ? 48 : 28, logicalHeight * 0.2)
       : 0;
@@ -212,7 +226,7 @@ export function PlotRoot({
       .filter(({ axis }) => !axis.hidden)
       .map((entry) => {
         const offset = lanes[entry.axis.side];
-        lanes[entry.axis.side] += entry.name === 'x' ? 20 : yRoom;
+        lanes[entry.axis.side] += entry.name === 'x' ? 20 + labelGap : yRoom;
         return { ...entry, offset };
       });
     const coordinates = createCoordinates(
@@ -324,6 +338,7 @@ export function PlotRoot({
     x,
     y,
     safeZone,
+    labelGap,
   ]);
   const { coordinates, resolve } = geometry;
   const captioned = Boolean(title || note);
@@ -432,6 +447,7 @@ export function PlotRoot({
         { x: axis.name === 'x', y: axis.name === 'y' },
         axis.side,
         axis.offset,
+        labelGap,
       );
     if (readout && inside) {
       paintReadout(

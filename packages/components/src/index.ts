@@ -36,6 +36,7 @@ export {
 export {
   Menu,
   type MenuItemProps,
+  type MenuItemState,
   type MenuLabelProps,
   type MenuSubContentProps,
   type MenuSubProps,

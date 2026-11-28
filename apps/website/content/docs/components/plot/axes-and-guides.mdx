@@ -7,7 +7,7 @@ description: Set domains and scales, draw grid lines, and add visual references.
 
 ## Independent scales
 
-A plot accepts one unnamed axis and any number of uniquely named axes per dimension. Set `id` to name an axis. Set `position` to `top` or `bottom` for X, or `left` or `right` for Y. A `hidden` axis keeps its scale without using space for labels.
+A plot accepts one unnamed axis and any number of uniquely named axes per dimension. Set `id` to name an axis. Set `position` to `top` or `bottom` for X, or `left` or `right` for Y. A `hidden` axis keeps its scale without using space for labels. `axisLabelGap` on `Plot` sets every axis' labels further from its line, with longer ticks to meet them; the axes take that much more room.
 
 Series, markers, guides and grids accept `xAxis` and `yAxis` references. Omit the reference to use the unnamed axis or, if none is declared, the first named axis by ID. A missing explicit reference hides that layer until the axis is available.
 
