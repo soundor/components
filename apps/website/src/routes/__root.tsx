@@ -9,6 +9,8 @@ import DefaultSearchDialog, {
 } from 'fumadocs-ui/components/dialog/search-default';
 import { RootProvider } from 'fumadocs-ui/provider/tanstack';
 
+import { Analytics } from '../components/analytics';
+
 import styles from '../styles.css?url';
 
 const base = import.meta.env.BASE_URL;
@@ -44,6 +46,7 @@ function Root() {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <Analytics />
       </head>
       <body>
         <RootProvider search={{ SearchDialog }}>
