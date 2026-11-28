@@ -9,7 +9,7 @@ for [Soundor](https://soundor.dev/) plugin UIs, built on `@soundor/react`, the
 same in the VST3 and the web runtime. `apps/website` is the documentation,
 whose pages in `apps/website/content/docs/` are the spec of behaviour; keep
 them in sync when behaviour changes. `apps/demos` holds the live demos the
-site embeds (web only).
+site embeds (web only). Umami's tracker is in the pages only when the build has `UMAMI_WEBSITE_ID`, the organization's Actions variable (never hardcoded or copied into the repository), which `website.yml` passes and requires; `vite dev`, local and pull-request builds have none (`plugins/analytics.ts`, `src/components/analytics.tsx`, which also names the site's hostname).
 
 ## Commands
 

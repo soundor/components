@@ -8,6 +8,7 @@ import { fumadocsMdx } from 'fumadocs-mdx/vite';
 import { remarkAutoTypeTable } from 'fumadocs-typescript';
 import { defineConfig } from 'vite';
 
+import { analytics } from './plugins/analytics.ts';
 import { remarkDemos } from './plugins/remark-demos.ts';
 import {
   REPOSITORY,
@@ -33,6 +34,7 @@ const base = process.env.SITE_BASE_PATH || '/';
 export default defineConfig({
   base,
   plugins: [
+    analytics(),
     {
       // The folder `scripts/sync-demos.ts` writes into public/, served from
       // disk under `vite dev`: Vite's list of public files goes stale when it
