@@ -1,5 +1,12 @@
 # @soundor/components
 
+## 0.7.0
+
+### Minor Changes
+
+- 0e93d42: Add `checkedStyle="highlight"` to `Menu.Item`, which shows a checked item with the selection accent instead of a tick, as `Select` does, and let its `icon` be a function of the row's state, so a glyph follows the label's colour.
+- 186bdbd: Add `axisLabelGap` to `Plot`, which sets the axis labels further from their lines, with longer ticks, and `autoSafeZone`, which can turn off the safe zone draggable markers keep so the data maps to the frame.
+
 ## 0.6.0
 
 ### Minor Changes
