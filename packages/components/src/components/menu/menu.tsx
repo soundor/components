@@ -1,6 +1,11 @@
 import type { ReactNode } from 'react';
 
-import { MenuDivider, MenuHeading, MenuRow } from './menu-list';
+import {
+  MenuDivider,
+  MenuHeading,
+  MenuRow,
+  type MenuRowState,
+} from './menu-list';
 import { Sub, SubContent, SubTrigger } from './submenu';
 
 export interface MenuItemProps {
@@ -14,8 +19,12 @@ export interface MenuItemProps {
   onPress?: () => void;
   /** Shown, dimmed, and skipped by the keyboard. */
   disabled?: boolean;
-  /** Before the label: a small glyph of your own, in the label's colour. */
-  icon?: ReactNode;
+  /**
+   * Before the label: a small glyph of your own, in the label's colour. A
+   * function draws it from the row's state, in `state.color` to follow the
+   * label as the row is highlighted or chosen.
+   */
+  icon?: ReactNode | ((state: MenuItemState) => ReactNode);
   /** Read after the label, for what it is not clear from it. */
   hint?: string;
   /**
@@ -23,7 +32,18 @@ export interface MenuItemProps {
    * with one leaves room for the tick.
    */
   checked?: boolean;
+  /**
+   * How `checked` shows: `'tick'` (the default) puts a tick before the
+   * label; `'highlight'` fills the row with the selection accent and leaves
+   * the tick out, as a Select shows its chosen option. Give it to every item
+   * of a group of choices. Either way the row reports `checked` to assistive
+   * technology.
+   */
+  checkedStyle?: 'tick' | 'highlight';
 }
+
+/** What an item's `icon` function draws from. */
+export type MenuItemState = MenuRowState;
 
 function Item({
   children,
@@ -32,15 +52,20 @@ function Item({
   icon,
   hint,
   checked,
+  checkedStyle = 'tick',
 }: MenuItemProps) {
+  const highlight = checkedStyle === 'highlight';
   return (
     <MenuRow
       label={children}
       select={onPress}
       disabled={disabled}
-      icon={icon}
+      icon={typeof icon === 'function' ? undefined : icon}
+      renderIcon={typeof icon === 'function' ? icon : undefined}
       hint={hint}
       checked={checked}
+      highlightChecked={highlight}
+      hideCheckmark={highlight}
     />
   );
 }

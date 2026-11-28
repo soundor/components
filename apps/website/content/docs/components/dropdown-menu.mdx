@@ -35,6 +35,7 @@ import { Button, DropdownMenu, Menu } from '@soundor/components';
 The same items go in a DropdownMenu and a [ContextMenu](/docs/components/context-menu):
 
 - `Menu.Item`: an action. Its label is its text, and `onPress` runs it. It can also have `disabled` (shown dimmed and skipped by the keyboard), `icon` (a small glyph before the label), `checked` (a tick, for an option that is on) and `hint` (read after the label by a screen reader).
+  An `icon` may also be a function of the row's state (`active`, `checked`, `disabled` and `color`, the label's colour), so a glyph of your own follows the label as the row is highlighted. `checkedStyle="highlight"` shows `checked` as a Select shows its chosen option, the row filled with the selection accent and no tick: use it on every item of a group of choices, such as a filter type.
 - `Menu.Divider`: a line between groups.
 - `Menu.Label`: a heading over a group. A screen reader reads it; the keyboard passes over it.
 - `Menu.Sub`: a row that opens another menu beside it. See [Submenus](#submenus).
