@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { formatters, parsers } from '../internal/format';
 import { createScale, snapValue } from '../internal/scale';
-import { clipToViewport, drawSeries } from './drawing';
+import { clipToViewport, drawAxes, drawSeries } from './drawing';
 import {
   axisTicks,
   clampPoint,
@@ -258,5 +258,54 @@ test('a trace asked to extend runs on, level, to the plot edges past a safe zone
   expect(ctx.lineTo.mock.calls).toEqual([
     [50, 50],
     [90, 10],
+  ]);
+});
+
+test('an axis label gap sets the labels further off, and the ticks reach towards them', () => {
+  function draw(labelGap?: number) {
+    const ctx = {
+      save: vi.fn<() => void>(),
+      restore: vi.fn<() => void>(),
+      beginPath: vi.fn<() => void>(),
+      moveTo: vi.fn<CanvasRenderingContext2D['moveTo']>(),
+      lineTo: vi.fn<CanvasRenderingContext2D['lineTo']>(),
+      stroke: vi.fn<() => void>(),
+      fillRect: vi.fn<CanvasRenderingContext2D['fillRect']>(),
+      fillText: vi.fn<CanvasRenderingContext2D['fillText']>(),
+      measureText: () => ({ width: 10 }),
+    };
+    const rect = { left: 20, top: 0, width: 80, height: 40 };
+    drawAxes(
+      ctx as unknown as CanvasRenderingContext2D,
+      rect,
+      [{ at: 50, text: '1k' }],
+      [{ at: 20, text: '0' }],
+      { axis: '#000', label: '#fff', background: '#000' },
+      '10px sans-serif',
+      {},
+      'bottom',
+      0,
+      labelGap,
+    );
+    return ctx;
+  }
+  const plain = draw();
+  // The x tick, then the y tick, after the two axis lines.
+  expect(plain.lineTo.mock.calls.slice(2)).toEqual([
+    [50, 43.5],
+    [17.5, 20],
+  ]);
+  expect(plain.fillText.mock.calls).toEqual([
+    ['1k', 50, 50.5],
+    ['0', 15.5, 20],
+  ]);
+  const gap = draw(14);
+  expect(gap.lineTo.mock.calls.slice(2)).toEqual([
+    [50, 55.5],
+    [5.5, 20],
+  ]);
+  expect(gap.fillText.mock.calls).toEqual([
+    ['1k', 50, 64.5],
+    ['0', 1.5, 20],
   ]);
 });

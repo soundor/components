@@ -81,6 +81,8 @@ export function drawAxes(
   shown: { x?: boolean; y?: boolean } = {},
   side: 'top' | 'bottom' | 'left' | 'right' = 'bottom',
   offset = 0,
+  /** Extra pixels between the axis line and its labels. */
+  labelGap = 0,
 ) {
   const showX = shown.x ?? true;
   const showY = shown.y ?? true;
@@ -109,12 +111,20 @@ export function drawAxes(
     ctx.moveTo(left, horizontal);
     ctx.lineTo(right, horizontal);
   }
-  for (const tick of x)
-    if (contains(rect, tick.at, rect.top))
-      segment(ctx, tick.at, horizontal, tick.at, horizontal + 3 * xDirection);
-  for (const tick of y)
-    if (contains(rect, rect.left, tick.at))
-      segment(ctx, vertical, tick.at, vertical + 3 * yDirection, tick.at);
+  // Ticks reach towards labels set further off, short of them by 2 px.
+  const tick = 3 + Math.max(0, labelGap - 2);
+  for (const mark of x)
+    if (contains(rect, mark.at, rect.top))
+      segment(
+        ctx,
+        mark.at,
+        horizontal,
+        mark.at,
+        horizontal + tick * xDirection,
+      );
+  for (const mark of y)
+    if (contains(rect, rect.left, mark.at))
+      segment(ctx, vertical, mark.at, vertical + tick * yDirection, mark.at);
   ctx.stroke();
   ctx.font = font;
   ctx.textBaseline = 'middle';
@@ -130,7 +140,7 @@ export function drawAxes(
       ctx,
       tick.text,
       at,
-      horizontal + 10 * xDirection,
+      horizontal + (10 + labelGap) * xDirection,
       'center',
       colors.label,
       colors.background,
@@ -141,7 +151,7 @@ export function drawAxes(
       axisLabel(
         ctx,
         tick.text,
-        vertical + 5 * yDirection,
+        vertical + (5 + labelGap) * yDirection,
         tick.at,
         yDirection > 0 ? 'left' : 'right',
         colors.label,
